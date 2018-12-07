@@ -1,46 +1,58 @@
-import { DataEngine } from "./engine";
+import {DataEngine} from "./engine"
+import {readFileSync, existsSync, writeFileSync} from "fs"
+import {encrypt, decrypt} from "./utils"
+import {LocalFormula} from "./localEngine";
+
+function APP_FOLDER() {
+    return "data"
+}
+const STORAGE = "data.dat"
 
 /**
  * app本地存储data的存储类。
  */
 class AppStorage {
-    private authenticated: boolean = false
-    private initialized: boolean = null
+    static authenticate(loginPassword: string): AppStorage {
+        let buf = readFileSync(`${APP_FOLDER()}/${STORAGE}`)
+        let data = decrypt(loginPassword, buf)
+        if(data != null) {
+            return new AppStorage(data, loginPassword)
+        }else{
+            return null
+        }
+    }
+    static initialize(password: string, formula: Formula): AppStorage {
+        let data = {
+            mainFormula: formula,
+            secondaryFormulas: []
+        }
+        let storage = new AppStorage(data, password)
+        storage.save()
+        return storage
+    }
+    static isInitialized(): boolean {
+        return existsSync(`${APP_FOLDER()}/${STORAGE}`)
+    }
 
     private mainFormula: Formula = null
-    private secondaryFormula: Array<Formula> = new Array()
+    private secondaryFormula: Formula[] = new Array()
 
-    authenticate(loginPassword: String): boolean {
-        if(!this.authenticated) {
-            //TODO
-        }else{
-            return true
+    private constructor(json: Object, private password: string) {
+        this.mainFormula = createFormula(json['mainFormula'])
+        this.secondaryFormula = []
+        if(json['secondFormulas']) {
+            for(let i in json['secondFormulas']) {
+                this.secondaryFormula[i] = createFormula(json['secondaryFormulas'][i])
+            }
         }
     }
-    isAuthenticated(): boolean {
-        return this.authenticated
-    }
 
-    /**
-     * 初始化本地存储。使用于第一次打开app和重置后。
-     * 初始化存储需要密码和主存方案。
-     * 初始化后会自动认证。
-     */
-    initialize(password: string, formula: Formula): void {
-        if(!this.isInitialized()) {
-
-        }
-    }
-    /**
-     * 存储是否已经初始化过。
-     */
-    isInitialized(): boolean {
-        if(this.initialized != null) {
-            return this.initialized
-        }else {
-
-            //TODO set initialized
-        }
+    save() {
+        let buf = encrypt(this.password, {
+            mainFormula: this.mainFormula,
+            secondFormulas: this.secondaryFormula
+        })
+        writeFileSync(`${APP_FOLDER()}/${STORAGE}`, buf)
     }
 
     loadMainEngine(): DataEngine {
@@ -54,43 +66,28 @@ class AppStorage {
         })
         return null
     }
+    loadAllSecondaryEngine(): DataEngine[] {
+        let ret = []
+        for(let i in this.secondaryFormula) {
+            ret[i] = this.secondaryFormula[i].buildEngine()
+        }
+        return ret
+    }
 }
 
 interface Formula {
     readonly type: string
     id: string
-    key: string,
-    config: Object
+    key: string
     buildEngine(): DataEngine
 }
 
-function encrypt(key: string, json: Object): string {
-    let passwd = turnToPasswordSequence(key)
-    let flag = turnToFlagSequence(key)
-    let passwdBuf = turnToBinary(passwd)
-    let data = 'DATA:' + flag + ':' + JSON.stringify(json)
-    let dataBuf = loopChange(turnToBinary(data), 8, 1)
-    let finalBuf = xor(dataBuf, passwdBuf)
-    return turnToString(finalBuf)
-}
-
-function turnToPasswordSequence(key: string): string {
-    throw new Error()
-}
-function turnToFlagSequence(key: string): string {
-    throw new Error()
-}
-function turnToBinary(key: string): number[] {
-    throw new Error()
-}
-function turnToString(binary: number[]): string {
-    throw new Error()
-}
-function loopChange<T>(arr: T[], groupSize: number, step: number): T[] {
-    throw new Error()
-}
-function xor(data: number[], key: number[]): number[] {
-    throw new Error()
+function createFormula(data: Object): Formula {
+    let type = data['type']
+    switch(type) {
+        case 'local': return new LocalFormula(data['id'], data['key'], data['storage'])
+        default: return null
+    }
 }
 /**
  * 存储使用的方案：
@@ -113,4 +110,4 @@ function xor(data: number[], key: number[]): number[] {
  * 3. 二进制序列以8位为一组，组内位循环向左推1位。
  * 4. 转换为string。如果string的前几位是"DATA:标记序列:"则解密成功，剩下的部分转换为json。
  */
-export {AppStorage, Formula}
+export {AppStorage, Formula, encrypt, decrypt}

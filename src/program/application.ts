@@ -6,16 +6,14 @@ class Application {
     private mainWindow: BrowserWindow = null
     private subWindows: Array<BrowserWindow> = new Array()
 
-    private storage: AppStorage = new AppStorage()
+    private storage: AppStorage = null
     private engine: DataEngine = null
 
     constructor() {
         this.registerAppEvents()
     }
 
-    authenticate(loginPassword: string): boolean {
-        return this.storage.authenticate(loginPassword)
-    }
+
     loadMainEngine(): boolean {
         if(this.engine != null) {
             return true
@@ -27,9 +25,6 @@ class Application {
         }else{
             return false
         }
-    }
-    initialize() {
-        
     }
 
     registerAppEvents() {
