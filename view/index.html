@@ -3,15 +3,17 @@
   <head>
     <meta charset="UTF-8">
     <title>Hello World!</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="../view.css/layout.css">
+    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
   </head>
   <body>
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chrome <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
-    <div id="d">
-      <img id="i" style="width:100%;height:100%"/>
+    <div class="container">
+      
+    </div>
+    <div id="app" class="center-board" style="width:300px; height:350px;">
+        <h2>{{message}}</h2>
     </div>
   </body>
-  <script src="../target/view/index.js"></script>
+  <script src="../view.js/index.js"></script>
 </html>
