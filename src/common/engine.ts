@@ -9,25 +9,43 @@ import { Size } from "electron";
  * 3. (批量)更新items。包括其bitmap。
  * 4. (批量)新建items。包括其bitmap。
  * 5. 获取一份bitmap，并制定规格。bitmap需要被缓存。
+ * 
+ * tag使用string合并模式: `${type-flag}${title}`。
+ * type-flag包括：
+ *      # content
+ *      @ author
+ *      % type
  */
 interface DataEngine {
-    findTag(filter?: Object, order?: Array<string>): Array<Tag>
-    findImage(filter?: Object, order?: Array<string>): Array<Image>
-    deleteTag(ids: Iterable<number>): number
-    deleteImage(ids: Iterable<number>): number
-    updateTag(tags: Iterable<Tag>): number
-    updateImage(images: Iterable<Image>): number
-    createTag(tags: Iterable<Tag>): number
-    createImage(images: Iterable<Image>): number
-    /**
-     * 加载指定image。返回值为DataURL。
-     * @param id image的id。
-     * @param specification 加载的规范尺寸。
-     */
+    findImage(options?: ImageFindOption): Array<Image>
+    createImage(images: Array<Image>): Array<Image>
+    updateImage(images: Array<Image>): Array<Image>
+    deleteImage(images: Array<Image | number>): number
     loadImageURL(id: number, specification?: ImageSpecification): string
+    findTag(options?: TagFindOption): Array<string>
 
     connect?(): void
     close?(): void
+}
+
+interface ImageFindOption {
+    search?: string,
+    order?: string[],
+    id_eq?: number,
+    id_in?: number[],
+    title_eq?: string,
+    collection_eq?: string,
+    tag_contains?: string[][],
+    favorite_eq?: boolean,
+    createTime_le?: number,
+    createTime_ge?: number
+}
+
+interface TagFindOption {
+    search?: string,
+    order?: string[],
+    type_eq?: string,
+    title_eq?: string
 }
 
 enum ImageSpecification {
@@ -36,22 +54,16 @@ enum ImageSpecification {
     Origin
 }
 
-interface Tag {
-    id: number
-    name: string
-    type: string
-}
-
 interface Image {
-    id: number
+    id?: number
     title: string
     collection: string
-    tags: Array<Tag>
+    tags: Array<string>
     favorite: boolean
     links: Array<string>
     resolution: Size,
-    createTime: Date,
+    createTime: number,
     buffer?: Buffer
 }
 
-export {DataEngine, ImageSpecification, Tag, Image}
+export {DataEngine, ImageSpecification, ImageFindOption, TagFindOption, Image}
