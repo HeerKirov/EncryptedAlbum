@@ -52,6 +52,7 @@ class AppStorage {
             mainFormula: this.mainFormula,
             secondFormulas: this.secondaryFormula
         })
+        //TODO 保存时还未解决创建文件夹的问题。
         writeFileSync(`${APP_FOLDER()}/${STORAGE}`, buf)
     }
 
