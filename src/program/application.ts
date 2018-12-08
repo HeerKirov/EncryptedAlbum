@@ -8,9 +8,16 @@ let subWindows: Array<BrowserWindow> = new Array()
 let storage: AppStorage = null
 let engine: DataEngine = null
 
-function applicationRun() {
+function applicationRun(defaultAuthenticate?: string) {
     registerSynchronousEvent()
     registerAppEvents()
+
+    if(defaultAuthenticate) {
+        let result = AppStorage.authenticate(defaultAuthenticate)
+        if(result != null) {
+            storage = result
+        }
+    }
 }
 
 function registerAppEvents() {
