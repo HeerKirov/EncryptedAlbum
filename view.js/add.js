@@ -4,11 +4,14 @@ const {Vue} = require('../view.js/base')
 let vm = new Vue({
     el: '#app',
     data: {
-        /* 结果和状态都寄存到主进程。这样可以保持主页状态持久化。 */
+
     },
     methods: {
+        goBack: function() {
+            ipcRenderer.send('goto', 'main')
+        },
         addGeneral: function() {
-            ipcRenderer.sendSync('goto', 'add')
+            
         }
     }
 })

@@ -100,7 +100,7 @@ function getMainWindow(): BrowserWindow {
     return mainWindow
 }
 function createMainWindow() {
-    let win: BrowserWindow = new BrowserWindow({width: 1200, height: 800})
+    let win: BrowserWindow = new BrowserWindow({width: 1200, height: 800, minWidth: 640, minHeight: 480})
     win.setMenuBarVisibility(false)
     win.on('closed', function() {mainWindow = null})
 

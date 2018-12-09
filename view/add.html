@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Photos</title>
+    <link rel="stylesheet" href="../view.css/layout.css">
+    <link rel="stylesheet" href="../view.css/font-awesome.css">
+    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <style>
+      body {background: #f0f0f0}
+      nav {
+          background: #ffffff;
+          border-bottom-style: solid;
+          border-bottom-width: 1px;
+          border-bottom-color: lightgray
+      }
+    </style>
+  </head>
+  <body>
+        <div id="app" class="container-fruid">
+            <nav class="navbar navbar-expand-sm fixed-top" style="height: 50px">
+                
+                <div class="row" style="width: 100%">
+                    <div class="col"></div>
+                    <div class="col-auto">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-angle-double-left"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-angle-left"></i></button>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group">
+                            <input type="text" class="form-control" style="width: 60px; height: 31px;">
+                            <label class="pt-1">/</label>
+                            <span class="input-group-text" style="width: 60px; height: 31px;">MAX</span>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-angle-right"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-angle-double-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="col"></div>
+                </div>
+                <div class="ml-2" style="position: absolute; left: 0px;">
+                    <button type="button" class="btn btn-sm btn-link" v-on:click="goBack"><i class="fa fa-close"></i></button>
+                </div>
+                <div class="mr-2" style="position: fixed; right: 0px;">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-success" v-on:click="addGeneral"><i class="fa fa-plus"></i> 添加新项目</button>
+                        <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"></button>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            <a class="dropdown-item" href="#">从Pixiv添加新项目…</a>
+                            <a class="dropdown-item" href="#">从URL添加新项目…</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            <div class="container" style="margin-top: 100px; ">
+                <div class="row">
+                    <div class="col">
+                        <div class="row">
+                            <div class="col">
+                                <img src=""/>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                1920 × 1080
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label>标题:</label>
+                            <input type="email" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>画集:</label>
+                            <input type="text" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <div><label>标签:</label></div>
+                            <div></div>
+                            <div class="btn-group mt-2 ml-1">
+                                <button class="btn text-dark collapsed" data-toggle="collapse" data-target="#edit-tag" aria-expanded="false">
+                                    <i class="fa fa-caret-down"></i> 现有
+                                </button>
+                                <input type="text" class="form-control rounded-0"/>
+                                <button type="button" class="btn btn-success"><i class="fa fa-plus"></i> 新标签</button>
+                            </div>
+                            <div class="collapse m-1" id="edit-tag">
+                                <span class="badge badge-info">旧标签</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div><label>相关链接:</label></div>
+                            <div class="btn-group" style="width:100%">
+                                <input type="text" class="form-control">
+                                <button type="button" class="btn btn-danger rounded"><i class="fa fa-close"></i></button>
+                            </div>
+                            <button type="button" class="btn mt-2 btn-sm btn-block btn-success"><i class="fa fa-plus"></i>新条目</button>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="checkbox"> 加入收藏
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin: auto; position: fixed; bottom: 0px; right: 0px;">
+                <button class="btn btn-sm m-2 btn-danger"><i class="fa fa-trash"></i> 移除</button>
+            </div>
+        </div>
+  </body>
+  <script src="../view.js/add.js"></script>
+</html>

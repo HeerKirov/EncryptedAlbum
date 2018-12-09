@@ -9,26 +9,164 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <style>
       body {background: #f0f0f0}
-      nav {background: #ffffff}
+      nav {
+          background: #ffffff;
+          border-bottom-style: solid;
+          border-bottom-width: 1px;
+          border-bottom-color: lightgray
+      }
     </style>
   </head>
   <body>
     <div id="app" class="container-fruid">
-        <nav class="navbar navbar-expand-sm fixed-top">
-          <div class="row">
-            <div class="col">
+        <nav class="navbar navbar-expand-sm fixed-top" style="height: 50px">
+            <div class="ml-2" style="position: fixed; left: 0px;">
+              <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-success" v-on:click="addGeneral"><i class="fa fa-plus"></i></button>
+                <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"></button>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="#">添加来自Pixiv的URL…</a>
+                  <a class="dropdown-item" href="#">添加一般的URL…</a>
+                </div>
+              </div>
+            </div>
+            <div style="position: absolute; left: 64px">
                 <div class="btn-group">
-                    <button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"><i class="fa fa-plus"></i></button>
-                    <div class="dropdown-menu">
-                      <a class="dropdown-item" href="#">添加本地文件…</a>
-                      <a class="dropdown-item" href="#">添加来自Pixiv的URL…</a>
-                    </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#sortModal"><i class="fa fa-sort-amount-desc"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#filterModal"><i class="fa fa-filter"></i></button>
+                  <input type="text" class="form-control rounded-0" style="width: 320px; height: 31px;">
+                  <button type="button" class="btn btn-sm btn-secondary"><i class="fa fa-search"></i></button>
+                </div>
+            </div>
+            <div class="mr-2" style="position: absolute; right: 71px;">
+              <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary">
+                  <div class="d-none d-md-block"><i class="fa fa-list"></i> 阅览列表</div>
+                  <div class="d-md-none"><i class="fa fa-list"></i></div>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary">
+                  <div class="d-none d-md-block"><i class="fa fa-folder-o"></i> 临时文件夹</div>
+                  <div class="d-md-none"><i class="fa fa-folder-o"></i></div>
+                </button>
+              </div>
+            </div>
+            <div class="mr-2" style="position: absolute; right: 35px">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#viewModal"><i class="fa fa-eye"></i></button>
+            </div>
+            <div class="mr-2" style="position: absolute; right: 0px">
+              <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-cog"></i></button>
+            </div>
+        </nav>
+
+        <div class="modal fade" id="viewModal">
+          <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">视图</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+              </div>
+              <div class="modal-body">
+                <div class="form-check">
+                  <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input" value="">按照画集聚合显示
+                  </label>
+                </div>
+                <div class="form-check">
+                  <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input" value="">显示标题
+                  </label>
+                </div>
+                <div class="row">
+                  <div class="col">
+                    <input type="range" class="custom-range" min="1" max="10" step="1" value="5" style="height: 25px">
                   </div>
+                  <div class="col-auto">
+                    <label>图片缩放</label>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">确定</button>
+              </div>
             </div>
           </div>
-        </nav>
-        <div class="" style="margin-top: 55px;">
+        </div>
 
+        <div class="modal fade" id="sortModal">
+          <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">排序选项</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+              </div>
+              <div class="modal-body">
+                <div class="radio">
+                  <label><input type="radio" name="sortRadio">按标题排序</label>
+                </div>
+                <div class="radio">
+                  <label><input type="radio" name="sortRadio">按创建时间排序</label>
+                </div>
+                <div class="radio">
+                  <label><input type="radio" name="sortRadio">按标签排序</label>
+                </div>
+                <div class="form-check">
+                  <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input" value="">降序
+                  </label>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">确定</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="filterModal">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">筛选选项</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+              </div>
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-auto"><label>收藏夹</label></div>
+                  <div class="col"><input type="checkbox" class="form-check-input" value=""></div>
+                </div>
+                <div class="row">
+                  <div class="col">标签组</div>
+                  <div class="col">/*TODO*/</div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">确定</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="" style="margin-top: 55px; margin-bottom: 55px;">
+
+        </div>
+
+        <div style="margin: auto; position: fixed; left:0px; bottom:0px; width: 620px;">
+          <div class="card m-1 p-1">
+            <div class="row">
+              <div class="col">
+                已选择<span class="badge badge-light">0</span>项
+              </div>
+              <div class="col-auto">
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-outline-secondary">全选</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary">反选</button>
+                </div>
+              </div>
+              <div class="col-auto">
+                <button type="button" class="btn btn-sm btn-primary">添加到临时文件夹</button>
+              </div>
+            </div>
+          </div>
         </div>
     </div>
   </body>
