@@ -1,4 +1,4 @@
-import { Size } from "electron";
+import { Size } from "electron"
 
 /**
  * 数据引擎的接口。

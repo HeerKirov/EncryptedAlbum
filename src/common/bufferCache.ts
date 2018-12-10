@@ -1,4 +1,4 @@
-import { ImageSpecification } from "./engine";
+import { ImageSpecification } from "./engine"
 
 class BufferCache<T> {
     constructor() {
@@ -15,7 +15,7 @@ class BufferCache<T> {
         this.memory[specification][id] = obj
     }
 
-    private memory: {}
+    private readonly memory: {}
 }
 
 export {BufferCache}

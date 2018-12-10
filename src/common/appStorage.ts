@@ -1,7 +1,7 @@
 import {DataEngine} from "./engine"
 import {readFileSync, existsSync, writeFileSync} from "fs"
 import {encrypt, decrypt} from "./utils"
-import {LocalFormula} from "./localEngine";
+import {LocalFormula} from "./localEngine"
 
 function APP_FOLDER() {
     return "data"
@@ -35,7 +35,7 @@ class AppStorage {
     }
 
     private mainFormula: Formula = null
-    private secondaryFormula: Formula[] = new Array()
+    private secondaryFormula: Formula[] = []
 
     private constructor(json: Object, private password: string) {
         this.mainFormula = createFormula(json['mainFormula'])

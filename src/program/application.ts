@@ -1,9 +1,9 @@
 import {app, BrowserWindow, ipcMain} from 'electron'
-import {DataEngine} from '../common/engine';
-import {AppStorage} from '../common/appStorage';
+import {DataEngine} from '../common/engine'
+import {AppStorage} from '../common/appStorage'
 
 let mainWindow: BrowserWindow = null
-let subWindows: Array<BrowserWindow> = new Array()
+let subWindows: Array<BrowserWindow> = []
 
 let storage: AppStorage = null
 let engine: DataEngine = null
@@ -51,8 +51,8 @@ function registerSynchronousEvent() {
         //发起登陆认证。
         //arg: string 登录密码。
         //return: boolean 是否登录成功。
-        let password = arg
-        let result = AppStorage.authenticate(password)
+        let passwd = arg
+        let result = AppStorage.authenticate(passwd)
         if(result != null) {
             storage = result
             e.returnValue = true

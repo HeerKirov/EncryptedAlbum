@@ -1,10 +1,10 @@
 import {DataEngine, ImageSpecification, ImageFindOption, TagFindOption, Image} from './engine'
-import { Formula, decrypt } from './appStorage';
-import { BufferCache } from './bufferCache';
-import { writeFileSync, readFileSync, existsSync } from 'fs';
-import { encrypt } from './utils';
-import { NativeImage } from 'electron';
-import { translateNativeImage } from './imageTool';
+import { Formula, decrypt } from './appStorage'
+import { BufferCache } from './bufferCache'
+import { writeFileSync, readFileSync, existsSync } from 'fs'
+import { encrypt } from './utils'
+import { NativeImage } from 'electron'
+import { translateNativeImage } from './imageTool'
 
 const STORAGE = 'data.db'
 

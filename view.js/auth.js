@@ -23,30 +23,30 @@ let vm = new Vue({
     methods: {
         load: function() {
             let status = ipcRenderer.sendSync('authenticate-status')
-            if(status == "not-init") {
+            if(status === "not-init") {
                 this.initData.step = 1
                 this.status = "init"
-            }else if(status == "not-auth") {
+            }else if(status === "not-auth") {
                 this.status = "login"
             }else{//auth
                 ipcRenderer.send('goto', 'main')
             }
         },
         initNextStep: function() {
-            if(this.initData.step == 1) {
+            if(this.initData.step === 1) {
                 this.initData.step ++
-            }else if(this.initData.step == 2) {
-                if(this.initData.password == '') {
+            }else if(this.initData.step === 2) {
+                if(this.initData.password === '') {
                     this.initData.error = 'empty-passwd'
-                }else if(this.initData.password != this.initData.checkPassword) {
+                }else if(this.initData.password !== this.initData.checkPassword) {
                     this.initData.error = 'not-eq-passwd'
                 }else{
                     this.initData.error = ''
                     this.initData.step ++
                     this.initData.formula.key = uuid(32, 16)
                 }
-            }else if(this.initData.step == 3){
-                if(this.initData.formula.key == '') {
+            }else if(this.initData.step === 3){
+                if(this.initData.formula.key === '') {
                     this.initData.error = 'empty-key'
                 }else{
                     let result = ipcRenderer.sendSync('initialize', {
@@ -70,7 +70,7 @@ let vm = new Vue({
             }
         },
         loginGo: function() {
-            if(this.loginData.password == '') {
+            if(this.loginData.password === '') {
                 this.loginData.error = 'empty-passwd'
             }else{
                 let result = ipcRenderer.sendSync('authenticate', this.loginData.password)

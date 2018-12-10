@@ -1,15 +1,15 @@
-import { NativeImage } from "electron";
-import { ImageSpecification } from "./engine";
+import { NativeImage } from "electron"
+import { ImageSpecification } from "./engine"
 
 const EXHIBITION_AREA_MAX = Math.pow(2, 20)
 const THUMBNAIL_AREA_MAX = Math.pow(2, 16)
 
 function translateSquare(origin: NativeImage): NativeImage {
-    let size = origin.getSize()
-    if(size.width > size.height) {
-        return origin.crop({x: Math.floor((size.width - size.height) / 2), y: 0, width: size.height, height: size.height})
-    }else if(size.width < size.height){
-        return origin.crop({x: 0, y: Math.floor((size.height - size.width) / 2), width: size.width, height: size.width})
+    let {width, height} = origin.getSize()
+    if(width > height) {
+        return origin.crop({x: Math.floor((width - height) / 2), y: 0, width: height, height: height})
+    }else if(width < height){
+        return origin.crop({x: 0, y: Math.floor((height - width) / 2), width: width, height: width})
     }else{
         return origin
     }
