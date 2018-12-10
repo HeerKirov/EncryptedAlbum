@@ -21,20 +21,13 @@
     <div id="app" class="container-fruid">
         <nav class="navbar navbar-expand-sm fixed-top" style="height: 50px">
             <div class="ml-2" style="position: fixed; left: 0;">
-              <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-success" v-on:click="addGeneral"><i class="fa fa-plus"></i></button>
-                <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"></button>
-                <div class="dropdown-menu">
-                  <a class="dropdown-item" href="#">添加来自Pixiv的URL…</a>
-                  <a class="dropdown-item" href="#">添加一般的URL…</a>
-                </div>
-              </div>
+                <button type="button" class="btn btn-sm btn-success" v-on:click="add"><i class="fa fa-plus"></i></button>
             </div>
-            <div style="position: absolute; left: 64px">
+            <div style="position: absolute; left: 42px">
                 <div class="btn-group">
                   <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#sortModal"><i class="fa fa-sort-amount-desc"></i></button>
                   <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#filterModal"><i class="fa fa-filter"></i></button>
-                  <input type="text" class="form-control rounded-0" style="width: 320px; height: 31px;">
+                  <input type="text" class="form-control rounded-0" style="width: 342px; height: 31px;">
                   <button type="button" class="btn btn-sm btn-secondary"><i class="fa fa-search"></i></button>
                 </div>
             </div>

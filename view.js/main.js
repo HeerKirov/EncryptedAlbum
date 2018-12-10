@@ -7,7 +7,7 @@ let vm = new Vue({
         /* 结果和状态都寄存到主进程。这样可以保持主页状态持久化。 */
     },
     methods: {
-        addGeneral: function() {
+        add: function() {
             ipcRenderer.sendSync('goto', 'add')
         }
     }
