@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain} from 'electron'
+import {app, BrowserWindow, ipcMain, nativeImage} from 'electron'
 import {DataEngine} from '../common/engine'
 import {AppStorage} from '../common/appStorage'
 
@@ -71,6 +71,28 @@ function registerSynchronousEvent() {
             e.returnValue = true
         }else{
             e.returnValue = false
+        }
+    })
+
+    ipcMain.on('load-engine', (e, arg) => {
+        //发起引擎初始化流程。
+        //return: boolean 引擎是否可用。交给前端做一些判断。
+        e.returnValue = loadMainEngine()
+    })
+    ipcMain.on('get-next-id', (e, arg) => {
+        //获得下一个可用的id。id总是递增的，因此可以接续此序号连续使用。
+        //return: number
+        e.returnValue = engine.getNextId()
+    })
+    ipcMain.on('create-image', (e, arg) => {
+        //调用创建image的库api。
+        //arg: Image[]形式的结构体。
+        //return: null | {...} 是否发生了不可预见的异常。返回null时表示无异常。
+        try {
+            engine.createImage(arg)
+            e.returnValue = null
+        }catch (err) {
+            e.returnValue = err
         }
     })
 }

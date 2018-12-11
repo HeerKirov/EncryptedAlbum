@@ -62,6 +62,9 @@ class LocalDataEngine implements DataEngine {
     findTag(options?: TagFindOption): string[] {
         throw new Error("Method not implemented.");
     }
+    getNextId(): number {
+        return this.indexMemory
+    }
 
     connect(): void {
         this.load()

@@ -11,9 +11,7 @@
       body {background: #f0f0f0}
       nav {
           background: #ffffff;
-          border-bottom-style: solid;
-          border-bottom-width: 1px;
-          border-bottom-color: lightgray
+          border-bottom: 1px solid lightgray;
       }
     </style>
   </head>
@@ -36,7 +34,7 @@
                         <div class="btn-group">
                             <input type="text" class="form-control" style="width: 60px; height: 31px;" v-model="currentIndexInput">
                             <label class="pt-1">/</label>
-                            <span class="input-group-text" style="width: 60px; height: 31px;">{{items.length}}</span>
+                            <span class="input-group-text" style="width: 60px; height: 31px;">{{count}}</span>
                         </div>
                     </div>
                     <div class="col-auto">
@@ -73,17 +71,17 @@
             <div class="center-board" style="width: 200px; height: 200px;" v-if="emptyList">
                 <div class="row p-2">
                     <div class="col">
-                        <button type="button" class="btn btn-link">导入本地文件…</button>
+                        <button type="button" class="btn btn-link" v-on:click="addGeneral">导入本地文件…</button>
                     </div>
                 </div>
                 <div class="row p-2">
                     <div class="col">
-                        <button type="button" class="btn btn-link">添加Pixiv项目…</button>
+                        <button type="button" class="btn btn-link" v-on:click="addPixiv">添加Pixiv项目…</button>
                     </div>
                 </div>
                 <div class="row p-2">
                     <div class="col">
-                        <button type="button" class="btn btn-link">添加网络URL…</button>
+                        <button type="button" class="btn btn-link" v-on:click="addURL">添加网络URL…</button>
                     </div>
                 </div>
             </div>
@@ -92,7 +90,7 @@
                     <div class="col">
                         <div class="row">
                             <div class="col">
-                                <img alt="" v-on:src="current.dataURL"/>
+                                <img alt="预览" style="width: 100%; height: 100%;" v-bind:src="current.dataURL"/>
                             </div>
                         </div>
                         <div class="row">
@@ -104,16 +102,16 @@
                     <div class="col">
                         <div class="form-group">
                             <label>标题:</label>
-                            <input type="email" class="form-control" v-model="title">
+                            <input type="email" class="form-control" v-model="current.title">
                         </div>
                         <div class="form-group">
                             <label>画集:</label>
-                            <input type="text" class="form-control" v-model="collection">
+                            <input type="text" class="form-control" v-model="current.collection">
                         </div>
                         <div class="form-group">
                             <div><label>标签:</label></div>
                             <div>
-                                <span v-for="tag in current.tags" class="badge badge-info" v-bind:class="getTagType(tag)">
+                                <span v-for="tag in current.tags" class="badge" v-bind:class="getTagType(tag)">
                                     <a class="text-white" v-on:click="removeTag(tag)">{{getTagName(tag)}}</a>
                                 </span>
                             </div>
@@ -133,7 +131,7 @@
                                 </button>
                             </div>
                             <div class="collapse m-1" id="edit-tag">
-                                <span v-for="tag in tags" class="badge badge-info" v-bind:class="getTagType(tag)">
+                                <span v-for="tag in tags" class="badge" v-bind:class="getTagType(tag)">
                                     <a class="text-white" v-on:click="addOldTag(tag)">{{getTagName(tag)}}</a>
                                 </span>
                             </div>
@@ -160,7 +158,7 @@
             </div>
 
             <div style="margin: auto; position: fixed; bottom: 0; right: 0;">
-                <button class="btn btn-sm m-2 btn-danger" v-on:click="removeItem"><i class="fa fa-trash"></i> 移除</button>
+                <button class="btn btn-sm m-2 btn-danger" v-if="!emptyList" v-on:click="removeItem"><i class="fa fa-trash"></i> 移除</button>
             </div>
         </div>
   </body>

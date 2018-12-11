@@ -23,6 +23,7 @@ interface DataEngine {
     deleteImage(images: Array<Image | number>): number
     loadImageURL(id: number, specification?: ImageSpecification): string
     findTag(options?: TagFindOption): Array<string>
+    getNextId(): number
 
     connect?(): void
     close?(): void
