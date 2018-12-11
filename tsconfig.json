@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "outDir": "target",
+        "removeComments": true,
         "target": "es5"
     },
     "include": [
