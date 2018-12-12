@@ -1,4 +1,5 @@
 import { Size } from "electron"
+import {containsAll, findLikeIn} from "./utils";
 
 /**
  * 数据引擎的接口。
@@ -21,22 +22,26 @@ interface DataEngine {
     createImage(images: Array<Image>): Array<Image>
     updateImage(images: Array<Image>): Array<Image>
     deleteImage(images: Array<Image | number>): number
-    loadImageURL(id: number, specification?: ImageSpecification): string
+    loadImageURL(id: number, specification?: ImageSpecification, callback?: (string) => void): string
     findTag(options?: TagFindOption): Array<string>
     getNextId(): number
 
-    connect?(): void
+    connect?(): boolean
     close?(): void
+
+    load?(): boolean
+    save?(): void
 }
 
 interface ImageFindOption {
     search?: string,
     order?: string[],
+    desc?: boolean,
     id_eq?: number,
     id_in?: number[],
     title_eq?: string,
     collection_eq?: string,
-    tag_contains?: string[][],
+    tag_contains?: string[],
     favorite_eq?: boolean,
     createTime_le?: number,
     createTime_ge?: number
@@ -45,6 +50,7 @@ interface ImageFindOption {
 interface TagFindOption {
     search?: string,
     order?: string[],
+    desc?: boolean,
     type_eq?: string,
     title_eq?: string
 }
@@ -67,4 +73,50 @@ interface Image {
     buffer?: Buffer
 }
 
-export {DataEngine, ImageSpecification, ImageFindOption, TagFindOption, Image}
+function caseImage(image: Image, option: ImageFindOption): boolean {
+    if(option.id_eq && image.id !== option.id_eq) return false
+    else if(option.id_in && (!(image.id in option.id_in))) return false
+    else if(option.title_eq && image.title !== option.title_eq) return false
+    else if(option.collection_eq && image.collection !== option.collection_eq) return false
+    else if(option.tag_contains && (!containsAll(image.tags, option.tag_contains))) return false
+    else if(option.favorite_eq && image.favorite !== image.favorite) return false
+    else if(option.createTime_ge && image.createTime < option.createTime_ge) return false
+    else if(option.createTime_le && image.createTime > option.createTime_le) return false
+    else return !(option.search && (!findLikeIn(option.search, [image.title, image.collection])));
+}
+
+function sortImage(images: Image[], order: string[], desc: boolean): Image[] {
+    let gt = desc ? -1 : 1
+    let lt = desc ? 1 : -1
+    images.sort((a, b) => {
+        for(let field of order) {
+            if(field === 'id') {
+                if(a.id !== b.id) return a.id > b.id ? gt : lt
+            }else if(field === 'title') {
+                let titleA = a.title ? a.title : a.collection ? a.collection : null
+                let titleB = b.title ? b.title : b.collection ? b.collection : null
+                if(titleA !== titleB) return titleA > titleB ? gt : lt
+            }else if(field === 'favorite') {
+                if(a.favorite !== b.favorite) return a.favorite ? gt : lt
+            }else if(field === 'resolution') {
+                let areaA = a.resolution.width * a.resolution.height
+                let areaB = b.resolution.width * b.resolution.height
+                if(areaA !== areaB) return areaA > areaB ? gt : lt
+            }else if(field === 'createTime') {
+                if(a.createTime !== b.createTime) return a.createTime > b.createTime ? gt : lt
+            }
+        }
+        return 0
+    })
+    return images
+}
+
+function caseTag(tag: string, option: TagFindOption): boolean {
+    //TODO
+    return true
+}
+function sortTag(tags: string[], order: string[], desc: boolean): string[] {
+    //TODO
+    return tags
+}
+export {DataEngine, ImageSpecification, ImageFindOption, TagFindOption, Image, caseImage, sortImage, caseTag, sortTag}

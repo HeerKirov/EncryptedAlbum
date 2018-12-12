@@ -90,6 +90,7 @@ function registerSynchronousEvent() {
         //return: null | {...} 是否发生了不可预见的异常。返回null时表示无异常。
         try {
             engine.createImage(arg)
+            engine.save()
             e.returnValue = null
         }catch (err) {
             e.returnValue = err
@@ -104,7 +105,7 @@ function loadMainEngine(): boolean {
     let result: DataEngine = storage.loadMainEngine()
     if(result != null) {
         engine = result
-        return true
+        return result.connect()
     }else{
         return false
     }

@@ -101,5 +101,45 @@ function uuid(len, radix) {
     }
     return uuid.join('')
 }
+/**
+ * 检查是否存在完全包含。
+ * @param main 要被检查的数组。
+ * @param contains 检查上述数组是否完全包含本数组的所有内容。
+ */
+function containsAll<T>(main: T[], contains: T[]): boolean {
+    for(let c of contains) {
+        let flag = true
+        for(let m of main) {
+            if(m === c) {
+                flag = false
+                break
+            }
+        }
+        if(flag) return false
+    }
+    return true
+}
 
-export {turnToBinary, turnToString, loopChange, xor, encrypt, decrypt, uuid}
+/**
+ * 检查search的串在keys中是否存在至少一个匹配。
+ * 匹配模式：不区分大小写，search中的空格分隔会导致查询词拆分。
+ * @param search
+ * @param keys
+ */
+function findLikeIn(search: string, keys: string[]): boolean {
+    let ss = search.split(' ')
+    for(let key of keys) {
+        let flag = true
+        for(let s of ss) {
+            if(!key.indexOf(s)) {
+                flag = false
+                break
+            }
+        }
+        if(flag) {
+            return true
+        }
+    }
+    return false
+}
+export {turnToBinary, turnToString, loopChange, xor, encrypt, decrypt, uuid, containsAll, findLikeIn}
