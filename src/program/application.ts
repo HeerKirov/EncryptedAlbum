@@ -89,6 +89,13 @@ function registerSynchronousEvent() {
         //arg: Image[]形式的结构体。
         //return: null | {...} 是否发生了不可预见的异常。返回null时表示无异常。
         try {
+            //根据转换需要，这里将arg内的buf项目从string转码为buffer。
+            for(let item of arg) {
+                if(item.buffer) {
+                    item.buffer = Buffer.from(item.buffer, 'base64')
+                }
+            }
+            //然后传入存储引擎
             engine.createImage(arg)
             engine.save()
             e.returnValue = null

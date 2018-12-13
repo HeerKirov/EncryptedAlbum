@@ -1,5 +1,5 @@
 import {DataEngine} from "./engine"
-import {readFileSync, existsSync, writeFileSync} from "fs"
+import {readFileSync, existsSync, writeFileSync, mkdir, mkdirSync} from "fs"
 import {encrypt, decrypt} from "./utils"
 import {LocalFormula} from "./localEngine"
 
@@ -52,7 +52,7 @@ class AppStorage {
             mainFormula: this.mainFormula,
             secondFormulas: this.secondaryFormula
         })
-        //TODO 保存时还未解决创建文件夹的问题。
+        mkdirSync(APP_FOLDER()) //该方法并不可以递归创建文件夹。
         writeFileSync(`${APP_FOLDER()}/${STORAGE}`, buf)
     }
 

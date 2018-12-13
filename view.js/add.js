@@ -111,7 +111,7 @@ let vm = new Vue({
                 let links = []
                 for(let j in item.links) links[j] = item.links[j].name
 
-                let buf = item.image.toJPEG(100).buffer
+                let buf = item.image.toJPEG(100).toString('base64')
                 newImages[i] = {
                     id: nextId ++,
                     title: item.title ? item.title : null,
@@ -121,10 +121,9 @@ let vm = new Vue({
                     favorite: item.favorite,
                     resolution: item.resolution,
                     createTime: new Date(),
-                    buffer: buf
+                    buffer: buf  //为了传递到主线程，buffer在这里就被劣化成JPEG100，并转换buffer至string。
                 }
                 console.log(buf)
-                //TODO 有关image定义中的buffer的格式，和前端传回的数据形式，需要进一步比对研究决定。
             }
             let rec = ipcRenderer.send('create-image', newImages)
             if(rec == null) {

@@ -63,7 +63,7 @@ class LocalDataEngine implements DataEngine {
                     }
                 }
                 this.blockMemory[image.id] = {
-                    size: image.buffer.length, //TODO 具体大小因为存储规范还未完全确定而未知
+                    size: image.buffer.byteLength,
                     blocks: blocks
                 }
             }
@@ -100,7 +100,11 @@ class LocalDataEngine implements DataEngine {
                 if(this.imageMemory[i].id === idx) {
                     this.imageMemory.splice(i, 1)
                     ret ++
-                    //TODO 追加删除缓存信息的更改
+                    this.imageDataCache.remove(idx)
+                    this.imageBufferCache.remove(idx)
+                    this.blockMemory[idx] = undefined
+                    //目前的删除方案：从缓存区删除缓存；从分区表中删除分区，但是不删除实体文件中的内容
+                    //可以做的改进：整理分区表，重新利用被删除的分区以覆盖和复用。
                     break
                 }
             }
@@ -108,34 +112,68 @@ class LocalDataEngine implements DataEngine {
         return ret
     }
     loadImageURL(id: number, specification?: ImageSpecification, callback?: (string) => void): string {
-        //TODO 更改结构至可异步。
-        let spec = specification ? specification : ImageSpecification.Origin
-        let cache = this.imageDataCache.get(spec, id)
-        if(cache != null) {
-            return cache
-        }
-        let originBuf = this.imageBufferCache.get(ImageSpecification.Origin, id)
-        if(originBuf != null) {
-            let native = NativeImage.createFromBuffer(originBuf)
-            let goalNative = translateNativeImage(native, spec)
-            let dataUrl = goalNative.toDataURL()
-            this.imageDataCache.set(spec, id, dataUrl)
-            return dataUrl
-        }
-        let {blocks, size} = this.blockMemory[id]
-        if(!blocks) {
+        if(callback !== undefined) {
+            let spec = specification ? specification : ImageSpecification.Origin
+            let cache = this.imageDataCache.get(spec, id)
+            if(cache != null) {
+                callback(cache)
+                return undefined
+            }
+            let originBuf = this.imageBufferCache.get(ImageSpecification.Origin, id)
+            if(originBuf != null) {
+                let native = NativeImage.createFromBuffer(originBuf)
+                let goalNative = translateNativeImage(native, spec)
+                let dataUrl = goalNative.toDataURL()
+                this.imageDataCache.set(spec, id, dataUrl)
+                callback(dataUrl)
+                return undefined
+            }
+            let {blocks, size} = this.blockMemory[id]
+            if(!blocks) {
+                callback(null)
+                return undefined
+            }
+            loadImageBuffer(this.storageFolder, blocks, size, (buffer) => {
+                if(buffer != null) {
+                    let native = NativeImage.createFromBuffer(buffer)
+                    let goalNative = translateNativeImage(native, spec)
+                    let dataUrl = goalNative.toDataURL()
+                    this.imageDataCache.set(spec, id, dataUrl)
+                    this.imageBufferCache.set(ImageSpecification.Origin, id, buffer)
+                    callback(dataUrl)
+                }else{
+                    callback(null)
+                }
+            })
+        }else{
+            let spec = specification ? specification : ImageSpecification.Origin
+            let cache = this.imageDataCache.get(spec, id)
+            if(cache != null) {
+                return cache
+            }
+            let originBuf = this.imageBufferCache.get(ImageSpecification.Origin, id)
+            if(originBuf != null) {
+                let native = NativeImage.createFromBuffer(originBuf)
+                let goalNative = translateNativeImage(native, spec)
+                let dataUrl = goalNative.toDataURL()
+                this.imageDataCache.set(spec, id, dataUrl)
+                return dataUrl
+            }
+            let {blocks, size} = this.blockMemory[id]
+            if(!blocks) {
+                return null
+            }
+            let buffer = loadImageBuffer(this.storageFolder, blocks, size)
+            if(buffer != null) {
+                let native = NativeImage.createFromBuffer(buffer)
+                let goalNative = translateNativeImage(native, spec)
+                let dataUrl = goalNative.toDataURL()
+                this.imageDataCache.set(spec, id, dataUrl)
+                this.imageBufferCache.set(ImageSpecification.Origin, id, buffer)
+                return dataUrl
+            }
             return null
         }
-        let buffer = loadImageBuffer(this.storageFolder, blocks, size)
-        if(buffer != null) {
-            let native = NativeImage.createFromBuffer(buffer)
-            let goalNative = translateNativeImage(native, spec)
-            let dataUrl = goalNative.toDataURL()
-            this.imageDataCache.set(spec, id, dataUrl)
-            this.imageBufferCache.set(ImageSpecification.Origin, id, buffer)
-            return dataUrl
-        }
-        return null
     }
     findTag(options?: TagFindOption): string[] {
         if(options) {
@@ -278,7 +316,7 @@ function loadImageBuffer(folder: string, blocks: number[], size: number, callbac
 }
 
 function saveImageBuffer(folder: string, buffer: Buffer, blockMaxIndex: number, callback?: (Array) => void): number[] {
-    let blockNum = Math.floor(buffer.length / BLOCK_SIZE) + 1
+    let blockNum = Math.floor(buffer.byteLength / BLOCK_SIZE) + 1
     let blocks = []
     for(let i = 0; i < blockNum; ++i) {
         blocks[i] = blockMaxIndex + i + 1
@@ -289,9 +327,9 @@ function saveImageBuffer(folder: string, buffer: Buffer, blockMaxIndex: number, 
         let filename = `${folder}/${FILE_NAME(Math.floor(block / BLOCK_IN_FILE))}`
         if(filename in map) {
             let arr = map[filename]
-            arr[arr.length] = {id: i, block: block % BLOCK_IN_FILE, size: (i === blocks.length - 1) ? buffer.length % BLOCK_SIZE : BLOCK_SIZE}
+            arr[arr.length] = {id: i, block: block % BLOCK_IN_FILE, size: (i === blocks.length - 1) ? buffer.byteLength % BLOCK_SIZE : BLOCK_SIZE}
         }else{
-            map[filename] = [{id: i, block: block % BLOCK_IN_FILE, size: (i === blocks.length - 1) ? buffer.length % BLOCK_SIZE : BLOCK_SIZE}]
+            map[filename] = [{id: i, block: block % BLOCK_IN_FILE, size: (i === blocks.length - 1) ? buffer.byteLength % BLOCK_SIZE : BLOCK_SIZE}]
         }
     }
 

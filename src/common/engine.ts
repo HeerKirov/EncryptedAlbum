@@ -112,11 +112,25 @@ function sortImage(images: Image[], order: string[], desc: boolean): Image[] {
 }
 
 function caseTag(tag: string, option: TagFindOption): boolean {
-    //TODO
-    return true
+    if(option.type_eq && tag.substring(0, 1) !== option.type_eq) return false
+    else if(option.title_eq && tag.substring(1) !== option.title_eq) return false
+    else return !(option.search && (!findLikeIn(option.search, [tag.substring(1)])))
 }
 function sortTag(tags: string[], order: string[], desc: boolean): string[] {
-    //TODO
+    let gt = desc ? -1 : 1
+    let lt = desc ? 1 : -1
+    tags.sort((a, b) => {
+        for(let field of order) {
+            if(field === 'type') {
+                let tA = a.substring(0, 1), tB = b.substring(0, 1)
+                if(tA !== tB) return tA > tB ? gt : lt
+            }else if(field === 'title') {
+                let tA = a.substring(1), tB = b.substring(1)
+                if(tA !== tB) return tA > tB ? gt : lt
+            }
+        }
+        return 0
+    })
     return tags
 }
 export {DataEngine, ImageSpecification, ImageFindOption, TagFindOption, Image, caseImage, sortImage, caseTag, sortTag}
