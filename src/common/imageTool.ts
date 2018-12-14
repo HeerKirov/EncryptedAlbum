@@ -1,8 +1,8 @@
 import { NativeImage } from "electron"
 import { ImageSpecification } from "./engine"
 
-const EXHIBITION_AREA_MAX = Math.pow(2, 20)
-const THUMBNAIL_AREA_MAX = Math.pow(2, 16)
+const EXHIBITION_AREA_MAX = Math.pow(2, 18)
+const THUMBNAIL_AREA_MAX = Math.pow(2, 15)
 
 function translateSquare(origin: NativeImage): NativeImage {
     let {width, height} = origin.getSize()
@@ -29,8 +29,8 @@ function translateBelowArea(origin: NativeImage, max: number): NativeImage {
 /**
  * 将指定的原图变换到需要的大小规格。
  * 变换规则：
- * Exhibition: 保持长宽比不变。使其像素面积不超过2^20.
- * Thumbnail: 裁切位于图片正中心的最大矩形，并使其像素面积不超过2^16.
+ * Exhibition: 裁切位于图片正中心的最大矩形，使其像素面积不超过2^18.
+ * Thumbnail: 裁切位于图片正中心的最大矩形，并使其像素面积不超过2^15.
  * @param origin 原图的NativeImage Object
  * @param specification 变换后的大小规格
  */
