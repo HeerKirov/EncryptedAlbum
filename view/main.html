@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml">
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml" xmlns:v-bind="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="UTF-8">
     <title>Photos</title>
@@ -142,7 +142,16 @@
         </div>
         
         <div class="" style="margin-top: 55px; margin-bottom: 55px;">
-
+          <div class="row">
+            <div class="col-3" v-for="image in items">
+              <div class="card" style="width:400px">
+                <img class="card-img-top" v-bind:src="image.buffer" alt="Card image" style="width:100%">
+                <div class="card-body">
+                  <h4 class="card-title">{{image.title}}</h4>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div style="margin: auto; position: fixed; left:0; bottom:0; width: 620px;">

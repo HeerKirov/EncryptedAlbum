@@ -6,13 +6,13 @@ import {
     Image,
     caseImage,
     sortImage,
-    caseTag
+    caseTag, sortTag
 } from './engine'
 import { Formula, decrypt } from './appStorage'
 import { BufferCache } from './bufferCache'
 import { writeFileSync, readFileSync, existsSync, open, read, write, openSync, readSync, writeSync, close, closeSync } from 'fs'
 import { encrypt } from './utils'
-import { NativeImage } from 'electron'
+import { nativeImage } from 'electron'
 import { translateNativeImage } from './imageTool'
 
 const STORAGE = 'data.db'
@@ -66,6 +66,7 @@ class LocalDataEngine implements DataEngine {
                     size: image.buffer.byteLength,
                     blocks: blocks
                 }
+            image.buffer = undefined
             }
         }
         if(maxIndex > this.indexMemory) {
@@ -116,32 +117,38 @@ class LocalDataEngine implements DataEngine {
             let spec = specification ? specification : ImageSpecification.Origin
             let cache = this.imageDataCache.get(spec, id)
             if(cache != null) {
+                console.log(`load ${id} from dataURL cache`)
                 callback(cache)
                 return undefined
             }
             let originBuf = this.imageBufferCache.get(ImageSpecification.Origin, id)
             if(originBuf != null) {
-                let native = NativeImage.createFromBuffer(originBuf)
+                let native = nativeImage.createFromBuffer(originBuf)
                 let goalNative = translateNativeImage(native, spec)
                 let dataUrl = goalNative.toDataURL()
                 this.imageDataCache.set(spec, id, dataUrl)
+                console.log(`load ${id} from nativeImage cache`)
                 callback(dataUrl)
                 return undefined
             }
             let {blocks, size} = this.blockMemory[id]
             if(!blocks) {
+                console.log(`load ${id} from block but it is not exist`)
                 callback(null)
                 return undefined
             }
+            console.log(`block of ${id} is ${blocks}`)
             loadImageBuffer(this.storageFolder, blocks, size, (buffer) => {
                 if(buffer != null) {
-                    let native = NativeImage.createFromBuffer(buffer)
+                    let native = nativeImage.createFromBuffer(buffer)
                     let goalNative = translateNativeImage(native, spec)
                     let dataUrl = goalNative.toDataURL()
                     this.imageDataCache.set(spec, id, dataUrl)
                     this.imageBufferCache.set(ImageSpecification.Origin, id, buffer)
+                    console.log(`load ${id} from block`)
                     callback(dataUrl)
                 }else{
+                    console.log(`load ${id} from block but buffer is not exist`)
                     callback(null)
                 }
             })
@@ -153,7 +160,7 @@ class LocalDataEngine implements DataEngine {
             }
             let originBuf = this.imageBufferCache.get(ImageSpecification.Origin, id)
             if(originBuf != null) {
-                let native = NativeImage.createFromBuffer(originBuf)
+                let native = nativeImage.createFromBuffer(originBuf)
                 let goalNative = translateNativeImage(native, spec)
                 let dataUrl = goalNative.toDataURL()
                 this.imageDataCache.set(spec, id, dataUrl)
@@ -165,7 +172,7 @@ class LocalDataEngine implements DataEngine {
             }
             let buffer = loadImageBuffer(this.storageFolder, blocks, size)
             if(buffer != null) {
-                let native = NativeImage.createFromBuffer(buffer)
+                let native = nativeImage.createFromBuffer(buffer)
                 let goalNative = translateNativeImage(native, spec)
                 let dataUrl = goalNative.toDataURL()
                 this.imageDataCache.set(spec, id, dataUrl)
@@ -184,7 +191,7 @@ class LocalDataEngine implements DataEngine {
                 }
             }
             if(options.order) {
-                sortImage(ret, options.order, options.desc !== undefined ? options.desc : false)
+                sortTag(ret, options.order, options.desc !== undefined ? options.desc : false)
             }else if(options.desc !== undefined && options.desc === false) {
                 ret.reverse()
             }

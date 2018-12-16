@@ -104,7 +104,7 @@ let vm = new Vue({
         },
         save: function () {
             let newImages = []
-            let nextId = ipcRenderer.send('get-next-id')
+            let nextId = ipcRenderer.sendSync('get-next-id')
             for(let i in this.items) {
                 let item = this.items[i]
 
@@ -123,11 +123,10 @@ let vm = new Vue({
                     createTime: new Date(),
                     buffer: buf  //为了传递到主线程，buffer在这里就被劣化成JPEG100，并转换buffer至string。
                 }
-                console.log(buf)
             }
-            let rec = ipcRenderer.send('create-image', newImages)
+            let rec = ipcRenderer.sendSync('create-image', newImages)
             if(rec == null) {
-                // ipcRenderer.send('goto', 'main')
+                ipcRenderer.send('goto', 'main')
             }else{
                 alert(rec)
             }

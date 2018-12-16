@@ -1,5 +1,5 @@
 import {app, BrowserWindow, ipcMain, nativeImage} from 'electron'
-import {DataEngine} from '../common/engine'
+import {DataEngine, ImageSpecification} from '../common/engine'
 import {AppStorage} from '../common/appStorage'
 
 let mainWindow: BrowserWindow = null
@@ -102,6 +102,38 @@ function registerSynchronousEvent() {
         }catch (err) {
             e.returnValue = err
         }
+    })
+    ipcMain.on('find-image', (e, arg) => {
+        //调用查询image列表的api。
+        //arg：ImageFindOption
+        //return: Image[]. 这个列表不包含任何图像信息，如果需要请凭ID自己提取。
+        e.returnValue = engine.findImage(e)
+    })
+    ipcMain.on('load-image-url', (e, arg) => {
+        //调用获取image图像信息的api。
+        //arg: {id: number, specification: string}
+        //return: string. DataURL.
+        let specification;
+        if(arg['specification'] === 'Exhibition') specification = ImageSpecification.Exhibition
+        else if(arg['specification'] === 'Thumbnail') specification = ImageSpecification.Thumbnail
+        else specification = ImageSpecification.Origin
+        let id = arg['id']
+        let ret = engine.loadImageURL(id, specification)
+        e.returnValue = ret
+    })
+    ipcMain.on('load-image-url-async', (e, arg) => {
+        //调用获取image图像信息的api。异步函数版。
+        //arg: {id: number, specification: string, awaitId: number}
+        //return: string. DataURL.
+        let specification;
+        if(arg['specification'] === 'Exhibition') specification = ImageSpecification.Exhibition
+        else if(arg['specification'] === 'Thumbnail') specification = ImageSpecification.Thumbnail
+        else specification = ImageSpecification.Origin
+        let id = arg['id']
+        let awaitId = ('awaitId' in arg) ? arg['awaitId'] : id
+        engine.loadImageURL(id, specification, (ret) => {
+            e.sender.send('load-image-url-await-' + awaitId, ret)
+        })
     })
 }
 
