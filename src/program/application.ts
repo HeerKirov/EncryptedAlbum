@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain, nativeImage} from 'electron'
+import {app, BrowserWindow, ipcMain, globalShortcut} from 'electron'
 import {DataEngine, ImageSpecification} from '../common/engine'
 import {AppStorage} from '../common/appStorage'
 
@@ -7,6 +7,9 @@ let subWindows: Array<BrowserWindow> = []
 
 let storage: AppStorage = null
 let engine: DataEngine = null
+
+let mainPageCache: Object = {}
+let temps: number[] = []
 
 function applicationRun(defaultAuthenticate?: string) {
     registerSynchronousEvent()
@@ -107,7 +110,7 @@ function registerSynchronousEvent() {
         //调用查询image列表的api。
         //arg：ImageFindOption
         //return: Image[]. 这个列表不包含任何图像信息，如果需要请凭ID自己提取。
-        e.returnValue = engine.findImage(e)
+        e.returnValue = engine.findImage(arg)
     })
     ipcMain.on('load-image-url', (e, arg) => {
         //调用获取image图像信息的api。
@@ -134,6 +137,41 @@ function registerSynchronousEvent() {
         engine.loadImageURL(id, specification, (ret) => {
             e.sender.send('load-image-url-await-' + awaitId, ret)
         })
+    })
+
+    ipcMain.on('load-main-cache', (e, arg) => {
+        //从主线程调用包含所有option的缓存列表。
+        //return: {filter: {...}, sort: {...}, search: string, view: {...}, folder: string}
+        e.returnValue = mainPageCache
+    })
+    ipcMain.on('save-main-cache', (e, arg) => {
+        //有选择地将一部分main页面的内容缓存下来。
+        //arg: {filter?: {...}, sort?: {...}, search?: string, view?: {...}}
+        for(let i in arg) {
+            mainPageCache[i] = arg[i]
+        }
+        e.returnValue = undefined
+    })
+    ipcMain.on('load-main-temps', (e, arg) => {
+        //加载对临时文件夹的缓存。
+        //在确认返回之前，需要确认这之中每一个id是否仍然可达。
+        //arg: {findImage: boolean} 是否直接返回已经查询完成的结果。
+        //return: number[] | Image[]
+        let ret = engine.findImage({id_in: temps})
+        if(ret.length !== temps.length) {
+            temps = []
+            for(let i = 0; i < ret.length; ++i) temps[i] = ret[i].id
+        }
+        if('findImage' in arg && arg.findImage) {
+            e.returnValue = ret
+        }else{
+            e.returnValue = temps
+        }
+    })
+    ipcMain.on('save-main-temps', (e, arg) => {
+        //保存一个临时文件夹内的id列表。
+        //arg: number[]
+        temps = arg
     })
 }
 

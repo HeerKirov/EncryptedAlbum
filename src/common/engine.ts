@@ -79,7 +79,7 @@ function caseImage(image: Image, option: ImageFindOption): boolean {
     else if(option.title_eq && image.title !== option.title_eq) return false
     else if(option.collection_eq && image.collection !== option.collection_eq) return false
     else if(option.tag_contains && (!containsAll(image.tags, option.tag_contains))) return false
-    else if(option.favorite_eq && image.favorite !== image.favorite) return false
+    else if(option.favorite_eq && image.favorite !== option.favorite_eq) return false
     else if(option.createTime_ge && image.createTime < option.createTime_ge) return false
     else if(option.createTime_le && image.createTime > option.createTime_le) return false
     else return !(option.search && (!findLikeIn(option.search, [image.title, image.collection])));

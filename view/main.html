@@ -23,30 +23,30 @@
             </div>
             <div style="position: absolute; left: 42px">
                 <div class="btn-group">
-                  <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#sortModal">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="loadOptionToSort" data-toggle="modal" data-target="#sortModal">
                     <i class="fa fa-sort-amount-desc"></i>
                   </button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#filterModal">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="loadOptionToFilter" data-toggle="modal" data-target="#filterModal">
                     <i class="fa fa-filter"></i>
                   </button>
-                  <input type="text" class="form-control rounded-0" style="width: 342px; height: 31px;">
-                  <button type="button" class="btn btn-sm btn-secondary"><i class="fa fa-search"></i></button>
+                  <input type="text" class="form-control rounded-0" v-model="searchTextInput" v-on:keydown.enter="saveOptionFromSearch" style="width: 342px; height: 31px;">
+                  <button type="button" class="btn btn-sm btn-secondary" v-on:click="saveOptionFromSearch"><i class="fa fa-search"></i></button>
                 </div>
             </div>
             <div class="mr-2" style="position: absolute; right: 71px;">
               <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-outline-secondary">
+                <button type="button" class="btn btn-sm btn-secondary" v-bind:class="{'btn-secondary': viewFolder === 'list', 'btn-outline-secondary': viewFolder !== 'list'}">
                   <div class="d-none d-md-block"><i class="fa fa-list"></i> 阅览列表</div>
                   <div class="d-md-none"><i class="fa fa-list"></i></div>
                 </button>
-                <button type="button" class="btn btn-sm btn-secondary">
+                <button type="button" class="btn btn-sm btn-outline-secondary" v-bind:class="{'btn-secondary': viewFolder === 'temp', 'btn-outline-secondary': viewFolder !== 'temp'}">
                   <div class="d-none d-md-block"><i class="fa fa-folder-o"></i> 临时文件夹</div>
                   <div class="d-md-none"><i class="fa fa-folder-o"></i></div>
                 </button>
               </div>
             </div>
             <div class="mr-2" style="position: absolute; right: 35px">
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#viewModal"><i class="fa fa-eye"></i></button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="loadOptionToView" data-toggle="modal" data-target="#viewModal"><i class="fa fa-eye"></i></button>
             </div>
             <div class="mr-2" style="position: absolute; right: 0">
               <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-cog"></i></button>
@@ -63,17 +63,17 @@
               <div class="modal-body">
                 <div class="form-check">
                   <label class="form-check-label">
-                    <input type="checkbox" class="form-check-input" value="">按照画集聚合显示
+                    <input v-model="viewInput.aggregateByCollection" type="checkbox" class="form-check-input" value="">按照画集聚合显示
                   </label>
                 </div>
                 <div class="form-check">
                   <label class="form-check-label">
-                    <input type="checkbox" class="form-check-input" value="">显示标题
+                    <input v-model="viewInput.showTitle" type="checkbox" class="form-check-input" value="">显示标题
                   </label>
                 </div>
                 <div class="row">
                   <div class="col">
-                    <input type="range" class="custom-range" min="1" max="10" step="1" value="5" style="height: 25px">
+                    <input v-model="viewInput.zoom" type="range" class="custom-range" min="1" max="10" step="1" value="5" style="height: 25px">
                   </div>
                   <div class="col-auto">
                     <label>图片缩放</label>
@@ -81,7 +81,7 @@
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">确定</button>
+                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" v-on:click="saveOptionFromView">确定</button>
               </div>
             </div>
           </div>
@@ -96,22 +96,22 @@
               </div>
               <div class="modal-body">
                 <div class="radio">
-                  <label><input type="radio" name="sortRadio">按标题排序</label>
+                  <label><input type="radio" name="sortRadio" v-model="sortInput.by" value="title">按标题排序</label>
                 </div>
                 <div class="radio">
-                  <label><input type="radio" name="sortRadio">按创建时间排序</label>
+                  <label><input type="radio" name="sortRadio" v-model="sortInput.by" value="createTime">按创建时间排序</label>
                 </div>
                 <div class="radio">
-                  <label><input type="radio" name="sortRadio">按标签排序</label>
+                  <label><input type="radio" name="sortRadio" v-model="sortInput.by" value="resolution">按大小排序</label>
                 </div>
                 <div class="form-check">
                   <label class="form-check-label">
-                    <input type="checkbox" class="form-check-input" value="">降序
+                    <input v-model="sortInput.desc" type="checkbox" class="form-check-input" value="">降序
                   </label>
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">确定</button>
+                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" v-on:click="saveOptionFromSort">确定</button>
               </div>
             </div>
           </div>
@@ -127,27 +127,28 @@
               <div class="modal-body">
                 <div class="row">
                   <div class="col-auto"><label>收藏夹</label></div>
-                  <div class="col"><input type="checkbox" class="form-check-input" value=""></div>
+                  <div class="col"><input v-model="filterInput.favorite" type="checkbox" class="form-check-input" value=""></div>
                 </div>
                 <div class="row">
+                  <!-- TODO 处理标签组及其绑定 -->
                   <div class="col">标签组</div>
                   <div class="col">/*TODO*/</div>
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">确定</button>
+                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" v-on:click="saveOptionFromFilter">确定</button>
               </div>
             </div>
           </div>
         </div>
         
-        <div class="" style="margin-top: 55px; margin-bottom: 55px;">
-          <div class="row">
-            <div class="col-3" v-for="image in items">
-              <div class="card" style="width:400px">
+        <div style="margin-top: 55px; margin-bottom: 55px;">
+          <div style="">
+            <div class="col-3" v-for="image in showList" style="column-width: 300px; width: 300px">
+              <div class="card">
                 <img class="card-img-top" v-bind:src="image.buffer" alt="Card image" style="width:100%">
                 <div class="card-body">
-                  <h4 class="card-title">{{image.title}}</h4>
+                  <h6 class="card-title">{{image.title}}</h6>
                 </div>
               </div>
             </div>

@@ -69,7 +69,7 @@ class LocalDataEngine implements DataEngine {
             image.buffer = undefined
             }
         }
-        if(maxIndex > this.indexMemory) {
+        if(maxIndex >= this.indexMemory) {
             this.indexMemory = maxIndex + 1
         }
         return images
@@ -117,7 +117,7 @@ class LocalDataEngine implements DataEngine {
             let spec = specification ? specification : ImageSpecification.Origin
             let cache = this.imageDataCache.get(spec, id)
             if(cache != null) {
-                console.log(`load ${id} from dataURL cache`)
+                // console.log(`load ${id} from dataURL cache`)
                 callback(cache)
                 return undefined
             }
@@ -127,17 +127,17 @@ class LocalDataEngine implements DataEngine {
                 let goalNative = translateNativeImage(native, spec)
                 let dataUrl = goalNative.toDataURL()
                 this.imageDataCache.set(spec, id, dataUrl)
-                console.log(`load ${id} from nativeImage cache`)
+                // console.log(`load ${id} from nativeImage cache`)
                 callback(dataUrl)
                 return undefined
             }
             let {blocks, size} = this.blockMemory[id]
             if(!blocks) {
-                console.log(`load ${id} from block but it is not exist`)
+                // console.log(`load ${id} from block but it is not exist`)
                 callback(null)
                 return undefined
             }
-            console.log(`block of ${id} is ${blocks}`)
+            // console.log(`block of ${id} is ${blocks}`)
             loadImageBuffer(this.storageFolder, blocks, size, (buffer) => {
                 if(buffer != null) {
                     let native = nativeImage.createFromBuffer(buffer)
@@ -145,10 +145,10 @@ class LocalDataEngine implements DataEngine {
                     let dataUrl = goalNative.toDataURL()
                     this.imageDataCache.set(spec, id, dataUrl)
                     this.imageBufferCache.set(ImageSpecification.Origin, id, buffer)
-                    console.log(`load ${id} from block`)
+                    // console.log(`load ${id} from block`)
                     callback(dataUrl)
                 }else{
-                    console.log(`load ${id} from block but buffer is not exist`)
+                    // console.log(`load ${id} from block but buffer is not exist`)
                     callback(null)
                 }
             })
@@ -210,7 +210,6 @@ class LocalDataEngine implements DataEngine {
     close(): void {
         this.save()
     }
-
     load(): boolean {
         if(existsSync(`${this.storageFolder}/${STORAGE}`)) {
             let buf = readFileSync(`${this.storageFolder}/${STORAGE}`)
@@ -344,7 +343,7 @@ function saveImageBuffer(folder: string, buffer: Buffer, blockMaxIndex: number, 
         for(let filename in map) {
             let mapBlock = map[filename]
             let flag = mapBlock.length
-            open(filename, 'w+', (err, fd) => {
+            open(filename, 'a', (err, fd) => {
                 for(let {id, block, size} of mapBlock) {
                     write(fd, buffer, id * BLOCK_SIZE, size, block * BLOCK_SIZE, (err, read, buf) => {
                         flag -= 1
@@ -359,7 +358,7 @@ function saveImageBuffer(folder: string, buffer: Buffer, blockMaxIndex: number, 
     }else{
         for(let filename in map) {
             let blocks = map[filename]
-            let fd = openSync(filename, 'w+')
+            let fd = openSync(filename, 'a')
             for(let {id, block, size} of blocks) {
                 writeSync(fd, buffer, id * BLOCK_SIZE, size, block * BLOCK_SIZE)
             }

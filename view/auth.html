@@ -64,7 +64,7 @@
           <div class="row" style="height: 33%">
             <div class="col">
               <div class="input-group mb-3">
-                  <input v-model="loginData.password" type="password" class="form-control" placeholder="请输入密码">
+                  <input v-on:keydown.enter="loginGo" v-model="loginData.password" type="password" class="form-control" placeholder="请输入密码">
                   <div class="input-group-append">
                     <button v-on:click="loginGo" class="btn btn-success" type="submit">Go</button> 
                   </div>

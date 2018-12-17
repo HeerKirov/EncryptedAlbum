@@ -129,15 +129,17 @@ function containsAll<T>(main: T[], contains: T[]): boolean {
 function findLikeIn(search: string, keys: string[]): boolean {
     let ss = search.split(' ')
     for(let key of keys) {
-        let flag = true
-        for(let s of ss) {
-            if(!key.indexOf(s)) {
-                flag = false
-                break
+        if(key) {
+            let flag = false
+            for(let s of ss) {
+                if(key.indexOf(s) >= 0) {
+                    flag = true
+                    break
+                }
             }
-        }
-        if(flag) {
-            return true
+            if(flag) {
+                return true
+            }
         }
     }
     return false
