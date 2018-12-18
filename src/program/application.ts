@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain, globalShortcut} from 'electron'
+import {app, BrowserWindow, ipcMain} from 'electron'
 import {DataEngine, ImageSpecification} from '../common/engine'
 import {AppStorage} from '../common/appStorage'
 
@@ -142,6 +142,9 @@ function registerSynchronousEvent() {
     ipcMain.on('load-main-cache', (e, arg) => {
         //从主线程调用包含所有option的缓存列表。
         //return: {filter: {...}, sort: {...}, search: string, view: {...}, folder: string}
+        if(!('view' in mainPageCache) && (engine.existConfig('view'))) {
+            mainPageCache['view'] = engine.getConfig('view')
+        }
         e.returnValue = mainPageCache
     })
     ipcMain.on('save-main-cache', (e, arg) => {
@@ -149,6 +152,10 @@ function registerSynchronousEvent() {
         //arg: {filter?: {...}, sort?: {...}, search?: string, view?: {...}}
         for(let i in arg) {
             mainPageCache[i] = arg[i]
+        }
+        if('view' in arg) {
+            engine.putConfig('view', arg.view)
+            engine.save()
         }
         e.returnValue = undefined
     })
@@ -202,7 +209,10 @@ function getMainWindow(): BrowserWindow {
 function createMainWindow() {
     let win: BrowserWindow = new BrowserWindow({width: 1200, height: 800, minWidth: 640, minHeight: 480})
     win.setMenuBarVisibility(false)
-    win.on('closed', function() {mainWindow = null})
+    win.on('closed', function() {
+        mainWindow = null
+        mainPageCache = {}
+    })
 
     mainWindow = win
     if(storage != null) {

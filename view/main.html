@@ -21,7 +21,12 @@
             <div class="ml-2" style="position: fixed; left: 0;">
                 <button type="button" class="btn btn-sm btn-success" v-on:click="add"><i class="fa fa-plus"></i></button>
             </div>
-            <div style="position: absolute; left: 42px">
+            <div class="mr-2" style="position: absolute; left: 42px">
+              <button type="button" class="btn btn-sm" v-bind:class="{'btn-outline-secondary': !selected.mode, 'btn-secondary': selected.mode}" v-on:click="switchSelectMode">
+                <i class="fa fa-check-square-o"></i>
+              </button>
+            </div>
+            <div style="position: absolute; left: 78px" v-if="viewFolder === 'list'">
                 <div class="btn-group">
                   <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="loadOptionToSort" data-toggle="modal" data-target="#sortModal">
                     <i class="fa fa-sort-amount-desc"></i>
@@ -29,17 +34,18 @@
                   <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="loadOptionToFilter" data-toggle="modal" data-target="#filterModal">
                     <i class="fa fa-filter"></i>
                   </button>
-                  <input type="text" class="form-control rounded-0" v-model="searchTextInput" v-on:keydown.enter="saveOptionFromSearch" style="width: 342px; height: 31px;">
+                  <input type="text" class="form-control rounded-0" v-model="searchTextInput" v-on:keydown.enter="saveOptionFromSearch" style="width: 312px; height: 31px;">
                   <button type="button" class="btn btn-sm btn-secondary" v-on:click="saveOptionFromSearch"><i class="fa fa-search"></i></button>
                 </div>
             </div>
+
             <div class="mr-2" style="position: absolute; right: 71px;">
               <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-secondary" v-bind:class="{'btn-secondary': viewFolder === 'list', 'btn-outline-secondary': viewFolder !== 'list'}">
+                <button type="button" class="btn btn-sm" v-bind:class="{'btn-secondary': viewFolder === 'list', 'btn-outline-secondary': viewFolder !== 'list'}" v-on:click="switchList('list')">
                   <div class="d-none d-md-block"><i class="fa fa-list"></i> 阅览列表</div>
                   <div class="d-md-none"><i class="fa fa-list"></i></div>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" v-bind:class="{'btn-secondary': viewFolder === 'temp', 'btn-outline-secondary': viewFolder !== 'temp'}">
+                <button type="button" class="btn btn-sm" v-bind:class="{'btn-secondary': viewFolder === 'temp', 'btn-outline-secondary': viewFolder !== 'temp'}" v-on:click="switchList('temp')">
                   <div class="d-none d-md-block"><i class="fa fa-folder-o"></i> 临时文件夹</div>
                   <div class="d-md-none"><i class="fa fa-folder-o"></i></div>
                 </button>
@@ -141,34 +147,46 @@
             </div>
           </div>
         </div>
-        
+
         <div style="margin-top: 55px; margin-bottom: 55px;">
-          <div style="">
-            <div class="col-3" v-for="image in showList" style="column-width: 300px; width: 300px">
-              <div class="card">
-                <img class="card-img-top" v-bind:src="image.buffer" alt="Card image" style="width:100%">
-                <div class="card-body">
-                  <h6 class="card-title">{{image.title}}</h6>
-                </div>
+          <ul style="margin: 0; padding: 0">
+            <li v-for="(image, index) in showList" style="display: inline-block;" v-bind:style="{width: view.zoom * 60 + 'px'}">
+              <div class="card" style="margin: 2px">
+                  <img class="card-img-top" v-bind:src="image.buffer" alt="Card image" style="width:100%" v-on:click="selectOne(index)">
+                  <div class="" v-if="view.showTitle">
+                      <h6 class="m-2">{{image.title}}</h6>
+                  </div>
+                  <i v-if="image.selected" style="position: absolute; right: 5px; bottom: 5px;" class="fa fa-check-circle fa-2x text-primary"></i>
+                  <i v-if="image.col" style="position: absolute; right: 5px; top: 5px;" class="fa fa-th-list fa-lg text-white"></i>
               </div>
-            </div>
-          </div>
+            </li>
+          </ul>
         </div>
 
-        <div style="margin: auto; position: fixed; left:0; bottom:0; width: 620px;">
+        <div v-if="selected.mode" style="margin: auto; position: fixed; left:0; bottom:0; width: 620px;">
           <div class="card m-1 p-1">
             <div class="row">
               <div class="col">
-                已选择<span class="badge badge-light">0</span>项
+                已选择<span class="badge badge-light">{{selected.count}}</span>项
               </div>
               <div class="col-auto">
                 <div class="btn-group">
-                  <button type="button" class="btn btn-sm btn-outline-secondary">全选</button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary">反选</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="selectAll">全选</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="selectNot">反选</button>
                 </div>
               </div>
               <div class="col-auto">
-                <button type="button" class="btn btn-sm btn-primary">添加到临时文件夹</button>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-sm btn-primary" v-bind:class="{disabled: !leastSelectOne}" v-if="viewFolder === 'list'" v-on:click="selectAddToTemp">添加到临时文件夹</button>
+                  <button type="button" class="btn btn-sm btn-primary" v-bind:class="{disabled: !leastSelectOne}" v-if="viewFolder === 'temp'" v-on:click="selectRemoveFromTemp">移出临时文件夹</button>
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle" v-bind:class="{disabled: !leastSelectOne}" data-toggle="dropdown">更多</button>
+                    <div class="dropdown-menu">
+                      <a class="dropdown-item" href="#">批量修改</a>
+                      <a class="dropdown-item" href="#">批量删除</a>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

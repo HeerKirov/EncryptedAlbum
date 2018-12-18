@@ -26,6 +26,10 @@ interface DataEngine {
     findTag(options?: TagFindOption): Array<string>
     getNextId(): number
 
+    getConfig(key: string): any
+    putConfig(key: string, value: any): void
+    existConfig(key: string): boolean
+
     connect?(): boolean
     close?(): void
 
@@ -84,7 +88,6 @@ function caseImage(image: Image, option: ImageFindOption): boolean {
     else if(option.createTime_le && image.createTime > option.createTime_le) return false
     else return !(option.search && (!findLikeIn(option.search, [image.title, image.collection])));
 }
-
 function sortImage(images: Image[], order: string[], desc: boolean): Image[] {
     let gt = desc ? -1 : 1
     let lt = desc ? 1 : -1

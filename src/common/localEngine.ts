@@ -8,10 +8,10 @@ import {
     sortImage,
     caseTag, sortTag
 } from './engine'
-import { Formula, decrypt } from './appStorage'
+import { Formula } from './appStorage'
 import { BufferCache } from './bufferCache'
 import { writeFileSync, readFileSync, existsSync, open, read, write, openSync, readSync, writeSync, close, closeSync } from 'fs'
-import { encrypt } from './utils'
+import { encrypt, decrypt } from './utils'
 import { nativeImage } from 'electron'
 import { translateNativeImage } from './imageTool'
 
@@ -204,6 +204,16 @@ class LocalDataEngine implements DataEngine {
         return this.indexMemory
     }
 
+    getConfig(key: string): any {
+        return this.config[key]
+    }
+    putConfig(key: string, value: any): void {
+        this.config[key] = value
+    }
+    existConfig(key: string): boolean {
+        return key in this.config
+    }
+
     connect(): boolean {
         return this.load()
     }
@@ -220,6 +230,9 @@ class LocalDataEngine implements DataEngine {
                 this.blockMemory = data['blocks']
                 this.blockMaxMemory = data['blockMax']
                 this.tagMemory = []
+                if('config' in data) {
+                    this.config = data['config']
+                }
                 for(let image of this.imageMemory) {
                     for(let tag of image.tags) {
                         if(!(tag in this.tagMemory)) {
@@ -236,6 +249,7 @@ class LocalDataEngine implements DataEngine {
             this.tagMemory = []
             this.blockMemory = {}
             this.blockMaxMemory = -1
+            this.config = {}
             return true
         }
     }
@@ -244,7 +258,8 @@ class LocalDataEngine implements DataEngine {
             index: this.indexMemory,
             images: this.imageMemory,
             blocks: this.blockMemory,
-            blockMax: this.blockMaxMemory
+            blockMax: this.blockMaxMemory,
+            config: this.config
         })
         writeFileSync(`${this.storageFolder}/${STORAGE}`, buf)
     }
@@ -256,6 +271,7 @@ class LocalDataEngine implements DataEngine {
     private blockMaxMemory: number = -1 //当前正在使用的block的最大序号。因为block从0开始因此该序号最小值为-1
     private imageDataCache: BufferCache<string> = new BufferCache()
     private imageBufferCache: BufferCache<Buffer> = new BufferCache()
+    private config: Object = {}
 }
 
 class LocalFormula implements Formula {
@@ -277,7 +293,7 @@ class LocalFormula implements Formula {
         }
     }
 }
-
+//TODO 还没有为load和save添加加密业务流程。更改函数签名，直接在函数内部内联加密流程。
 function loadImageBuffer(folder: string, blocks: number[], size: number, callback?: (Buffer) => void): Buffer {
     let map = {}
     for(let i = 0; i < blocks.length; ++i) {

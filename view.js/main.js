@@ -1,10 +1,11 @@
 const {ipcRenderer} = require('electron')
 const {Vue} = require('../view.js/base')
 
+//TODO 添加分页加载系统。一次只加载一部分内容，剩余内容通过点击"继续加载"加载或自动加载。
 let vm = new Vue({
     el: '#app',
     data: {
-        /* 结果和状态都寄存到主进程。这样可以保持主页状态持久化。 */
+        //绑定展示页面空间的option数据项
         filterInput: {
             favorite: false,
             tags: [],
@@ -16,10 +17,10 @@ let vm = new Vue({
         viewInput: {
             aggregateByCollection: false,
             showTitle: false,
-            zoom: 5
+            zoom: 4
         },
         searchTextInput: '',
-
+        //绑定实际使用的option数据项
         filter: {
             favorite: false,
             tags: []
@@ -31,16 +32,27 @@ let vm = new Vue({
         view: {
             aggregateByCollection: false,
             showTitle: false,
-            zoom: 5
+            zoom: 4
         },
         searchText: '',
-
+        //绑定选择功能
+        selected: {
+            mode: false,
+            count: 0,
+            list: []
+        },
+        //绑定内容展示列表和区分
         viewFolder: 'list', //list or temp
         showList: [],    //绑定在前端展示的列表。包含dataURL。
         items: [],      //用于保存当前正在查询的列表。在被正式上载之前不含dataURL。
         temps: [],      //用于保存临时文件夹。
 
         dataCache: {}   //缓存最近使用过的dataURL。
+    },
+    computed: {
+        leastSelectOne: function () {
+            return this.selected.mode && this.selected.count > 0
+        }  
     },
     methods: {
         load: function() {
@@ -80,28 +92,33 @@ let vm = new Vue({
             let tags = []
             for(let i = 0; i < this.filterInput.tags.length; ++i) tags[i] = this.filterInput.tags[i]
             this.filter.tags = tags
+            ipcRenderer.sendSync('save-main-cache', {filter: this.filter})
             this.search()
             this.loadListToPage()
         },
         saveOptionFromSort: function () {
             this.sort.by = this.sortInput.by
             this.sort.desc = this.sortInput.desc
+            ipcRenderer.sendSync('save-main-cache', {sort: this.sort})
             this.search()
             this.loadListToPage()
         },
         saveOptionFromView: function () {
-            this.view.aggregateByCollection = this.viewInput.aggregateByCollection
+            if(this.view.aggregateByCollection !== this.viewInput.aggregateByCollection) {
+                this.view.aggregateByCollection = this.viewInput.aggregateByCollection
+                this.loadListToPage()
+            }
             this.view.showTitle = this.viewInput.showTitle
             this.view.zoom = this.viewInput.zoom
             ipcRenderer.sendSync('save-main-cache', {view: this.view})
-            //TODO 将效果触发
         },
         saveOptionFromSearch: function () {
             this.searchText = this.searchTextInput
+            ipcRenderer.sendSync('save-main-cache', {search: this.searchText})
             this.search()
             this.loadListToPage()
         },
-        //加载时用于从主进程加载
+        //加载时用于从主线程加载
         loadCacheFromMain: function () {
             //从主线程加载option缓存。
             let ret = ipcRenderer.sendSync('load-main-cache')
@@ -116,6 +133,10 @@ let vm = new Vue({
         },
         loadTempsFromMain: function() {
             //从主线程加载临时文件夹。
+            let temps = ipcRenderer.sendSync('load-main-temps', {findImage: true})
+            if(temps) {
+                this.temps = temps
+            }
         },
 
         search: function () {
@@ -131,43 +152,153 @@ let vm = new Vue({
         loadListToPage: function () {
             //此函数根据viewFolder的类型，将items或temps加载到showList。
             //同时，这还会将dataURL绑定到数据模型。
+            //TODO 按照【聚合为画集】效果进行聚合
+            this.clearSelected()
+            let items, output = []
             if(this.viewFolder === 'list') {
-                this.showList = this.items
-                for(let image of this.items) {
-                    if(image.buffer === undefined || image.buffer === null) {
-                        if(image.id in this.dataCache) {
-                            image.buffer = this.dataCache[image.id]
-                            this.refreshShowList()
-                        }else{
-                            ipcRenderer.once('load-image-url-await-' + image.id, (e, arg) => {
-                                image.buffer = arg
-                                this.dataCache[image.id] = arg
-                                this.refreshShowList()
-                            })
-                            ipcRenderer.send('load-image-url-async', {id: image.id, specification: 'Exhibition', awaitId: image.id})
-                        }
+                items = this.items
+            }else {
+                items = this.temps
+            }
+            for(let i in items) {
+                let image = items[i]
+                let index = i
+                if(image.buffer === undefined || image.buffer === null) {
+                    if(image.id in this.dataCache) {
+                        vm.$set(output, i, {
+                            buffer: this.dataCache[image.id],
+                            title: image.title,
+                            col: false,
+                            selected: false,
+                            id: image.id,
+                            index: index
+                        })
+                    }else{
+                        ipcRenderer.once('load-image-url-await-' + image.id, (e, arg) => {
+                            let newSet = {
+                                buffer: arg,
+                                title: image.title,
+                                col: false,
+                                selected: false,
+                                id: image.id,
+                                index: index
+                            }
+                            vm.$set(output, i, newSet)
+                            this.dataCache[image.id] = arg
+                        })
+                        ipcRenderer.send('load-image-url-async', {id: image.id, specification: 'Exhibition', awaitId: image.id})
                     }
                 }
-            }else{
-                //TODO
             }
+            this.showList = output
         },
         refreshShowList: function () {
             let m = this.showList
             this.showList = null
             this.showList = m
-        }
-        /*
-            option list temp的缓存策略：
-            1。 option将在saveOption时实时更新到主线程进行缓存。
-            2。 list会在触发查询时在主线程自动缓存。
-            3。 temp会在每次有改动操作时更新到主线程缓存。
-            4。在load页面时统一加载一次上述缓存。
-            image data的缓存策略：
-            1。 获取时自动从主线程拉取，并缓存到本地的一个cache。
-            2。 控制cache的大小。超过一定数量时自动清除一部分早先添加的。
-         */
+        },
 
+        selectOne: function(index) {
+            //单击一张图片。
+            if(this.selected.mode) {
+                //单击选定|取消选定某一个index上的项。
+                vm.$set(this.showList[index], 'selected', !this.showList[index].selected)
+                if(this.showList[index].selected) {
+                    let flag = true;
+                    for(let i of this.selected.list) {
+                        if(index === i) {
+                            flag = false
+                            break
+                        }
+                    }
+                    if(flag) {
+                        this.selected.list[this.selected.list.length] = index
+                        this.selected.count ++
+                    }
+                }else{
+                    let idx = this.selected.list.indexOf(index)
+                    if(idx >= 0) {
+                        this.selected.list.splice(idx, 1)
+                        this.selected.count --
+                    }
+                }
+            }else{
+                //单击进入阅览模式。
+                //TODO 跳转到单页。
+            }
+        },
+        switchSelectMode: function() {
+            this.selected.mode = !this.selected.mode
+            if(!this.selected.mode) {
+                this.clearSelected()
+            }
+        },
+        clearSelected: function () {
+            this.selected.count = 0
+            this.selected.list = []
+            for(let item of this.showList) {
+                vm.$set(item, 'selected', false)
+            }
+        },
+        selectAll: function () {
+            //选定所有项。
+            for(let i of this.showList) {
+                vm.$set(i, 'selected', true)
+            }
+            this.selected.list = []
+            for(let i = 0; i < this.showList.length; ++i) this.selected.list[i] = i
+            this.selected.count = this.showList.length
+        },
+        selectNot: function () {
+            //反转选择项。
+            this.selected.count = this.showList.length - this.selected.count
+            for(let i of this.showList) {
+                vm.$set(i, 'selected', !i['selected'])
+            }
+        },
+        selectAddToTemp: function () {
+            //将当前选择的所有项添加到临时文件夹。然后取消选定。
+            //该操作仅在list模式下可用。
+            if(this.viewFolder === 'list' && this.selected.count > 0) {
+                for(let sel of this.selected.list) {
+                    let item = this.showList[sel]
+                    this.addToTemp(this.items[item.index])
+                }
+                this.clearSelected()
+            }
+        },
+        selectRemoveFromTemp: function() {
+            //将当前选择的所有项移出临时文件夹。
+            //该操作仅在temp模式下可用。
+            if(this.viewFolder === 'temp' && this.selected.count > 0) {
+                let indexes = []
+                for(let sel of this.selected.list) {
+                    let item = this.showList[sel]
+                    indexes[indexes.length] = item.index
+                }
+                indexes.sort()
+                for(let i = indexes.length - 1; i >= 0; --i) {
+                    this.temps.splice(indexes[i], 1)
+                }
+                this.loadListToPage()
+            }
+        },
+        addToTemp: function(newItem) {
+            for(let item of this.temps) {
+                if(item.id === newItem.id) {
+                    return
+                }
+            }
+            vm.$set(this.temps, this.temps.length, newItem)
+        },
+        switchList: function (type) {
+            //选择要展示的列表。
+            if(type !== this.viewFolder) {
+                this.viewFolder = type
+                this.loadListToPage()
+            }
+        }
+        
     }
 })
 
