@@ -1,4 +1,7 @@
-const {ipcRenderer} = require('electron')
+const electron = require('electron')
+const {ipcRenderer} = electron
+const {getCurrentWindow, TouchBar} = electron.remote
+const {TouchBarButton, TouchBarSpacer, TouchBarPopover, TouchBarSlider} = TouchBar
 const {Vue} = require('../view.js/base')
 
 //TODO 添加分页加载系统。一次只加载一部分内容，剩余内容通过点击"继续加载"加载或自动加载。
@@ -47,7 +50,8 @@ let vm = new Vue({
         items: [],      //用于保存当前正在查询的列表。在被正式上载之前不含dataURL。
         temps: [],      //用于保存临时文件夹。
 
-        dataCache: {}   //缓存最近使用过的dataURL。
+        dataCache: {},   //缓存最近使用过的dataURL。
+        platform: null
     },
     computed: {
         leastSelectOne: function () {
@@ -56,13 +60,16 @@ let vm = new Vue({
     },
     methods: {
         load: function() {
+            this.platform = ipcRenderer.sendSync('platform').platform
             ipcRenderer.sendSync('load-engine')
             this.loadCacheFromMain()
             if(this.viewFolder === 'list') this.search()
             this.loadTempsFromMain()
+            this.setTouchBar('standard')
             this.loadListToPage()
         },
         add: function() {
+            this.setTouchBar(null)
             ipcRenderer.sendSync('goto', 'add')
         },
         //与控件绑定的事件
@@ -229,6 +236,7 @@ let vm = new Vue({
         },
         switchSelectMode: function() {
             this.selected.mode = !this.selected.mode
+            this.setTouchBar('standard')
             if(!this.selected.mode) {
                 this.clearSelected()
             }
@@ -296,6 +304,40 @@ let vm = new Vue({
             if(type !== this.viewFolder) {
                 this.viewFolder = type
                 this.loadListToPage()
+                this.setTouchBar('standard')
+            }
+        },
+
+        setTouchBar: function (state) {
+            if(this.platform !== 'darwin') return;
+            let win = getCurrentWindow()
+            if(state === 'standard') {
+                //标准栏。显示选择模式、筛选、排序、视图、文件夹选择。会根据模式信息决定是不是显示筛选等，以及是否进入选择模式。
+                if(this.selected.mode) {
+                    win.setTouchBar(new TouchBar({
+                        items: [
+                            new TouchBarButton({label: '取消选择模式', click: this.switchSelectMode}),
+                            new TouchBarButton({label: '全选', click: this.selectAll}),
+                            new TouchBarButton({label: '反选', click: this.selectNot}),
+                            new TouchBarSpacer({size: 'flexible'}),
+                            this.viewFolder === 'list' ?
+                                new TouchBarButton({label: '添加到临时文件夹', click: this.selectAddToTemp}):
+                                new TouchBarButton({label: '移出临时文件夹', click: this.selectRemoveFromTemp}),
+                        ]
+                    }))
+                }else{
+                    win.setTouchBar(new TouchBar({
+                        items: [
+                            new TouchBarButton({label: '选择模式', click: this.switchSelectMode}),
+                            new TouchBarSpacer({size: 'flexible'}),
+                            this.viewFolder === 'list' ?
+                                new TouchBarButton({label: '临时文件夹', click: () => {this.switchList('temp')}}) :
+                                new TouchBarButton({label: '阅览列表', click: () => {this.switchList('list')}})
+                        ]
+                    }))
+                }
+            }else{
+                win.setTouchBar(null)
             }
         }
         

@@ -1,6 +1,7 @@
-import {app, BrowserWindow, ipcMain} from 'electron'
+import {app, BrowserWindow, ipcMain, TouchBar} from 'electron'
 import {DataEngine, ImageSpecification} from '../common/engine'
 import {AppStorage} from '../common/appStorage'
+const {TouchBarLabel, TouchBarButton, TouchBarSpacer} = TouchBar
 
 let mainWindow: BrowserWindow = null
 let subWindows: Array<BrowserWindow> = []
@@ -74,6 +75,13 @@ function registerSynchronousEvent() {
             e.returnValue = true
         }else{
             e.returnValue = false
+        }
+    })
+    ipcMain.on('platform', (e, arg) => {
+        //获得运行平台的设备信息。
+        //return: {platform: string}
+        e.returnValue = {
+            platform: process.platform
         }
     })
 

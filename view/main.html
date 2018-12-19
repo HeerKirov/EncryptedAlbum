@@ -150,7 +150,7 @@
 
         <div style="margin-top: 55px; margin-bottom: 55px;">
           <ul style="margin: 0; padding: 0">
-            <li v-for="(image, index) in showList" style="display: inline-block;" v-bind:style="{width: view.zoom * 60 + 'px'}">
+            <li v-for="(image, index) in showList" style="display: inline-block;" v-bind:style="{width: 60 + view.zoom * 40 + 'px'}">
               <div class="card" style="margin: 2px">
                   <img class="card-img-top" v-bind:src="image.buffer" alt="Card image" style="width:100%" v-on:click="selectOne(index)">
                   <div class="" v-if="view.showTitle">

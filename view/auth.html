@@ -16,7 +16,7 @@
                   <h2 v-if="initData.step===1">欢迎使用！</h2>
                   <h2 v-if="initData.step===2">初始化(1/2)</h2>
                   <h2 v-if="initData.step===3">初始化(2/2)</h2>
-                  <h2 v-if="initData.step===3">完成</h2>
+                  <h2 v-if="initData.step===4">完成</h2>
               </div>
             </div>
             <div class="row mt-2" style="height: 55%">
@@ -50,7 +50,7 @@
               </div>
               <div class="col-4"></div>
               <div class="col-4">
-                  <button v-if="initData.step===1" v-on:click="initNextStep" type="button" class="btn btn-primary">开　始</button>
+                      <button v-if="initData.step===1" v-on:click="initNextStep" type="button" class="btn btn-primary">开　始</button>
                   <button v-if="initData.step===2||initData.step===3" v-on:click="initNextStep" type="button" class="btn btn-primary">下一步</button>
                   <button v-if="initData.step===4" v-on:click="initNextStep" type="button" class="btn btn-primary">完　成</button>
               </div>
