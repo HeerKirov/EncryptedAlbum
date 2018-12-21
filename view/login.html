@@ -1,0 +1,21 @@
+<div id="loginView" v-if="visible" class="center-board" style="width:200px; height: 200px;">
+    <div class="row" style="height: 33%">
+        <div class="col"></div>
+    </div>
+    <div class="row" style="height: 33%">
+        <div class="col">
+            <div class="input-group mb-3">
+                <input @keydown.enter="loginGo" v-model="password" type="password" class="form-control" placeholder="请输入密码">
+                <div class="input-group-append">
+                    <button @click="loginGo" class="btn btn-success" type="submit">Go</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row" style="height: 33%">
+        <div class="col">
+            <div v-if="error==='empty-passwd'" class="alert alert-warning">密码不能为空。</div>
+            <div v-if="error==='wrong-passwd'" class="alert alert-danger">密码错误。</div>
+        </div>
+    </div>
+</div>

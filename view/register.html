@@ -1,0 +1,48 @@
+<div id="registerView" v-if="visible" class="center-board" style="width:400px; height:480px;">
+    <div class="card p-4" style="height: 480px;">
+        <div class="row">
+            <div class="col">
+                <h2 v-if="step===1">欢迎使用！</h2>
+                <h2 v-if="step===2">初始化(1/2)</h2>
+                <h2 v-if="step===3">初始化(2/2)</h2>
+                <h2 v-if="step===4">完成</h2>
+            </div>
+        </div>
+        <div class="row mt-2" style="height: 55%">
+            <div class="col">
+                <div v-if="step===1">经过简单的设置，就可以开始使用此软件。</div>
+                <div v-if="step===2">
+                    <div>设置您的认证密码。此密码将在以后打开软件时被使用。</div>
+                    <div><input v-model="password" type="password" class="form-control mt-4" placeholder="输入密码"></div>
+                    <div><input v-model="checkPassword" type="password" class="form-control mt-2" placeholder="再次输入密码"></div>
+                </div>
+                <div v-if="step===3">
+                    <div>配置您的初始存储方案。</div>
+                    <div>目前您只能配置本地存储。</div>
+                    <div><input v-model="key" type="text" class="form-control mt-4" placeholder="KEY"></div>
+                    <div><small>KEY用于加密您的存储内容，一经确认后将无法更改。您不需要记忆此串。除非您有自己的需要，否则可以使用默认值。</small></div>
+                </div>
+                <div v-if="step===4">初始化已经完成。您可以开始使用了。</div>
+            </div>
+        </div>
+        <div class="row" style="height: 15%">
+            <div class="col">
+                <div v-if="error==='empty-passwd'" class="alert alert-danger"><strong>错误</strong> 选择的密码不能为空。</div>
+                <div v-if="error==='not-eq-passwd'" class="alert alert-danger"><strong>错误</strong> 两次输入的密码不一致。</div>
+                <div v-if="error==='empty-key'" class="alert alert-danger"><strong>错误</strong> KEY不允许为空。</div>
+                <div v-if="error==='unknown'" class="alert alert-danger"><strong>错误</strong> 主进程发生不可预料的错误。</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-4">
+                <button v-if="step===3" @click="step--" type="button" class="btn">上一步</button>
+            </div>
+            <div class="col-4"></div>
+            <div class="col-4">
+                <button v-if="step===1" @click="nextStep" type="button" class="btn btn-primary">开　始</button>
+                <button v-if="step===2||step===3" @click="nextStep" type="button" class="btn btn-primary">下一步</button>
+                <button v-if="step===4" @click="nextStep" type="button" class="btn btn-primary">完　成</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,26 +1,23 @@
+import {close, existsSync, open, read, readFileSync, write, writeFileSync} from 'fs'
 import {
     DataEngine,
-    ImageSpecification,
-    ImageFindOption,
-    TagFindOption,
     Image,
-    caseImage,
-    sortImage,
-    caseTag, sortTag
+    ImageFindOption, TagFindOption,
+    ImageSpecification,
+    caseImage, caseTag,
+    sortImage, sortTag,
 } from './engine'
-import { Formula } from './appStorage'
-import { BufferCache } from './bufferCache'
-import { writeFileSync, readFileSync, existsSync, open, read, write, openSync, readSync, writeSync, close, closeSync } from 'fs'
-import { encrypt, decrypt } from './utils'
-import { nativeImage } from 'electron'
-import { translateNativeImage } from './imageTool'
+import {Formula} from './appStorage'
+import {BufferCache} from './bufferCache'
+import {decrypt, encrypt} from './utils'
+import {translateDataURL} from './imageTool'
 
 const STORAGE = 'data.db'
 
 const BLOCK_SIZE = 1024 * 64 //64KB
 const BLOCK_IN_FILE = 1024 //1024 blocks(64MB) in max case
 function FILE_NAME(index: number): string {
-    return `block-${(index + 0xa000).toString(16)}.dat`
+    return `block-${(index + 0xa).toString(16)}.dat`
 }
 
 class LocalDataEngine implements DataEngine {
@@ -55,19 +52,6 @@ class LocalDataEngine implements DataEngine {
                     this.tagMemory[this.tagMemory.length] = tag
                 }
             }
-            if(image.buffer !== undefined) {
-                let blocks = saveImageBuffer(this.storageFolder, image.buffer, this.blockMaxMemory)
-                for(let b of blocks) {
-                    if(b > this.blockMaxMemory) {
-                        this.blockMaxMemory = b
-                    }
-                }
-                this.blockMemory[image.id] = {
-                    size: image.buffer.byteLength,
-                    blocks: blocks
-                }
-            image.buffer = undefined
-            }
         }
         if(maxIndex >= this.indexMemory) {
             this.indexMemory = maxIndex + 1
@@ -101,8 +85,7 @@ class LocalDataEngine implements DataEngine {
                 if(this.imageMemory[i].id === idx) {
                     this.imageMemory.splice(i, 1)
                     ret ++
-                    this.imageDataCache.remove(idx)
-                    this.imageBufferCache.remove(idx)
+                    this.imageURLCache.remove(idx)
                     this.blockMemory[idx] = undefined
                     //目前的删除方案：从缓存区删除缓存；从分区表中删除分区，但是不删除实体文件中的内容
                     //可以做的改进：整理分区表，重新利用被删除的分区以覆盖和复用。
@@ -111,76 +94,6 @@ class LocalDataEngine implements DataEngine {
             }
         }
         return ret
-    }
-    loadImageURL(id: number, specification?: ImageSpecification, callback?: (string) => void): string {
-        if(callback !== undefined) {
-            let spec = specification ? specification : ImageSpecification.Origin
-            let cache = this.imageDataCache.get(spec, id)
-            if(cache != null) {
-                // console.log(`load ${id} from dataURL cache`)
-                callback(cache)
-                return undefined
-            }
-            let originBuf = this.imageBufferCache.get(ImageSpecification.Origin, id)
-            if(originBuf != null) {
-                let native = nativeImage.createFromBuffer(originBuf)
-                let goalNative = translateNativeImage(native, spec)
-                let dataUrl = goalNative.toDataURL()
-                this.imageDataCache.set(spec, id, dataUrl)
-                // console.log(`load ${id} from nativeImage cache`)
-                callback(dataUrl)
-                return undefined
-            }
-            let {blocks, size} = this.blockMemory[id]
-            if(!blocks) {
-                // console.log(`load ${id} from block but it is not exist`)
-                callback(null)
-                return undefined
-            }
-            // console.log(`block of ${id} is ${blocks}`)
-            loadImageBuffer(this.storageFolder, blocks, size, (buffer) => {
-                if(buffer != null) {
-                    let native = nativeImage.createFromBuffer(buffer)
-                    let goalNative = translateNativeImage(native, spec)
-                    let dataUrl = goalNative.toDataURL()
-                    this.imageDataCache.set(spec, id, dataUrl)
-                    this.imageBufferCache.set(ImageSpecification.Origin, id, buffer)
-                    // console.log(`load ${id} from block`)
-                    callback(dataUrl)
-                }else{
-                    // console.log(`load ${id} from block but buffer is not exist`)
-                    callback(null)
-                }
-            })
-        }else{
-            let spec = specification ? specification : ImageSpecification.Origin
-            let cache = this.imageDataCache.get(spec, id)
-            if(cache != null) {
-                return cache
-            }
-            let originBuf = this.imageBufferCache.get(ImageSpecification.Origin, id)
-            if(originBuf != null) {
-                let native = nativeImage.createFromBuffer(originBuf)
-                let goalNative = translateNativeImage(native, spec)
-                let dataUrl = goalNative.toDataURL()
-                this.imageDataCache.set(spec, id, dataUrl)
-                return dataUrl
-            }
-            let {blocks, size} = this.blockMemory[id]
-            if(!blocks) {
-                return null
-            }
-            let buffer = loadImageBuffer(this.storageFolder, blocks, size)
-            if(buffer != null) {
-                let native = nativeImage.createFromBuffer(buffer)
-                let goalNative = translateNativeImage(native, spec)
-                let dataUrl = goalNative.toDataURL()
-                this.imageDataCache.set(spec, id, dataUrl)
-                this.imageBufferCache.set(ImageSpecification.Origin, id, buffer)
-                return dataUrl
-            }
-            return null
-        }
     }
     findTag(options?: TagFindOption): string[] {
         if(options) {
@@ -202,6 +115,64 @@ class LocalDataEngine implements DataEngine {
     }
     getNextId(): number {
         return this.indexMemory
+    }
+    //TODO 添加加密/解密流程
+    saveImageURL(id: number, dataURL: string, callback?: () => void): void {
+        let buf = Buffer.from(dataURL, 'base64')
+        saveImageBuffer(this.storageFolder, buf, this.blockMaxMemory, (blocks) => {
+            for(let b of blocks) {
+                if(b > this.blockMaxMemory) {
+                    this.blockMaxMemory = b
+                }
+            }
+            if(!this.blockMemory[id]) this.blockMemory[id] = {}
+            this.blockMemory[id][ImageSpecification.Origin] = {
+                size: buf.byteLength,
+                blocks: blocks
+            }
+
+            let exhibitionBuf = Buffer.from(translateDataURL(dataURL, ImageSpecification.Exhibition), 'base64')
+            saveImageBuffer(this.storageFolder, exhibitionBuf, this.blockMaxMemory, (blocks) => {
+                for(let b of blocks) {
+                    if(b > this.blockMaxMemory) {
+                        this.blockMaxMemory = b
+                    }
+                }
+                if(!this.blockMemory[id]) this.blockMemory[id] = {}
+                this.blockMemory[id][ImageSpecification.Exhibition] = {
+                    size: exhibitionBuf.byteLength,
+                    blocks: blocks
+                }
+                if(callback != undefined) callback()
+            })
+        })
+
+    }
+    loadImageURL(id: number, specification?: ImageSpecification, callback?: (string) => void): void {
+        let spec = specification === ImageSpecification.Origin ? ImageSpecification.Origin : ImageSpecification.Exhibition
+        let cache = this.imageURLCache.get(spec, id)
+        if(cache != null) {
+            if(callback !== undefined) callback(cache)
+            return
+        }
+        if(!this.blockMemory[id]) {
+            if(callback != undefined) callback(null)
+            return
+        }
+        let {blocks, size} = this.blockMemory[id][spec]
+        if(!blocks) {
+            if(callback !== undefined) callback(null)
+        }else{
+            loadImageBuffer(this.storageFolder, blocks, size, (buf: Buffer) => {
+                if(buf != null) {
+                    let dataUrl = buf.toString('base64')
+                    this.imageURLCache.set(spec, id, dataUrl)
+                    if(callback !== undefined) callback(dataUrl)
+                }else{
+                    if(callback !== undefined) callback(null)
+                }
+            })
+        }
     }
 
     getConfig(key: string): any {
@@ -264,14 +235,14 @@ class LocalDataEngine implements DataEngine {
         writeFileSync(`${this.storageFolder}/${STORAGE}`, buf)
     }
 
-    private indexMemory: number = null
-    private imageMemory: Image[] = []
-    private tagMemory: string[] = []
-    private blockMemory: {} = {} //number(imageId) -> {blocks: number[], size: number} (blocks index array)的缓存映射
+    private indexMemory: number = null  //下一个即将被使用的index序列号
+    private imageMemory: Image[] = []   //保存images的数据组
+    private tagMemory: string[] = []    //暂存tags方便查询的数据组
+    private blockMemory: {} = {}        //number(imageId) -> {spec: {blocks: number[], size: number}} (blocks index array)的缓存映射
     private blockMaxMemory: number = -1 //当前正在使用的block的最大序号。因为block从0开始因此该序号最小值为-1
-    private imageDataCache: BufferCache<string> = new BufferCache()
-    private imageBufferCache: BufferCache<Buffer> = new BufferCache()
-    private config: Object = {}
+    private config: Object = {}         //保存一些杂项配置信息
+
+    private imageURLCache: BufferCache<string> = new BufferCache()  //缓存已经提取的dataURL的缓存器
 }
 
 class LocalFormula implements Formula {
@@ -293,8 +264,7 @@ class LocalFormula implements Formula {
         }
     }
 }
-//TODO 还没有为load和save添加加密业务流程。更改函数签名，直接在函数内部内联加密流程。
-function loadImageBuffer(folder: string, blocks: number[], size: number, callback?: (Buffer) => void): Buffer {
+function loadImageBuffer(folder: string, blocks: number[], size: number, callback?: (Buffer) => void): void {
     let map = {}
     for(let i = 0; i < blocks.length; ++i) {
         let block = blocks[i]
@@ -306,38 +276,25 @@ function loadImageBuffer(folder: string, blocks: number[], size: number, callbac
             map[filename] = [{id: i, block: block % BLOCK_IN_FILE, size: (i === blocks.length - 1) ? size % BLOCK_SIZE : BLOCK_SIZE}]
         }
     }
-    if(callback !== undefined) {
-        let buf = Buffer.alloc(size)
-        for(let filename in map) {
-            let blocks = map[filename]
-            let flag = blocks.length
-            open(filename, 'r', (err, fd) => {
-                for(let {id, block, size} of blocks) {
-                    read(fd, buf, id * BLOCK_SIZE, size, block * BLOCK_SIZE, (err, read, buffer) => {
-                        flag -= 1
-                        if(flag <= 0) {
-                            callback(buf)
-                        }
-                    })
-                }
-                close(fd, () => {})
-            })
-        }
-    }else{
-        let buf = Buffer.alloc(size)
-        for(let filename in map) {
-            let blocks = map[filename]
-            let fd = openSync(filename, 'r')
+    let buf = Buffer.alloc(size)
+    for(let filename in map) {
+        let blocks = map[filename]
+        let flag = blocks.length
+        open(filename, 'r', (err, fd) => {
             for(let {id, block, size} of blocks) {
-                readSync(fd, buf, id * BLOCK_SIZE, size, block * BLOCK_SIZE)
+                read(fd, buf, id * BLOCK_SIZE, size, block * BLOCK_SIZE, (err, read, buffer) => {
+                    flag -= 1
+                    if(flag <= 0) {
+                        if(callback !== undefined) callback(buf)
+                        close(fd, () => {})
+                    }
+                })
             }
-            closeSync(fd)
-        }
-        return buf
+        })
     }
 }
 
-function saveImageBuffer(folder: string, buffer: Buffer, blockMaxIndex: number, callback?: (Array) => void): number[] {
+function saveImageBuffer(folder: string, buffer: Buffer, blockMaxIndex: number, callback?: (Array) => void): void {
     let blockNum = Math.floor(buffer.byteLength / BLOCK_SIZE) + 1
     let blocks = []
     for(let i = 0; i < blockNum; ++i) {
@@ -354,33 +311,20 @@ function saveImageBuffer(folder: string, buffer: Buffer, blockMaxIndex: number, 
             map[filename] = [{id: i, block: block % BLOCK_IN_FILE, size: (i === blocks.length - 1) ? buffer.byteLength % BLOCK_SIZE : BLOCK_SIZE}]
         }
     }
-
-    if(callback !== undefined) {
-        for(let filename in map) {
-            let mapBlock = map[filename]
-            let flag = mapBlock.length
-            open(filename, 'a', (err, fd) => {
-                for(let {id, block, size} of mapBlock) {
-                    write(fd, buffer, id * BLOCK_SIZE, size, block * BLOCK_SIZE, (err, read, buf) => {
-                        flag -= 1
-                        if(flag <= 0) {
-                            callback(blocks)
-                        }
-                    })
-                }
-                close(fd, () => {})
-            })
-        }
-    }else{
-        for(let filename in map) {
-            let blocks = map[filename]
-            let fd = openSync(filename, 'a')
-            for(let {id, block, size} of blocks) {
-                writeSync(fd, buffer, id * BLOCK_SIZE, size, block * BLOCK_SIZE)
+    for(let filename in map) {
+        let mapBlock = map[filename]
+        let flag = mapBlock.length
+        open(filename, 'a', (err, fd) => {
+            for(let {id, block, size} of mapBlock) {
+                write(fd, buffer, id * BLOCK_SIZE, size, block * BLOCK_SIZE, (err, read, buf) => {
+                    flag -= 1
+                    if(flag <= 0) {
+                        if(callback != undefined) callback(blocks)
+                        close(fd, () => {})
+                    }
+                })
             }
-            closeSync(fd)
-        }
-        return blocks
+        })
     }
 }
 

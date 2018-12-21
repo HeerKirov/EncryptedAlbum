@@ -1,8 +1,8 @@
-import { NativeImage } from "electron"
-import { ImageSpecification } from "./engine"
+import {NativeImage, nativeImage} from "electron"
+import {ImageSpecification} from "./engine"
 
-const EXHIBITION_AREA_MAX = Math.pow(2, 18)
-const THUMBNAIL_AREA_MAX = Math.pow(2, 15)
+const EXHIBITION_AREA_MAX = Math.pow(2, 20)
+const THUMBNAIL_AREA_MAX = Math.pow(2, 16)
 
 function translateSquare(origin: NativeImage): NativeImage {
     let {width, height} = origin.getSize()
@@ -45,4 +45,10 @@ function translateNativeImage(origin: NativeImage, specification: ImageSpecifica
     }
 }
 
-export {translateNativeImage}
+function translateDataURL(originURL: string, specification: ImageSpecification): string {
+    if(specification === ImageSpecification.Origin) return originURL
+    let native = nativeImage.createFromDataURL(originURL)
+    return 'data:image/jpeg;base64,' + translateNativeImage(native, specification).toJPEG(80).toString('base64')
+}
+
+export {translateNativeImage, translateDataURL}

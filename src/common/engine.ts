@@ -22,9 +22,11 @@ interface DataEngine {
     createImage(images: Array<Image>): Array<Image>
     updateImage(images: Array<Image>): Array<Image>
     deleteImage(images: Array<Image | number>): number
-    loadImageURL(id: number, specification?: ImageSpecification, callback?: (string) => void): string
     findTag(options?: TagFindOption): Array<string>
     getNextId(): number
+
+    saveImageURL(id: number, dataURL: string, callback?: () => void): void
+    loadImageURL(id: number, specification?: ImageSpecification, callback?: (string) => void): void
 
     getConfig(key: string): any
     putConfig(key: string, value: any): void
@@ -73,8 +75,7 @@ interface Image {
     favorite: boolean
     links: Array<string>
     resolution: Size,
-    createTime: number,
-    buffer?: Buffer
+    createTime: number
 }
 
 function caseImage(image: Image, option: ImageFindOption): boolean {

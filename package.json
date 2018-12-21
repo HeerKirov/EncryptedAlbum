@@ -4,7 +4,8 @@
   "description": "",
   "main": "target/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "debug": "electron . --debug"
   },
   "author": "Heer Kirov",
   "license": "ISC",
