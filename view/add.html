@@ -1,166 +1,145 @@
-<!DOCTYPE html>
-<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml" xmlns:v-bind="http://www.w3.org/1999/xhtml">
-  <head>
-    <meta charset="UTF-8">
-    <title>Photos</title>
-    <link rel="stylesheet" href="../view.css/layout.css">
-    <link rel="stylesheet" href="../view.css/font-awesome.css">
-    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <style>
-      body {background: #f0f0f0}
-      nav {
-          background: #ffffff;
-          border-bottom: 1px solid lightgray;
-      }
-    </style>
-  </head>
-  <body>
-        <div id="app" class="container-fruid">
-            <nav class="navbar navbar-expand-sm fixed-top" style="height: 50px">
-                <div class="row" style="width: 100%" v-if="showNavigator">
-                    <div class="col"></div>
-                    <div class="col-auto">
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" v-bind:class="{disabled: !canPrev}" v-on:click="toPage(0)">
-                                <i class="fa fa-angle-double-left"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" v-bind:class="{disabled: !canPrev}" v-on:click="toPage(currentIndex - 1)">
-                                <i class="fa fa-angle-left"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="btn-group">
-                            <input type="text" class="form-control" style="width: 60px; height: 31px;" v-model="currentIndexInput">
-                            <label class="pt-1">/</label>
-                            <span class="input-group-text" style="width: 60px; height: 31px;">{{count}}</span>
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" v-bind:class="{disabled: !canNext}" v-on:click="toPage(currentIndex + 1)">
-                                <i class="fa fa-angle-right"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" v-bind:class="{disabled: !canNext}" v-on:click="toPage(items.length - 1)">
-                                <i class="fa fa-angle-double-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col"></div>
-                </div>
-                <div class="ml-2" style="position: absolute; left: 0;">
-                    <button type="button" class="btn btn-sm btn-link" v-on:click="goBack"><i class="fa fa-close"></i></button>
-                </div>
-                <div class="mr-2" style="position: fixed; right: 100px;">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-success" v-on:click="addGeneral"><i class="fa fa-plus"></i> 添加新项目</button>
-                        <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"></button>
-                        <div class="dropdown-menu dropdown-menu-right">
-                            <a class="dropdown-item" v-on:click="addPixiv">添加Pixiv项目…</a>
-                            <a class="dropdown-item" v-on:click="addURL" href="#">添加URL…</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="mr-2" style="position: fixed; right: 0;">
-                    <button type="button" class="btn btn-sm btn-primary" v-on:click="save" v-bind:class="{disabled: emptyList}">
-                        <i class="fa fa-check"></i> 全部保存
+<div id="addView" class="container-fruid" v-if="visible">
+    <nav id="navBar" class="navbar navbar-expand-sm fixed-top" style="height: 50px" :style="{'top': fullscreen ? '0' : '22px'}">
+        <div class="row" style="width: 100%" v-if="showNavigator">
+            <div class="col"></div>
+            <div class="col-auto">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" :class="{disabled: !canPrev}" @click="toPage(0)">
+                        <i class="fa fa-angle-double-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" :class="{disabled: !canPrev}" @click="toPage(currentIndex - 1)">
+                        <i class="fa fa-angle-left"></i>
                     </button>
                 </div>
-            </nav>
-            <div class="center-board" style="width: 200px; height: 200px;" v-if="emptyList">
-                <div class="row p-2">
-                    <div class="col">
-                        <button type="button" class="btn btn-link" v-on:click="addGeneral">导入本地文件…</button>
-                    </div>
-                </div>
-                <div class="row p-2">
-                    <div class="col">
-                        <button type="button" class="btn btn-link" v-on:click="addPixiv">添加Pixiv项目…</button>
-                    </div>
-                </div>
-                <div class="row p-2">
-                    <div class="col">
-                        <button type="button" class="btn btn-link" v-on:click="addURL">添加网络URL…</button>
-                    </div>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group">
+                    <input type="text" class="form-control" style="width: 60px; height: 31px;" v-model="currentIndexInput">
+                    <label class="pt-1">/</label>
+                    <span class="input-group-text" style="width: 60px; height: 31px;">{{count}}</span>
                 </div>
             </div>
-            <div class="container" style="margin-top: 100px;" v-if="!emptyList">
-                <div class="row">
-                    <div class="col">
-                        <div class="row">
-                            <div class="col">
-                                <img alt="预览" style="width: 100%; height: 100%;" v-bind:src="current.dataURL"/>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col">
-                                {{resolution}}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="form-group">
-                            <label>标题:</label>
-                            <input type="email" class="form-control" v-model="current.title">
-                        </div>
-                        <div class="form-group">
-                            <label>画集:</label>
-                            <input type="text" class="form-control" v-model="current.collection">
-                        </div>
-                        <div class="form-group">
-                            <div><label>标签:</label></div>
-                            <div>
-                                <span v-for="tag in current.tags" class="badge" v-bind:class="getTagType(tag)">
-                                    <a class="text-white" v-on:click="removeTag(tag)">{{getTagName(tag)}}</a>
-                                </span>
-                            </div>
-                            <div class="btn-group mt-2 ml-1">
-                                <button class="btn text-dark collapsed" data-toggle="collapse" data-target="#edit-tag" aria-expanded="false">
-                                    <i class="fa fa-caret-down"></i> 现有
-                                </button>
-                                <input type="text" class="form-control rounded-0" v-model="newTagInput"/>
-                                <select class="form-control rounded-0" v-model="newTagSelect">
-                                    <option value="%">题材</option>
-                                    <option value="#">内容</option>
-                                    <option value="@">作者</option>
-                                </select>
-
-                                <button type="button" class="btn btn-success" v-on:click="addNewTag">
-                                    <i class="fa fa-plus"></i> 新标签
-                                </button>
-                            </div>
-                            <div class="collapse m-1" id="edit-tag">
-                                <span v-for="tag in tags" class="badge" v-bind:class="getTagType(tag)">
-                                    <a class="text-white" v-on:click="addOldTag(tag)">{{getTagName(tag)}}</a>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <div><label>相关链接:</label></div>
-                            <div class="btn-group" style="width:100%" v-for="(link, index) in current.links">
-                                <input type="text" class="form-control" v-model="link.name">
-                                <button type="button" class="btn btn-danger rounded" v-on:click="removeLink(index)">
-                                    <i class="fa fa-close"></i>
-                                </button>
-                            </div>
-                            <button type="button" class="btn mt-2 btn-sm btn-block btn-success" v-on:click="addNewLink">
-                                <i class="fa fa-plus"></i>新条目
-                            </button>
-                        </div>
-                        <div class="form-check">
-                            <label class="form-check-label">
-                                <input class="form-check-input" type="checkbox" v-model="current.favorite"> 加入收藏
-                            </label>
-                        </div>
-                    </div>
+            <div class="col-auto">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" :class="{disabled: !canNext}" @click="toPage(currentIndex + 1)">
+                        <i class="fa fa-angle-right"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" :class="{disabled: !canNext}" @click="toPage(items.length - 1)">
+                        <i class="fa fa-angle-double-right"></i>
+                    </button>
                 </div>
             </div>
-
-            <div style="margin: auto; position: fixed; bottom: 0; right: 0;">
-                <button class="btn btn-sm m-2 btn-danger" v-if="!emptyList" v-on:click="removeItem"><i class="fa fa-trash"></i> 移除</button>
+            <div class="col"></div>
+        </div>
+        <div class="ml-2" style="position: absolute; left: 0;">
+            <button type="button" class="btn btn-sm btn-link" @click="goBack"><i class="fa fa-close"></i></button>
+        </div>
+        <div class="mr-2" style="position: fixed; right: 100px;">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-success" @click="addGeneral"><i class="fa fa-plus"></i> 添加新项目</button>
+                <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"></button>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a class="dropdown-item" @click="addPixiv">添加Pixiv项目…</a>
+                    <a class="dropdown-item" @click="addURL" href="#">添加URL…</a>
+                </div>
             </div>
         </div>
-  </body>
-  <script src="../view.js/add.js"></script>
-</html>
+        <div class="mr-2" style="position: fixed; right: 0;">
+            <button type="button" class="btn btn-sm btn-primary" @click="save" @class="{disabled: emptyList}">
+                <i class="fa fa-check"></i> 全部保存
+            </button>
+        </div>
+    </nav>
+    <div class="center-board" style="width: 200px; height: 200px;" v-if="emptyList">
+        <div class="row p-2">
+            <div class="col">
+                <button type="button" class="btn btn-link" @click="addGeneral">导入本地文件…</button>
+            </div>
+        </div>
+        <div class="row p-2">
+            <div class="col">
+                <button type="button" class="btn btn-link" @click="addPixiv">添加Pixiv项目…</button>
+            </div>
+        </div>
+        <div class="row p-2">
+            <div class="col">
+                <button type="button" class="btn btn-link" @click="addURL">添加网络URL…</button>
+            </div>
+        </div>
+    </div>
+    <div class="container" style="margin-top: 100px;" v-if="!emptyList">
+        <div class="row">
+            <div class="col">
+                <div class="row">
+                    <div class="col">
+                        <img alt="预览" style="width: 100%; height: 100%;" :src="current.dataURL"/>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        {{resolution}}
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label>标题:</label>
+                    <input type="email" class="form-control" v-model="current.title">
+                </div>
+                <div class="form-group">
+                    <label>画集:</label>
+                    <input type="text" class="form-control" v-model="current.collection">
+                </div>
+                <div class="form-group">
+                    <div><label>标签:</label></div>
+                    <div>
+                        <span v-for="tag in current.tags" class="badge" :class="getTagType(tag)">
+                            <a class="text-white" @click="removeTag(tag)">{{getTagName(tag)}}</a>
+                        </span>
+                    </div>
+                    <div class="btn-group mt-2 ml-1">
+                        <button class="btn text-dark collapsed" data-toggle="collapse" data-target="#edit-tag" aria-expanded="false">
+                            <i class="fa fa-caret-down"></i> 现有
+                        </button>
+                        <input type="text" class="form-control rounded-0" v-model="newTagInput"/>
+                        <select class="form-control rounded-0" v-model="newTagSelect">
+                            <option value="%">题材</option>
+                            <option value="#">内容</option>
+                            <option value="@">作者</option>
+                        </select>
+
+                        <button type="button" class="btn btn-success" @click="addNewTag">
+                            <i class="fa fa-plus"></i> 新标签
+                        </button>
+                    </div>
+                    <div class="collapse m-1" id="edit-tag">
+                        <span v-for="tag in tags" class="badge" :class="getTagType(tag)">
+                            <a class="text-white" @click="addOldTag(tag)">{{getTagName(tag)}}</a>
+                        </span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div><label>相关链接:</label></div>
+                    <div class="btn-group" style="width:100%" v-for="(link, index) in current.links">
+                        <input type="text" class="form-control" v-model="link.name">
+                        <button type="button" class="btn btn-danger rounded" @click="removeLink(index)">
+                            <i class="fa fa-close"></i>
+                        </button>
+                    </div>
+                    <button type="button" class="btn mt-2 btn-sm btn-block btn-success" @click="addNewLink">
+                        <i class="fa fa-plus"></i>新条目
+                    </button>
+                </div>
+                <div class="form-check">
+                    <label class="form-check-label">
+                        <input class="form-check-input" type="checkbox" v-model="current.favorite"> 加入收藏
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin: auto; position: fixed; bottom: 0; right: 0;">
+        <button class="btn btn-sm m-2 btn-danger" v-if="!emptyList" @click="removeItem"><i class="fa fa-trash"></i> 移除</button>
+    </div>
+</div>

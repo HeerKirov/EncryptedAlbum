@@ -20,6 +20,7 @@ const db = {
         theme: 'white',
         fullscreen: false
     },
+    currentWindow: win,
     password: null,
     storage: null,
     engine: null
@@ -55,7 +56,9 @@ function registerWindowEvents() {
 }
 function registerVue(viewName, callback) {
     if(!(viewName in vms)) {
-        $('#app').load(`${viewName}.html`, () => {
+        let container = $('<div></div>')
+        $('#body').append(container)
+        container.load(`${viewName}.html`, () => {
             let vm = require(`../view.js/${viewName}`)(vueModel)
             vms[viewName] = vm
             callback(vm)
@@ -92,8 +95,9 @@ function updateTitleBarStatus() {
     }
 }
 function updateTheme() {
-    $('#titleBar').css('background', db.ui.theme === 'dark' ? '#222222' : '#FFFFFF')
-    $('#titleBarText').css('color', db.ui.theme === 'dark' ? '#FFFFFF' : '#000000')
+    $('#titleBar')
+        .css('background', db.ui.theme === 'dark' ? '#222222' : '#FFFFFF')
+        .css('color', db.ui.theme === 'dark' ? '#FFFFFF' : '#000000')
     if(db.ui.theme === 'white') $('#body').css('background', '#FFFFFF')
     else if(db.ui.theme === 'gray') $('#body').css('background', '#F0F0F0')
     else $('#body').css('background', '#1A1A1A')

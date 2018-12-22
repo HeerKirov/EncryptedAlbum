@@ -82,8 +82,7 @@ function mainModel(vueModel) {
                 this.fullscreen = false
             },
             add: function() {
-                this.setTouchBar(null)
-                // ipcRenderer.sendSync('goto', 'add')
+                vueModel.route('add')
             },
             //与控件绑定的事件
             loadOptionToFilter: function () {
@@ -249,7 +248,7 @@ function mainModel(vueModel) {
             },
             switchSelectMode: function() {
                 this.selected.mode = !this.selected.mode
-                this.setTouchBar('standard')
+                this.setTouchBar()
                 if(!this.selected.mode) {
                     this.clearSelected()
                 }
@@ -317,43 +316,37 @@ function mainModel(vueModel) {
                 if(type !== this.viewFolder) {
                     this.viewFolder = type
                     this.loadListToPage()
-                    this.setTouchBar('standard')
+                    this.setTouchBar()
                 }
             },
 
-            setTouchBar: function (state) {
+            setTouchBar: function () {
                 if(this.platform !== 'darwin') return;
-                let win = getCurrentWindow()
-                if(state === 'standard') {
-                    //标准栏。显示选择模式、筛选、排序、视图、文件夹选择。会根据模式信息决定是不是显示筛选等，以及是否进入选择模式。
-                    if(this.selected.mode) {
-                        win.setTouchBar(new TouchBar({
-                            items: [
-                                new TouchBarButton({label: '取消选择模式', click: this.switchSelectMode}),
-                                new TouchBarButton({label: '全选', click: this.selectAll}),
-                                new TouchBarButton({label: '反选', click: this.selectNot}),
-                                new TouchBarSpacer({size: 'flexible'}),
-                                this.viewFolder === 'list' ?
-                                    new TouchBarButton({label: '添加到临时文件夹', click: this.selectAddToTemp}):
-                                    new TouchBarButton({label: '移出临时文件夹', click: this.selectRemoveFromTemp}),
-                            ]
-                        }))
-                    }else{
-                        win.setTouchBar(new TouchBar({
-                            items: [
-                                new TouchBarButton({label: '选择模式', click: this.switchSelectMode}),
-                                new TouchBarSpacer({size: 'flexible'}),
-                                this.viewFolder === 'list' ?
-                                    new TouchBarButton({label: '临时文件夹', click: () => {this.switchList('temp')}}) :
-                                    new TouchBarButton({label: '阅览列表', click: () => {this.switchList('list')}})
-                            ]
-                        }))
-                    }
+                //标准栏。显示选择模式、筛选、排序、视图、文件夹选择。会根据模式信息决定是不是显示筛选等，以及是否进入选择模式。
+                if(this.selected.mode) {
+                    vueModel.setTouchBar(new TouchBar({
+                        items: [
+                            new TouchBarButton({label: '取消选择模式', click: this.switchSelectMode}),
+                            new TouchBarButton({label: '全选', click: this.selectAll}),
+                            new TouchBarButton({label: '反选', click: this.selectNot}),
+                            new TouchBarSpacer({size: 'flexible'}),
+                            this.viewFolder === 'list' ?
+                                new TouchBarButton({label: '添加到临时文件夹', click: this.selectAddToTemp}):
+                                new TouchBarButton({label: '移出临时文件夹', click: this.selectRemoveFromTemp}),
+                        ]
+                    }))
                 }else{
-                    win.setTouchBar(null)
+                    vueModel.setTouchBar(new TouchBar({
+                        items: [
+                            new TouchBarButton({label: '选择模式', click: this.switchSelectMode}),
+                            new TouchBarSpacer({size: 'flexible'}),
+                            this.viewFolder === 'list' ?
+                                new TouchBarButton({label: '临时文件夹', click: () => {this.switchList('temp')}}) :
+                                new TouchBarButton({label: '阅览列表', click: () => {this.switchList('list')}})
+                        ]
+                    }))
                 }
             }
-
         }
     })
 }
