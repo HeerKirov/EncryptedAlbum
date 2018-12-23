@@ -1,10 +1,12 @@
-const {TouchBar} = require('electron').remote
+const {ImageSpecification} = require("../target/common/engine")
+const {remote, ipcRenderer} = require('electron')
+const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer, TouchBarPopover, TouchBarSlider} = TouchBar
 const Vue = require('vue/dist/vue')
 
 function mainModel(vueModel) {
     let db = vueModel.db
-    return new Vue({
+    let vm = new Vue({
         el: '#mainView',
         data: {
             visible: false,
@@ -49,10 +51,7 @@ function mainModel(vueModel) {
             viewFolder: 'list', //list or temp
             showList: [],    //绑定在前端展示的列表。包含dataURL。
             items: [],      //用于保存当前正在查询的列表。在被正式上载之前不含dataURL。
-            temps: [],      //用于保存临时文件夹。
-
-            dataCache: {},   //缓存最近使用过的dataURL。
-            platform: null
+            temps: []      //用于保存临时文件夹。
         },
         computed: {
             leastSelectOne: function () {
@@ -64,13 +63,17 @@ function mainModel(vueModel) {
                 db.ui.theme = 'gray'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
-                // this.platform = ipcRenderer.sendSync('platform').platform
-                // ipcRenderer.sendSync('load-engine')
-                // this.loadCacheFromMain()
-                // if(this.viewFolder === 'list') this.search()
-                // this.loadTempsFromMain()
-                // this.setTouchBar('standard')
-                // this.loadListToPage()
+                if(db.engine == null) {
+                    db.engine = db.storage.loadMainEngine()
+                    db.engine.connect()
+                }
+                if(db.engine.existConfig('view')) {
+                    this.view = db.engine.getConfig('view')
+                }
+                this.setTouchBar()
+                if(this.viewFolder === 'list') this.search()
+                this.loadTempsFromMain()
+                this.loadListToPage()
             },
             leave: function() {
                 this.visible = false
@@ -111,14 +114,14 @@ function mainModel(vueModel) {
                 let tags = []
                 for(let i = 0; i < this.filterInput.tags.length; ++i) tags[i] = this.filterInput.tags[i]
                 this.filter.tags = tags
-                ipcRenderer.sendSync('save-main-cache', {filter: this.filter})
+                // ipcRenderer.sendSync('save-main-cache', {filter: this.filter})
                 this.search()
                 this.loadListToPage()
             },
             saveOptionFromSort: function () {
                 this.sort.by = this.sortInput.by
                 this.sort.desc = this.sortInput.desc
-                ipcRenderer.sendSync('save-main-cache', {sort: this.sort})
+                // ipcRenderer.sendSync('save-main-cache', {sort: this.sort})
                 this.search()
                 this.loadListToPage()
             },
@@ -129,33 +132,32 @@ function mainModel(vueModel) {
                 }
                 this.view.showTitle = this.viewInput.showTitle
                 this.view.zoom = this.viewInput.zoom
-                ipcRenderer.sendSync('save-main-cache', {view: this.view})
+                // ipcRenderer.sendSync('save-main-cache', {view: this.view})
+                db.engine.putConfig('view', this.view)
+                db.engine.save()
             },
             saveOptionFromSearch: function () {
                 this.searchText = this.searchTextInput
-                ipcRenderer.sendSync('save-main-cache', {search: this.searchText})
+                // ipcRenderer.sendSync('save-main-cache', {search: this.searchText})
                 this.search()
                 this.loadListToPage()
             },
-            //加载时用于从主线程加载
-            loadCacheFromMain: function () {
-                //从主线程加载option缓存。
-                let ret = ipcRenderer.sendSync('load-main-cache')
-                if(ret.filter) this.filter = ret.filter
-                if(ret.sort) this.sort = ret.sort
-                if(ret.view) this.view = ret.view
-                if('folder' in ret && ret.folder) this.viewFolder = ret.folder
-                if(ret.search) {
-                    this.searchText = ret.search
-                    this.loadOptionToSearch()
-                }
-            },
+
             loadTempsFromMain: function() {
                 //从主线程加载临时文件夹。
-                let temps = ipcRenderer.sendSync('load-main-temps', {findImage: true})
+                let {temps} = ipcRenderer.sendSync('load-cache', ['temps'])
                 if(temps) {
-                    this.temps = temps
+                    console.log(temps)
+                    this.temps = db.engine.findImage({id_in: temps})
+                    console.log(this.temps)
                 }
+            },
+            saveTempsToMain: function() {
+                let ids = []
+                for(let item of this.temps) {
+                    ids[ids.length] = item.id
+                }
+                ipcRenderer.sendSync('save-cache', {temps: ids})
             },
 
             search: function () {
@@ -166,47 +168,29 @@ function mainModel(vueModel) {
                 findOption['desc'] = this.sort.desc
                 if(this.filter.favorite) findOption['favorite_eq'] = true
                 if(this.filter.tags) findOption['tags'] = this.filter.tags
-                this.items = ipcRenderer.sendSync('find-image', findOption)
+                this.items = db.engine.findImage(findOption)
             },
             loadListToPage: function () {
                 //此函数根据viewFolder的类型，将items或temps加载到showList。
                 //同时，这还会将dataURL绑定到数据模型。
                 //TODO 按照【聚合为画集】效果进行聚合
                 this.clearSelected()
-                let items, output = []
-                if(this.viewFolder === 'list') {
-                    items = this.items
-                }else {
-                    items = this.temps
-                }
+                let output = [], items = this.viewFolder === 'list' ? this.items : this.temps
                 for(let i in items) {
                     let image = items[i]
-                    let index = i
+                    let index = parseInt(i)
                     if(image.buffer === undefined || image.buffer === null) {
-                        if(image.id in this.dataCache) {
-                            vm.$set(output, i, {
-                                buffer: this.dataCache[image.id],
+                        db.engine.loadImageURL(image.id, ImageSpecification.Exhibition, (data) => {
+                            let newSet = {
+                                buffer: data,
                                 title: image.title,
                                 col: false,
                                 selected: false,
                                 id: image.id,
                                 index: index
-                            })
-                        }else{
-                            ipcRenderer.once('load-image-url-await-' + image.id, (e, arg) => {
-                                let newSet = {
-                                    buffer: arg,
-                                    title: image.title,
-                                    col: false,
-                                    selected: false,
-                                    id: image.id,
-                                    index: index
-                                }
-                                vm.$set(output, i, newSet)
-                                this.dataCache[image.id] = arg
-                            })
-                            ipcRenderer.send('load-image-url-async', {id: image.id, specification: 'Exhibition', awaitId: image.id})
-                        }
+                            }
+                            vm.$set(output, i, newSet)
+                        })
                     }
                 }
                 this.showList = output
@@ -285,6 +269,7 @@ function mainModel(vueModel) {
                         this.addToTemp(this.items[item.index])
                     }
                     this.clearSelected()
+                    this.saveTempsToMain()
                 }
             },
             selectRemoveFromTemp: function() {
@@ -296,10 +281,11 @@ function mainModel(vueModel) {
                         let item = this.showList[sel]
                         indexes[indexes.length] = item.index
                     }
-                    indexes.sort()
+                    indexes.sort((a, b) => a === b ? 0 : a < b ? -1 : 1)
                     for(let i = indexes.length - 1; i >= 0; --i) {
                         this.temps.splice(indexes[i], 1)
                     }
+                    this.saveTempsToMain()
                     this.loadListToPage()
                 }
             },
@@ -321,7 +307,7 @@ function mainModel(vueModel) {
             },
 
             setTouchBar: function () {
-                if(this.platform !== 'darwin') return;
+                if(db.platform.platform !== 'darwin') return;
                 //标准栏。显示选择模式、筛选、排序、视图、文件夹选择。会根据模式信息决定是不是显示筛选等，以及是否进入选择模式。
                 if(this.selected.mode) {
                     vueModel.setTouchBar(new TouchBar({
@@ -346,9 +332,22 @@ function mainModel(vueModel) {
                         ]
                     }))
                 }
+            },
+            pr: function () {
+                for(let index in db.engine.blockMemory) {
+                    for(let spec in db.engine.blockMemory[index]) {
+                        let min = null, max = null
+                        for(let i of db.engine.blockMemory[index][spec].blocks) {
+                            if(min == null || i < min) min = i
+                            if(max == null || i > max) max = i
+                        }
+                        console.log(`[${index}][${spec}]size = ${db.engine.blockMemory[index][spec].blocks.length}, min = ${min}, max = ${max}`)
+                    }
+                }
             }
         }
     })
+    return vm
 }
 //TODO 添加分页加载系统。一次只加载一部分内容，剩余内容通过点击"继续加载"加载或自动加载。
 

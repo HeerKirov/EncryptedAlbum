@@ -12,6 +12,8 @@ import {BufferCache} from './bufferCache'
 import {decrypt, encrypt} from './utils'
 import {translateDataURL} from './imageTool'
 
+const PREFIX = 'data:image/jpeg;base64,'
+const PREFIX_LENGTH = PREFIX.length
 const STORAGE = 'data.db'
 
 const BLOCK_SIZE = 1024 * 64 //64KB
@@ -118,6 +120,9 @@ class LocalDataEngine implements DataEngine {
     }
     //TODO 添加加密/解密流程
     saveImageURL(id: number, dataURL: string, callback?: () => void): void {
+        if(dataURL.substr(0, PREFIX_LENGTH) === PREFIX) {
+            dataURL = dataURL.substring(PREFIX_LENGTH)
+        }
         let buf = Buffer.from(dataURL, 'base64')
         saveImageBuffer(this.storageFolder, buf, this.blockMaxMemory, (blocks) => {
             for(let b of blocks) {
@@ -130,8 +135,9 @@ class LocalDataEngine implements DataEngine {
                 size: buf.byteLength,
                 blocks: blocks
             }
-
-            let exhibitionBuf = Buffer.from(translateDataURL(dataURL, ImageSpecification.Exhibition), 'base64')
+            let exhibitionURL = translateDataURL(dataURL, ImageSpecification.Exhibition).substring(PREFIX_LENGTH)
+            console.log(exhibitionURL)
+            let exhibitionBuf = Buffer.from(exhibitionURL, 'base64')
             saveImageBuffer(this.storageFolder, exhibitionBuf, this.blockMaxMemory, (blocks) => {
                 for(let b of blocks) {
                     if(b > this.blockMaxMemory) {
@@ -148,7 +154,7 @@ class LocalDataEngine implements DataEngine {
         })
 
     }
-    loadImageURL(id: number, specification?: ImageSpecification, callback?: (string) => void): void {
+    loadImageURL(id: number, specification?: ImageSpecification, callback?: (string: string) => void): void {
         let spec = specification === ImageSpecification.Origin ? ImageSpecification.Origin : ImageSpecification.Exhibition
         let cache = this.imageURLCache.get(spec, id)
         if(cache != null) {
@@ -165,7 +171,7 @@ class LocalDataEngine implements DataEngine {
         }else{
             loadImageBuffer(this.storageFolder, blocks, size, (buf: Buffer) => {
                 if(buf != null) {
-                    let dataUrl = buf.toString('base64')
+                    let dataUrl = PREFIX + buf.toString('base64')
                     this.imageURLCache.set(spec, id, dataUrl)
                     if(callback !== undefined) callback(dataUrl)
                 }else{

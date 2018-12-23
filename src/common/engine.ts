@@ -1,5 +1,5 @@
 import { Size } from "electron"
-import {containsAll, findLikeIn} from "./utils";
+import {containsAll, containsElement, findLikeIn} from "./utils";
 
 /**
  * 数据引擎的接口。
@@ -80,7 +80,7 @@ interface Image {
 
 function caseImage(image: Image, option: ImageFindOption): boolean {
     if(option.id_eq && image.id !== option.id_eq) return false
-    else if(option.id_in && (!(image.id in option.id_in))) return false
+    else if(option.id_in && (!containsElement(image.id, option.id_in))) return false
     else if(option.title_eq && image.title !== option.title_eq) return false
     else if(option.collection_eq && image.collection !== option.collection_eq) return false
     else if(option.tag_contains && (!containsAll(image.tags, option.tag_contains))) return false

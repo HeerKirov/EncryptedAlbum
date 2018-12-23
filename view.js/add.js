@@ -1,8 +1,9 @@
 const electron = require('electron')
 const {dialog, TouchBar} = electron.remote
 const {TouchBarButton, TouchBarSpacer, TouchBarPopover, TouchBarSlider} = TouchBar
-const {ipcRenderer, nativeImage} = electron
+const {nativeImage} = electron
 const Vue = require('vue/dist/vue')
+const {readFile} = require('fs')
 
 const defaultCurrent = {
     title: null,
@@ -11,12 +12,11 @@ const defaultCurrent = {
     links: [],
     favorite: false,
     resolution: { width: 0, height: 0 },
-    dataURL: '',
-    image: null
+    dataURL: ''
 }
 function addModel(vueModel) {
     let db = vueModel.db
-    return new Vue({
+    let vm = new Vue({
         el: '#addView',
         data: {
             visible: false,
@@ -59,14 +59,15 @@ function addModel(vueModel) {
                 vueModel.setTouchBar(new TouchBar({
                     items: [
                         new TouchBarSpacer({size: 'flexible'}),
-                        new TouchBarButton({label: '导入本地'}),
-                        new TouchBarButton({label: '添加Pixiv'}),
-                        new TouchBarButton({label: '添加URL'}),
+                        new TouchBarButton({label: '导入本地', click: this.addGeneral}),
+                        new TouchBarButton({label: '添加Pixiv', click: this.addPixiv}),
+                        new TouchBarButton({label: '添加URL', click: this.addURL}),
                     ]
                 }))
             },
             leave: function() {
                 this.visible = false
+                this.clearItems()
             },
             enterFullScreen: function() {
                 this.fullscreen = true
@@ -77,7 +78,47 @@ function addModel(vueModel) {
             goBack: function() {
                 vueModel.route('main')
             },
-            
+            save: function () {
+                let newImages = []
+                let dataURLs = []
+                let nextId = db.engine.getNextId()
+                for(let i in this.items) {
+                    let item = this.items[i]
+
+                    let links = []
+                    for(let j in item.links) links[j] = item.links[j].name
+                    let id = nextId ++
+                    newImages[i] = {
+                        id: id,
+                        title: item.title ? item.title : null,
+                        collection: item.collection ? item.collection : null,
+                        tags: item.tags,
+                        links: links,
+                        favorite: item.favorite,
+                        resolution: item.resolution,
+                        createTime: new Date().getTime()
+                    }
+                    dataURLs[dataURLs.length] = {id: id, dataURL: item.dataURL}
+                }
+                try {
+                    db.engine.createImage(newImages)
+                    function saveOne(i) {
+                        if(i >= dataURLs.length) {
+                            db.engine.save()
+                            vm.clearItems()
+                            vueModel.route('main')
+                        }else{
+                            db.engine.saveImageURL(dataURLs[i].id, dataURLs[i].dataURL, () => {
+                                saveOne(i + 1)
+                            })
+                        }
+                    }
+                    saveOne(0)
+                }catch (e) {
+                    alert(e)
+                }
+            },
+
             addGeneral: function() {
                 dialog.showOpenDialog(db.currentWindow, {
                     title: '选择图片',
@@ -88,21 +129,30 @@ function addModel(vueModel) {
                     ]
                 }, (paths) => {
                     if(paths) {
-                        for(let path of paths) {
-                            let image = nativeImage.createFromPath(path)
-                            let item = {
-                                title: '',
-                                collection: '',
-                                tags: [],
-                                links: [],
-                                favorite: false,
-                                resolution: image.getSize(),
-                                dataURL: image.toDataURL(),
-                                image: image
-                            }
-                            this.appendToList(item)
+                        let results = []
+                        let cnt = paths.length
+                        for(let i in paths) {
+                            let path = paths[i];
+                            ((index) => {
+                                readFile(path, (e, buf) => {
+                                    let image = nativeImage.createFromBuffer(buf)
+                                    results[index] = {
+                                        title: '',
+                                        collection: '',
+                                        tags: [],
+                                        links: [],
+                                        favorite: false,
+                                        resolution: image.getSize(),
+                                        dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
+                                    }
+                                    cnt --
+                                    if(cnt <= 0) {
+                                        vm.appendToList(results)
+                                    }
+                                })
+                            })(i)
                         }
-                        this.toPage(this.items.length - 1)
+                        // this.toPage(this.items.length - 1)
                     }
                 })
             },
@@ -112,9 +162,13 @@ function addModel(vueModel) {
             addURL: function() {
                 alert('尚待开发。') // TODO 尚待开发
             },
-            appendToList: function(item) {
-                this.items[this.count] = item
-                this.count ++
+            appendToList: function(items) {
+                for(let i in items) {
+                    vm.$set(this.items, this.count + parseInt(i), items[i])
+                }
+                let nextPageIndex = this.count
+                this.count += items.length
+                this.toPage(nextPageIndex)
             },
             removeItem: function() {
                 if(this.count > 0) {
@@ -129,33 +183,12 @@ function addModel(vueModel) {
                     this.count --
                 }
             },
-            save: function () {
-                let newImages = []
-                let nextId = ipcRenderer.sendSync('get-next-id')
-                for(let i in this.items) {
-                    let item = this.items[i]
-
-                    let links = []
-                    for(let j in item.links) links[j] = item.links[j].name
-
-                    let buf = item.image.toJPEG(100).toString('base64')
-                    newImages[i] = {
-                        id: nextId ++,
-                        title: item.title ? item.title : null,
-                        collection: item.collection ? item.collection : null,
-                        tags: item.tags,
-                        links: links,
-                        favorite: item.favorite,
-                        resolution: item.resolution,
-                        createTime: new Date(),
-                        buffer: buf  //为了传递到主线程，buffer在这里就被劣化成JPEG100，并转换buffer至string。
-                    }
-                }
-                let rec = ipcRenderer.sendSync('create-image', newImages)
-                if(rec == null) {
-                    ipcRenderer.send('goto', 'main')
-                }else{
-                    alert(rec)
+            clearItems: function() {
+                if(this.count > 0) {
+                    this.count = 0
+                    this.current = defaultCurrent
+                    this.items = []
+                    this.currentIndex = 0
                 }
             },
             toPage: function(index) {
@@ -180,19 +213,13 @@ function addModel(vueModel) {
             addNewTag: function () {
                 let newTag = this.newTagSelect + this.newTagInput
                 if(!(newTag in this.current.tags)) {
-                    let tags = this.current.tags
-                    tags[tags.length] = newTag
-                    this.current.tags = null
-                    this.current.tags = tags
+                    vm.$set(this.current.tags, this.current.tags.length, newTag)
                 }
                 this.newTagInput = ''
             },
             addOldTag: function(tag) {
                 if(!(tag in this.current.tags)) {
-                    let tags = this.current.tags
-                    tags[tags.length] = tag
-                    this.current.tags = null
-                    this.current.tags = tags
+                    vm.$set(this.current.tags, this.current.tags.length, tag)
                 }
             },
             removeTag: function(tag) {
@@ -207,10 +234,7 @@ function addModel(vueModel) {
                 }
             },
             addNewLink: function () {
-                let links = this.current.links
-                links[links.length] = {name: ''}
-                this.current.links = null
-                this.current.links = links
+                vm.$set(this.current.links, this.current.links.length, {name: ''})
             },
             removeLink: function (index) {
                 let links = this.current.links
@@ -222,6 +246,7 @@ function addModel(vueModel) {
             }
         }
     })
+    return vm
 }
 
 module.exports = addModel

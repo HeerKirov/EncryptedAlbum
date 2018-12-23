@@ -1,4 +1,21 @@
-<div id="mainView" class="container-fluid" v-if="visible">
+<div id="mainView" class="panel" v-if="visible">
+    <div style="overflow: auto; height: 100vh; width: 100%">
+        <div style="margin-top: 72px; margin-bottom: 55px;">
+            <ul style="margin: 0; padding: 0">
+                <li v-for="(image, index) in showList" style="display: inline-block;" :style="{width: 60 + view.zoom * 40 + 'px'}">
+                    <div class="card" style="margin: 2px">
+                        <img class="card-img-top" :src="image.buffer" alt="Card image" style="width:100%" @click="selectOne(index)">
+                        <div class="" v-if="view.showTitle">
+                            <h6 class="m-2">{{image.title}}</h6>
+                        </div>
+                        <i v-if="image.selected" style="position: absolute; right: 5px; bottom: 5px;" class="fa fa-check-circle fa-2x text-primary"></i>
+                        <i v-if="image.col" style="position: absolute; right: 5px; top: 5px;" class="fa fa-th-list fa-lg text-white"></i>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
     <nav id="navBar" class="navbar navbar-expand-sm fixed-top" style="height: 50px" :style="{'top': fullscreen ? '0' : '22px'}">
         <div class="ml-2" style="position: fixed; left: 0;">
             <button type="button" class="btn btn-sm btn-success" @click="add"><i class="fa fa-plus"></i></button>
@@ -130,20 +147,7 @@
       </div>
     </div>
 
-    <div style="margin-top: 55px; margin-bottom: 55px;">
-      <ul style="margin: 0; padding: 0">
-        <li v-for="(image, index) in showList" style="display: inline-block;" :style="{width: 60 + view.zoom * 40 + 'px'}">
-          <div class="card" style="margin: 2px">
-              <img class="card-img-top" :src="image.buffer" alt="Card image" style="width:100%" @click="selectOne(index)">
-              <div class="" v-if="view.showTitle">
-                  <h6 class="m-2">{{image.title}}</h6>
-              </div>
-              <i v-if="image.selected" style="position: absolute; right: 5px; bottom: 5px;" class="fa fa-check-circle fa-2x text-primary"></i>
-              <i v-if="image.col" style="position: absolute; right: 5px; top: 5px;" class="fa fa-th-list fa-lg text-white"></i>
-          </div>
-        </li>
-      </ul>
-    </div>
+
 
     <div v-if="selected.mode" style="margin: auto; position: fixed; left:0; bottom:0; width: 620px;">
       <div class="card m-1 p-1">

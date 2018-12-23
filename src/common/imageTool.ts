@@ -1,6 +1,9 @@
 import {NativeImage, nativeImage} from "electron"
 import {ImageSpecification} from "./engine"
 
+const PREFIX = 'data:image/jpeg;base64,'
+const PREFIX_LENGTH = PREFIX.length
+
 const EXHIBITION_AREA_MAX = Math.pow(2, 20)
 const THUMBNAIL_AREA_MAX = Math.pow(2, 16)
 
@@ -46,9 +49,19 @@ function translateNativeImage(origin: NativeImage, specification: ImageSpecifica
 }
 
 function translateDataURL(originURL: string, specification: ImageSpecification): string {
-    if(specification === ImageSpecification.Origin) return originURL
-    let native = nativeImage.createFromDataURL(originURL)
-    return 'data:image/jpeg;base64,' + translateNativeImage(native, specification).toJPEG(80).toString('base64')
+    if(specification === ImageSpecification.Origin) {
+        if(originURL.substr(0, PREFIX_LENGTH) !== PREFIX) {
+            return PREFIX + originURL
+        }
+        return originURL
+    }
+    if(originURL.substr(0, PREFIX_LENGTH) === PREFIX) {
+        originURL = originURL.substring(PREFIX_LENGTH)
+    }
+    let native = nativeImage.createFromBuffer(Buffer.from(originURL, 'base64'))
+    return PREFIX + translateNativeImage(native, specification).toJPEG(80).toString('base64')
+    // let ret = translateNativeImage(native, specification)
+    // return ret.toDataURL()
 }
 
 export {translateNativeImage, translateDataURL}

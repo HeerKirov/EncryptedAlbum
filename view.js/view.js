@@ -121,6 +121,7 @@ $(document).ready(function () {
             db.password = password
             db.storage = storage
             db.engine = storage.loadMainEngine()
+            db.engine.connect()
             route('main')
         }else if(AppStorage.isInitialized()) {
             route('login')

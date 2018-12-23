@@ -121,6 +121,17 @@ function containsAll<T>(main: T[], contains: T[]): boolean {
 }
 
 /**
+ * 检查数组是否包含指定元素。
+ * @param ele
+ * @param contains
+ */
+function containsElement<T>(ele: T, contains: T[]): boolean {
+    for(let i of contains) {
+        if(i === ele) return true
+    }
+    return false
+}
+/**
  * 检查search的串在keys中是否存在至少一个匹配。
  * 匹配模式：不区分大小写，search中的空格分隔会导致查询词拆分。
  * @param search
@@ -144,4 +155,4 @@ function findLikeIn(search: string, keys: string[]): boolean {
     }
     return false
 }
-export {turnToBinary, turnToString, loopChange, xor, encrypt, decrypt, uuid, containsAll, findLikeIn}
+export {turnToBinary, turnToString, loopChange, xor, encrypt, decrypt, uuid, containsAll, containsElement, findLikeIn}
