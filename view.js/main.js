@@ -6,6 +6,7 @@ const Vue = require('vue/dist/vue')
 
 function mainModel(vueModel) {
     let db = vueModel.db
+    let loadLock = false
     let vm = new Vue({
         el: '#mainView',
         data: {
@@ -23,7 +24,8 @@ function mainModel(vueModel) {
             viewInput: {
                 aggregateByCollection: false,
                 showTitle: false,
-                zoom: 4
+                zoom: 4,
+                loadNum: 40
             },
             searchTextInput: '',
             //绑定实际使用的option数据项
@@ -38,7 +40,8 @@ function mainModel(vueModel) {
             view: {
                 aggregateByCollection: false,
                 showTitle: false,
-                zoom: 4
+                zoom: 4,
+                loadNum: 40
             },
             searchText: '',
             //绑定选择功能
@@ -49,13 +52,19 @@ function mainModel(vueModel) {
             },
             //绑定内容展示列表和区分
             viewFolder: 'list', //list or temp
+            showBackend: [],  //用于绑定展示列表的全部表，仅包含数据表，不做查询。这一层用于缓冲查询和显示。
             showList: [],    //绑定在前端展示的列表。包含dataURL。
+            showRecord: 0,   //用于标记已经从showBackend中加载的数量。
             items: [],      //用于保存当前正在查询的列表。在被正式上载之前不含dataURL。
             temps: []      //用于保存临时文件夹。
+
         },
         computed: {
             leastSelectOne: function () {
                 return this.selected.mode && this.selected.count > 0
+            },
+            canLoadFromBackend: function () {
+                return this.showBackend.length > this.showList.length
             }
         },
         methods: {
@@ -69,6 +78,7 @@ function mainModel(vueModel) {
                 }
                 if(db.engine.existConfig('view')) {
                     this.view = db.engine.getConfig('view')
+                    this.loadOptionToSearch()
                 }
                 this.setTouchBar()
                 if(this.viewFolder === 'list') this.search()
@@ -105,6 +115,7 @@ function mainModel(vueModel) {
                 this.viewInput.aggregateByCollection = this.view.aggregateByCollection
                 this.viewInput.showTitle = this.view.showTitle
                 this.viewInput.zoom = this.view.zoom
+                this.viewInput.loadNum = this.view.loadNum
             },
             loadOptionToSearch: function() {
                 this.searchTextInput = this.searchText
@@ -132,7 +143,7 @@ function mainModel(vueModel) {
                 }
                 this.view.showTitle = this.viewInput.showTitle
                 this.view.zoom = this.viewInput.zoom
-                // ipcRenderer.sendSync('save-main-cache', {view: this.view})
+                this.view.loadNum = this.viewInput.loadNum
                 db.engine.putConfig('view', this.view)
                 db.engine.save()
             },
@@ -147,9 +158,7 @@ function mainModel(vueModel) {
                 //从主线程加载临时文件夹。
                 let {temps} = ipcRenderer.sendSync('load-cache', ['temps'])
                 if(temps) {
-                    console.log(temps)
                     this.temps = db.engine.findImage({id_in: temps})
-                    console.log(this.temps)
                 }
             },
             saveTempsToMain: function() {
@@ -171,36 +180,68 @@ function mainModel(vueModel) {
                 this.items = db.engine.findImage(findOption)
             },
             loadListToPage: function () {
-                //此函数根据viewFolder的类型，将items或temps加载到showList。
-                //同时，这还会将dataURL绑定到数据模型。
-                //TODO 按照【聚合为画集】效果进行聚合
+                //此函数根据viewFolder的类型，将items或temps加载到showBackend。
                 this.clearSelected()
-                let output = [], items = this.viewFolder === 'list' ? this.items : this.temps
-                for(let i in items) {
-                    let image = items[i]
-                    let index = parseInt(i)
-                    if(image.buffer === undefined || image.buffer === null) {
-                        db.engine.loadImageURL(image.id, ImageSpecification.Exhibition, (data) => {
-                            let newSet = {
-                                buffer: data,
-                                title: image.title,
-                                col: false,
-                                selected: false,
-                                id: image.id,
-                                index: index
+                this.showList = []
+                this.showBackend = this.viewFolder === 'list' ? this.items : this.temps
+                if(this.view.aggregateByCollection) {
+                    //聚合规范：
+                    //  在list -> showBackend的过程中聚合；
+                    //  将被聚合的条目，会在showBackend中被记录为数组，而不是Image模型。
+                    //  这个数据包含所有聚合的Image。优先保持id小的在前。
+                    //  查询图片按照最靠前的那一个id查询。
+                    //  前端绑定最靠前的那一个模型，且绑定collection名而不是title。
+                    let aggregations = []
+                    let collectionFlag = {}
+                    for(let i in this.showBackend) {
+                        let item = this.showBackend[i]
+                        if(item.collection && item.collection in collectionFlag) {
+                            let idx = collectionFlag[item.collection]
+                            let partition = aggregations[idx]
+                            let insertPosition = 0
+                            for(; insertPosition < partition.length; ++insertPosition) {
+                                if(partition[insertPosition].id >= item.id) break
                             }
-                            vm.$set(output, i, newSet)
-                        })
+                            partition.splice(insertPosition, 0, item)
+                        }else{
+                            collectionFlag[item.collection] = aggregations.length
+                            aggregations[aggregations.length] = [item]
+                        }
                     }
+                    this.showBackend = aggregations
                 }
-                this.showList = output
+                this.continueToPage()
             },
-            refreshShowList: function () {
-                let m = this.showList
-                this.showList = null
-                this.showList = m
+            continueToPage: function() {
+                //这将控制继续将剩余的列表加载到showList.
+                if(!loadLock){
+                    loadLock = true
+                    let remain = this.showBackend.length - this.showList.length
+                    if(remain > 0) {
+                        let begin = this.showList.length
+                        let max = this.view.loadNum === '*' ? null : parseInt(this.view.loadNum)
+                        for(let i = 0; i < remain; ++i) {
+                            if(max && i >= max) break;
+                            let index = i + begin
+                            let image = this.view.aggregateByCollection ? this.showBackend[index][0] : this.showBackend[index]
+                            if(image.buffer === undefined || image.buffer === null) {
+                                db.engine.loadImageURL(image.id, ImageSpecification.Exhibition, (data) => {
+                                    let newSet = {
+                                        buffer: data,
+                                        title: this.view.aggregateByCollection && image.collection ? image.collection : image.title ? image.title : image.collection,
+                                        selected: false,
+                                        col: this.view.aggregateByCollection && this.showBackend[index].length > 1,
+                                        id: image.id,
+                                        index: index
+                                    }
+                                    vm.$set(this.showList, index, newSet)
+                                })
+                            }
+                        }
+                    }
+                    loadLock = false
+                }
             },
-
             selectOne: function(index) {
                 //单击一张图片。
                 if(this.selected.mode) {
@@ -266,7 +307,13 @@ function mainModel(vueModel) {
                 if(this.viewFolder === 'list' && this.selected.count > 0) {
                     for(let sel of this.selected.list) {
                         let item = this.showList[sel]
-                        this.addToTemp(this.items[item.index])
+                        if(this.view.aggregateByCollection) {
+                            for(let i in this.showBackend[item.index]) {
+                                this.addToTemp(this.showBackend[item.index][i])
+                            }
+                        }else{
+                            this.addToTemp(this.showBackend[item.index])
+                        }
                     }
                     this.clearSelected()
                     this.saveTempsToMain()
@@ -285,6 +332,8 @@ function mainModel(vueModel) {
                     for(let i = indexes.length - 1; i >= 0; --i) {
                         this.temps.splice(indexes[i], 1)
                     }
+                    //TODO 移出操作在聚合显示下仍然存在异常。会一次只移出一张图。
+                    //TODO 移出真是个bug重灾区……不知道什么情况下就会出现不计数的情况。
                     this.saveTempsToMain()
                     this.loadListToPage()
                 }
@@ -332,23 +381,10 @@ function mainModel(vueModel) {
                         ]
                     }))
                 }
-            },
-            pr: function () {
-                for(let index in db.engine.blockMemory) {
-                    for(let spec in db.engine.blockMemory[index]) {
-                        let min = null, max = null
-                        for(let i of db.engine.blockMemory[index][spec].blocks) {
-                            if(min == null || i < min) min = i
-                            if(max == null || i > max) max = i
-                        }
-                        console.log(`[${index}][${spec}]size = ${db.engine.blockMemory[index][spec].blocks.length}, min = ${min}, max = ${max}`)
-                    }
-                }
             }
         }
     })
     return vm
 }
-//TODO 添加分页加载系统。一次只加载一部分内容，剩余内容通过点击"继续加载"加载或自动加载。
 
 module.exports = mainModel

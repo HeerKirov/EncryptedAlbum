@@ -13,6 +13,7 @@
                     </div>
                 </li>
             </ul>
+            <button class="btn btn-block btn-link" v-if="canLoadFromBackend" @click="continueToPage">加载更多…</button>
         </div>
     </div>
 
@@ -84,6 +85,20 @@
                 <label>图片缩放</label>
               </div>
             </div>
+              <div class="row">
+                  <div class="col-auto">
+                      一次加载数量
+                  </div>
+                  <div class="col">
+                      <select class="form-control" v-model="viewInput.loadNum" style="height: 25px">
+                          <option value="10">10</option>
+                          <option value="20">20</option>
+                          <option value="40">40</option>
+                          <option value="80">80</option>
+                          <option value="*">全部</option>
+                      </select>
+                  </div>
+              </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" @click="saveOptionFromView">确定</button>
@@ -146,8 +161,6 @@
         </div>
       </div>
     </div>
-
-
 
     <div v-if="selected.mode" style="margin: auto; position: fixed; left:0; bottom:0; width: 620px;">
       <div class="card m-1 p-1">

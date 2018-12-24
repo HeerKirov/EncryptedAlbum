@@ -136,7 +136,6 @@ class LocalDataEngine implements DataEngine {
                 blocks: blocks
             }
             let exhibitionURL = translateDataURL(dataURL, ImageSpecification.Exhibition).substring(PREFIX_LENGTH)
-            console.log(exhibitionURL)
             let exhibitionBuf = Buffer.from(exhibitionURL, 'base64')
             saveImageBuffer(this.storageFolder, exhibitionBuf, this.blockMaxMemory, (blocks) => {
                 for(let b of blocks) {
