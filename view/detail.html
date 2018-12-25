@@ -1,0 +1,58 @@
+<div id="detailView" class="panel" v-if="visible">
+    <!-- Detail页面需要的功能：
+        1 大图区展示当前图像
+        2 滑动杆调整图像的绝对大小，或者使其自动适应窗口大小
+        3 一条缩略图区，可滑动，快速跳转到相邻的其他图片
+        4 左右两个便捷的前后跳转按钮
+        5 全屏按钮，在mac os上不需要
+        6 专注模式。所有的UI都是可以隐藏的
+        7 返回按钮
+        8 自动轮播功能
+     -->
+    <div style="position: absolute; width: 100%; overflow: hidden; text-align: center"
+         :style="{'top': fullscreen ? '0px' : '22px', 'bottom': showDock ? '120px' : '0px'}">
+        <img alt="预览" style="height: 100%;" src="../IMG_3059.PNG" @click="showTool = !showTool"/>
+        <div v-if="showTool">
+            <button style="position: absolute; left: 5px; top: 5px; width: 36px; height: 36px; border-width: 0"
+                    class="btn btn-outline-secondary" @click="goBack">
+                <i class="fa fa-close"></i>
+            </button>
+            <button style="position: absolute; left: 5px; top: 45px; width: 36px; bottom: 45px; border-width: 0"
+                    class="btn btn-outline-secondary" @click="prevPage">
+                <i class="fa fa-angle-left"></i>
+            </button>
+            <button style="position: absolute; right: 5px; top: 45px; width: 36px; bottom: 45px; border-width: 0"
+                    class="btn btn-outline-secondary" @click="nextPage">
+                <i class="fa fa-angle-right"></i>
+            </button>
+            <button style="position: absolute; right: 5px; bottom: 5px; width: 36px; height: 36px; border-width: 0"
+                    class="btn btn-outline-secondary" v-if="showFullScreenButton" @click="switchFullScreen">
+                <i class="fa fa-arrows-alt"></i>
+            </button>
+            <button style="position: absolute; left: 5px; bottom: 5px; width: 36px; height: 36px; border-width: 0"
+                    class="btn btn-outline-secondary" v-if="!showDock" @click="showDock = true">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+    </div>
+
+    <div style="position: absolute; width: 100%; height: 121px; bottom: 0; background: #222222"
+         v-if="showDock">
+        <button style="position: absolute; left: 5px; bottom: 5px; width: 36px; height: 36px; border-width: 0"
+                class="btn btn-outline-secondary" @click="showDock = false">
+            <i class="fa fa-bars"></i>
+        </button>
+        <button style="position: absolute; right: 5px; bottom: 79px; width: 40px;height: 36px; border-width: 0"
+                class="btn btn-outline-secondary">
+            <i class="fa fa-film"></i>
+        </button>
+        <button style="position: absolute; right: 5px; bottom: 42px; width: 40px;height: 36px; border-width: 0"
+                class="btn btn-outline-secondary">
+            <i class="fa fa-video-camera"></i>
+        </button>
+        <button style="position: absolute; right: 5px; bottom: 5px; width: 40px; height: 36px; border-width: 0"
+                class="btn btn-outline-secondary">
+            <i class="fa fa-joomla"></i>
+        </button>
+    </div>
+</div>

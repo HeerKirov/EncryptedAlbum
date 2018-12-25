@@ -1,3 +1,4 @@
+const {containsElement} = require('../target/common/utils')
 const {ImageSpecification} = require("../target/common/engine")
 const {remote, ipcRenderer} = require('electron')
 const {TouchBar} = remote
@@ -268,7 +269,10 @@ function mainModel(vueModel) {
                     }
                 }else{
                     //单击进入阅览模式。
-                    //TODO 跳转到单页。
+                    vueModel.route('detail', {
+                        list: this.showBackend,
+                        index: index
+                    })
                 }
             },
             switchSelectMode: function() {
@@ -297,6 +301,13 @@ function mainModel(vueModel) {
             selectNot: function () {
                 //反转选择项。
                 this.selected.count = this.showList.length - this.selected.count
+                let oldList = this.selected.list
+                this.selected.list = []
+                for(let i = 0; i < this.showList.length; ++i) {
+                    if(!containsElement(i, oldList)) {
+                        this.selected.list[this.selected.list.length] = i
+                    }
+                }
                 for(let i of this.showList) {
                     vm.$set(i, 'selected', !i['selected'])
                 }
@@ -326,14 +337,20 @@ function mainModel(vueModel) {
                     let indexes = []
                     for(let sel of this.selected.list) {
                         let item = this.showList[sel]
-                        indexes[indexes.length] = item.index
+                        if(this.view.aggregateByCollection) {
+                            for(let i in this.showBackend[item.index]) {
+                                indexes[indexes.length] = this.showBackend[item.index][i].id
+                            }
+                        }else{
+                            indexes[indexes.length] = this.showBackend[item.index].id
+                        }
+
                     }
                     indexes.sort((a, b) => a === b ? 0 : a < b ? -1 : 1)
+                    this.removeFromTemp(indexes)
                     for(let i = indexes.length - 1; i >= 0; --i) {
                         this.temps.splice(indexes[i], 1)
                     }
-                    //TODO 移出操作在聚合显示下仍然存在异常。会一次只移出一张图。
-                    //TODO 移出真是个bug重灾区……不知道什么情况下就会出现不计数的情况。
                     this.saveTempsToMain()
                     this.loadListToPage()
                 }
@@ -345,6 +362,16 @@ function mainModel(vueModel) {
                     }
                 }
                 vm.$set(this.temps, this.temps.length, newItem)
+            },
+            removeFromTemp: function(removeIds) {
+                for(let i = removeIds.length - 1; i >= 0; --i) {
+                    for(let j = this.temps.length - 1; j >= 0; --j) {
+                        if(this.temps[j].id === removeIds[i]) {
+                            this.temps.splice(j, 1)
+                            break
+                        }
+                    }
+                }
             },
             switchList: function (type) {
                 //选择要展示的列表。

@@ -29,6 +29,7 @@ const db = {
 const vueModel = {
     route: route,
     setTouchBar: setTouchBar,
+    setTitle: setTitle,
     db: db
 }
 
@@ -108,7 +109,10 @@ function setTouchBar(touchBar) {
         win.setTouchBar(touchBar)
     }
 }
-
+function setTitle(title) {
+    if(!title) title = 'Photos'
+    win.title = title
+}
 
 $(document).ready(function () {
     registerWindowEvents()
