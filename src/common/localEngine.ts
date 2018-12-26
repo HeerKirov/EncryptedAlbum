@@ -9,7 +9,7 @@ import {
 } from './engine'
 import {Formula} from './appStorage'
 import {BufferCache} from './bufferCache'
-import {decrypt, encrypt} from './utils'
+import {decrypt, encrypt, encryptBuffer, decryptBuffer} from './utils'
 import {translateDataURL} from './imageTool'
 
 const PREFIX = 'data:image/jpeg;base64,'
@@ -118,12 +118,11 @@ class LocalDataEngine implements DataEngine {
     getNextId(): number {
         return this.indexMemory
     }
-    //TODO 添加加密/解密流程
     saveImageURL(id: number, dataURL: string, callback?: () => void): void {
         if(dataURL.substr(0, PREFIX_LENGTH) === PREFIX) {
             dataURL = dataURL.substring(PREFIX_LENGTH)
         }
-        let buf = Buffer.from(dataURL, 'base64')
+        let buf = encryptBuffer(this.key, Buffer.from(dataURL, 'base64'))
         saveImageBuffer(this.storageFolder, buf, this.blockMaxMemory, (blocks) => {
             for(let b of blocks) {
                 if(b > this.blockMaxMemory) {
@@ -136,7 +135,7 @@ class LocalDataEngine implements DataEngine {
                 blocks: blocks
             }
             let exhibitionURL = translateDataURL(dataURL, ImageSpecification.Exhibition).substring(PREFIX_LENGTH)
-            let exhibitionBuf = Buffer.from(exhibitionURL, 'base64')
+            let exhibitionBuf = encryptBuffer(this.key, Buffer.from(exhibitionURL, 'base64'))
             saveImageBuffer(this.storageFolder, exhibitionBuf, this.blockMaxMemory, (blocks) => {
                 for(let b of blocks) {
                     if(b > this.blockMaxMemory) {
@@ -170,7 +169,7 @@ class LocalDataEngine implements DataEngine {
         }else{
             loadImageBuffer(this.storageFolder, blocks, size, (buf: Buffer) => {
                 if(buf != null) {
-                    let dataUrl = PREFIX + buf.toString('base64')
+                    let dataUrl = PREFIX + decryptBuffer(this.key, buf).toString('base64')
                     this.imageURLCache.set(spec, id, dataUrl)
                     if(callback !== undefined) callback(dataUrl)
                 }else{

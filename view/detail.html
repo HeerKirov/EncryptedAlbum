@@ -43,16 +43,40 @@
             <i class="fa fa-bars"></i>
         </button>
         <button style="position: absolute; right: 5px; bottom: 79px; width: 40px;height: 36px; border-width: 0"
-                class="btn btn-outline-secondary">
+                class="btn" :class="{'btn-outline-light': dockType === 'list', 'btn-outline-secondary': dockType !== 'list'}"
+                @click="dockType = 'list'">
             <i class="fa fa-film"></i>
         </button>
         <button style="position: absolute; right: 5px; bottom: 42px; width: 40px;height: 36px; border-width: 0"
-                class="btn btn-outline-secondary">
+                class="btn" :class="{'btn-outline-light': dockType === 'play', 'btn-outline-secondary': dockType !== 'play'}"
+                @click="dockType = 'play'">
             <i class="fa fa-video-camera"></i>
         </button>
         <button style="position: absolute; right: 5px; bottom: 5px; width: 40px; height: 36px; border-width: 0"
-                class="btn btn-outline-secondary">
+                class="btn" :class="{'btn-outline-light': dockType === 'zoom', 'btn-outline-secondary': dockType !== 'zoom'}"
+                @click="dockType = 'zoom'">
             <i class="fa fa-joomla"></i>
         </button>
+        <div style="position: absolute; left: 50px; right: 50px; top: 5px; bottom: 5px" v-if="dockType === 'list'">
+            list
+        </div>
+        <div style="position: absolute; left: 50px; right: 50px; top: 5px; bottom: 5px" v-if="dockType === 'play'">
+            <label class="form-check-label" style="color: #FFFFFF; position: absolute; left: 10px; top: 40%;">
+                <input type="checkbox" class="form-check-input" v-model="playRand">随机轮播
+            </label>
+            <label style="position: absolute; right: 70%; top: 40%; color: #FFFFFF">轮播 {{playItems[playItem].title}}</label>
+            <input type="range" class="custom-range" style="position: absolute; height: 25px; top: 40%; left: 35%; width: 60%"
+                   min="0" :max="playItems.length" step="1" v-model="playItem"/>
+        </div>
+        <div style="position: absolute; left: 50px; right: 50px; top: 5px; bottom: 5px" v-if="dockType === 'zoom'">
+            <div class="btn-group-sm btn-group" style="position: absolute; top: 18px; left: 40%; width: 20%">
+                <button class="btn m-0 btn-block" :class="{'btn-outline-secondary': !zoomAbsolute, 'btn-secondary': zoomAbsolute}"
+                        style="color: #FFFFFF; height: 30px" @click="zoomAbsolute = true">绝对值</button>
+                <button class="btn m-0 btn-block" :class="{'btn-outline-secondary': zoomAbsolute, 'btn-secondary': !zoomAbsolute}"
+                        style="color: #FFFFFF; height: 30px" @click="zoomAbsolute = false">自适应</button>
+            </div>
+            <input type="range" class="custom-range" style="position: absolute; height: 25px; top: 55%; left: 10%; width: 80%"
+                   min="0" max="100" step="5" v-model="zoomValue"/>
+        </div>
     </div>
 </div>

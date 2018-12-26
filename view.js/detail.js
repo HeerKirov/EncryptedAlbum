@@ -34,7 +34,16 @@ function detailModel(vueModel) {
             fullscreen: false,
 
             showDock: true,     //控制下方工具条的显示
+            dockType: 'list',       //dock栏显示的内容[list, zoom, play]
             showTool: true,     //控制环绕在图片四周的工具按钮的显示
+
+            playItem: 0,
+            playRand: false,
+
+            zoomAbsolute: false,
+            zoomValue: 50,
+
+            playItems: playItems    //绑定显示的常量
         },
         computed: {
             showFullScreenButton: function () {
@@ -78,6 +87,8 @@ function detailModel(vueModel) {
             },
 
             setTouchBar: function () {
+                //TODO 重构touchBar的添加模式。监听属性变化以更改touchBar，并添加相同的变更事件。
+                // 同时，由于touchBar的属性绑定模式不一样，要小心递归回调。
                 vueModel.setTouchBar(new TouchBar({
                     items: [
                         new TouchBarButton({label: '返回', click: this.goBack}),
@@ -88,9 +99,17 @@ function detailModel(vueModel) {
                         new TouchBarPopover({
                             label: '缩放',
                             items: [
-                                //TODO 填写touchBar中按钮的事件。
                                 new TouchBarSlider({label: '尺寸', minValue: 1, maxValue: 100, value: 40, change: (value) => {}}),
-                                new TouchBarButton({label: '自适应', click: () => {}})
+                                new TouchBarSegmentedControl({
+                                    segments: [
+                                        {label: '绝对值'},
+                                        {label: '自适应'}
+                                    ],
+                                    selectedIndex: 1,
+                                    change: (index, state) => {
+
+                                    }
+                                })
                             ]
                         }),
                         new TouchBarPopover({
