@@ -70,7 +70,6 @@ class LocalDataEngine implements DataEngine {
                             this.tagMemory[this.tagMemory.length] = tag
                         }
                     }
-                    //TODO 追加对image的更改
                     this.imageMemory[idx] = image
                     success[success.length] = image
                     break

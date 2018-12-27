@@ -271,7 +271,8 @@ function mainModel(vueModel) {
                     //单击进入阅览模式。
                     vueModel.route('detail', {
                         list: this.showBackend,
-                        index: index
+                        index: index,
+                        aggregate: this.view.aggregateByCollection
                     })
                 }
             },
