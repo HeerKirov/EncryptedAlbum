@@ -5,7 +5,9 @@ const {TouchBarButton, TouchBarSpacer, TouchBarPopover,
     TouchBarSlider, TouchBarSegmentedControl} = TouchBar
 const Vue = require('vue/dist/vue')
 
-const playItems = [
+const THUMBNAIL_SIZE = 5
+
+const PLAY_ITEMS = [
     {title: '停止', value: null},
     {title: '1秒', value: 1},
     {title: '3秒', value: 3},
@@ -18,8 +20,8 @@ const playItems = [
 
 function buildPlayScrubbers() {
     let ret = []
-    for(let i in playItems) {
-        ret[ret.length] = {label: playItems[i].title}
+    for(let i in PLAY_ITEMS) {
+        ret[ret.length] = {label: PLAY_ITEMS[i].title}
     }
     return ret
 }
@@ -92,8 +94,6 @@ function buildTouchBar(vm) {
 function detailModel(vueModel) {
     let db = vueModel.db
     let touchBar = null
-    //TODO 添加键盘快捷键事件(左右键快捷跳转)
-    //TODO 尝试添加触摸板手势(双指左右快捷跳转/双指缩放)
     let vm = new Vue({
         el: '#detailView',
         data: {
@@ -110,15 +110,16 @@ function detailModel(vueModel) {
             zoomAbsolute: false,//启用绝对值缩放
             zoomValue: 50,      //绝对缩放。这个绝对值仍然是基于图片的基础大小缩放的，50%相当于原大小。
 
-            showList: [],
-            showIndex: -1,
+            showList: [],       //当前正在展示的Image[]列表。
+            showIndex: -1,      //当前前台展示的image在列表内的index。
             //TODO 在图片页里添加一个详情面板侧板，可以通过一个快捷按钮调出。
-            //TODO 考虑下方展示横条的构造形式。
 
-            currentDataURL: '',
-            thumbnails: [],
+            currentDataURL: '',         //当前前台展示的image的dataURL。
+            currentImage: null,         //当前前台展示的image的Image。
+            thumbnails: [],             //下方缩略图区正在展示的image的简略结构。{dataURL: string, title: string}
+            thumbnailFirstIndex: null,  //下方缩略图区正在展示的image中，第一个的index。
 
-            playItems: playItems    //绑定显示的常量
+            playItems: PLAY_ITEMS    //绑定显示的常量
         },
         computed: {
             showFullScreenButton: function () {
@@ -163,7 +164,10 @@ function detailModel(vueModel) {
             },
             leave: function () {
                 this.visible = false
-                //TODO 清空存储区
+                this.showList = []
+                this.showIndex = -1
+                this.currentDataURL = ''
+                this.thumbnails = []
             },
             enterFullScreen: function () {
                 this.fullscreen = true
@@ -203,22 +207,78 @@ function detailModel(vueModel) {
                 }
                 this.showList = showList
                 this.loadCurrentAs(showIndex)
+                this.clickThumbnail()
             },
             loadCurrentAs: function(index) {
                 if(index >= 0 && index < this.showList.length) {
                     this.showIndex = index
                     let image = this.showList[index]
                     this.currentDataURL = ''
+                    this.currentImage = image
                     db.engine.loadImageURL(image.id, ImageSpecification.Origin, (dataURL) => {
                         this.currentDataURL = dataURL
                     })
                 }
             },
+            clickThumbnail: function() {
+                //根据当前选定的图像index，刷新缩略图区。这会优先使图像居中，其次靠左。
+
+                //首先试图将index放在floor((SIZE-0.5)/2)上，然后可以计算出，firstIndex=index-floor((SIZE-0.5)/2)
+                //然后，如果firstIndex小于0，就向0偏移。
+                //lastIndex = firstIndex + SIZE.如果last大于等于showList.length，就向length-1偏移。
+                const center = Math.floor((THUMBNAIL_SIZE - 0.5) / 2)
+                if(this.showIndex <= center) {
+                    this.thumbnailFirstIndex = 0
+                }else if(this.showIndex >= this.showList.length - center) {
+                    this.thumbnailFirstIndex = this.showList.length - THUMBNAIL_SIZE
+                }else{
+                    this.thumbnailFirstIndex = this.showIndex - center
+                }
+                this.refreshThumbnails()
+
+            },
+            nextThumbnailPartition: function() {
+                //将缩略图区滚动到下一个区间。滚动区间并不是完全滚动，它会保留上个区间的最后一个项。
+                this.refreshThumbnails()
+            },
+            prevThumbnailPartition: function() {
+                //将缩略图区滚动到上一个区间。滚动区间并不是完全滚动，它会保留下个区间的第一个项。
+                this.refreshThumbnails()
+            },
+            refreshThumbnails: function() {
+                //根据已经确定好的thumbnailFirstIndex，刷新thumbnails缩略图显示。
+                //TODO 图数量少于size时，最后一张图会导致前面的格子空缺。
+                this.thumbnails = []
+                for(let i = 0; i < THUMBNAIL_SIZE; ++i) {
+                    let image = this.showList[i + this.thumbnailFirstIndex]
+                    if(image) {
+                        this.$set(this.thumbnails, i, {
+                            dataURL: '',
+                            title: image.title ? image.title : image.collection
+                        })
+                        db.engine.loadImageURL(image.id, ImageSpecification.Thumbnail, (dataURL) => {
+                            this.$set(this.thumbnails[i], 'dataURL', dataURL)
+                        })
+                    }
+                }
+            },
+
 
             setTouchBar: function () {
                 if(db.platform.platform !== 'darwin') return;
                 touchBar = buildTouchBar(this)
                 vueModel.setTouchBar(touchBar.touchBar)
+            }
+        }
+    })
+    $(document).keydown(function (e) {
+        if(vm.visible) {
+            if(e.keyCode === 37) {  //arrow left
+                vm.prevPage()
+            }else if(e.keyCode === 39) {    //arrow right
+                vm.nextPage()
+            }else if(e.keyCode === 8 || e.keyCode === 27) {     //backspace or esc
+                vm.goBack()
             }
         }
     })
