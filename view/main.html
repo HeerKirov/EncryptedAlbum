@@ -176,12 +176,13 @@
           </div>
           <div class="col-auto">
             <div class="btn-group btn-group-sm">
+              <!-- TODO 添加到收藏夹功能.如果当前全在收藏夹，那么替换为移出收藏夹。 -->
               <button type="button" class="btn btn-sm btn-primary" :class="{disabled: !leastSelectOne}" v-if="viewFolder === 'list'" @click="selectAddToTemp">添加到临时文件夹</button>
               <button type="button" class="btn btn-sm btn-primary" :class="{disabled: !leastSelectOne}" v-if="viewFolder === 'temp'" @click="selectRemoveFromTemp">移出临时文件夹</button>
               <div class="btn-group">
                 <button type="button" class="btn btn-sm btn-primary dropdown-toggle" :class="{disabled: !leastSelectOne}" data-toggle="dropdown">更多</button>
                 <div class="dropdown-menu">
-                    <!-- TODO 添加导出/修改/删除功能 -->
+                  <!-- TODO 添加导出/修改/删除功能 -->
                   <a class="dropdown-item" href="#">批量导出</a>
                   <a class="dropdown-item" href="#">批量修改</a>
                   <a class="dropdown-item" href="#">批量删除</a>

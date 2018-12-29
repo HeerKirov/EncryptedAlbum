@@ -1,4 +1,5 @@
 const {ImageSpecification} = require("../target/common/engine")
+const {MyTimer} = require('../target/common/utils')
 const {remote} = require('electron')
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer, TouchBarPopover,
@@ -17,6 +18,17 @@ const PLAY_ITEMS = [
     {title: '1分钟', value: 60},
     {title: '2分钟', value: 120}
 ]
+
+const EMPTY_IMAGE = {
+    id: 0,
+    title: null,
+    collection: null,
+    tags: [],
+    favorite: false,
+    links: [],
+    resolution: {width: 0, height: 0},
+    createTime: 0
+}
 
 function buildPlayScrubbers() {
     let ret = []
@@ -93,6 +105,9 @@ function buildTouchBar(vm) {
 
 function detailModel(vueModel) {
     let db = vueModel.db
+
+    let timer = new MyTimer()
+    let randCache = []
     let touchBar = null
     let vm = new Vue({
         el: '#detailView',
@@ -103,7 +118,8 @@ function detailModel(vueModel) {
             showDock: true,     //控制下方工具条的显示
             dockType: 'list',   //dock栏显示的内容[list, zoom, play]
             showTool: true,     //控制环绕在图片四周的工具按钮的显示
-
+            showInfo: false,    //控制切换信息页
+            //TODO 实现轮播功能
             playItem: 0,        //轮播的值的index
             playRand: false,    //随机轮播
 
@@ -112,10 +128,9 @@ function detailModel(vueModel) {
 
             showList: [],       //当前正在展示的Image[]列表。
             showIndex: -1,      //当前前台展示的image在列表内的index。
-            //TODO 在图片页里添加一个详情面板侧板，可以通过一个快捷按钮调出。
 
             currentDataURL: '',         //当前前台展示的image的dataURL。
-            currentImage: null,         //当前前台展示的image的Image。
+            currentImage: EMPTY_IMAGE,         //当前前台展示的image的Image。
             thumbnails: [],             //下方缩略图区正在展示的image的简略结构。{dataURL: string, title: string}
             thumbnailFirstIndex: null,  //下方缩略图区正在展示的image中，第一个的index。
 
@@ -124,12 +139,39 @@ function detailModel(vueModel) {
         computed: {
             showFullScreenButton: function () {
                 return db.platform.platform !== 'darwin'
+            },
+            showPageButton: function () {
+                return this.showList.length > 1
+            },
+            mainImageZoom: function () {
+                if(this.zoomAbsolute) {
+                    let rate = this.zoomValue < 50 ? this.zoomValue / 250 + 0.1
+                            :  this.zoomValue > 50 ? this.zoomValue / 62.5 - 0.5 : 0.3
+                    return {
+                        'width': this.currentImage.resolution.width * rate + 'px',
+                        'height': this.currentImage.resolution.height * rate + 'px'
+                    }
+                }else{
+                    return {
+                        'max-width': '100%',
+                        'max-height': '100%'
+                    }
+                }
             }
         },
         watch: {
             'playItem': function (value) {
                 if(touchBar != null) {
                     touchBar.playItemControl.selectedIndex = value
+                }
+                if(timer != null) {
+                    timer.set(PLAY_ITEMS[value].value * 1000, () => {
+                        if(this.playRand) {
+                            //TODO 做一个带部分防冲的随机
+                        }else{
+                            this.nextPage()
+                        }
+                    })
                 }
             },
             'playRand': function (value) {
@@ -184,10 +226,20 @@ function detailModel(vueModel) {
             },
 
             nextPage: function() {
-                this.loadCurrentAs(this.showIndex + 1)
+                if(this.showIndex + 1 < this.showList.length) {
+                    this.loadCurrentAs(this.showIndex + 1)
+                }else{
+                    this.loadCurrentAs(0)
+                }
+                this.clickThumbnail()
             },
             prevPage: function() {
-                this.loadCurrentAs(this.showIndex - 1)
+                if(this.showIndex >= 1) {
+                    this.loadCurrentAs(this.showIndex - 1)
+                }else{
+                    this.loadCurrentAs(this.showList.length - 1)
+                }
+                this.clickThumbnail()
             },
 
             loadShowList: function(list, index, aggregate) {
@@ -206,6 +258,7 @@ function detailModel(vueModel) {
                     }
                 }
                 this.showList = showList
+                randCache = []
                 this.loadCurrentAs(showIndex)
                 this.clickThumbnail()
             },
@@ -213,7 +266,7 @@ function detailModel(vueModel) {
                 if(index >= 0 && index < this.showList.length) {
                     this.showIndex = index
                     let image = this.showList[index]
-                    this.currentDataURL = ''
+                    this.currentDataURL = ''    //TODO 添加一个loading图片
                     this.currentImage = image
                     db.engine.loadImageURL(image.id, ImageSpecification.Origin, (dataURL) => {
                         this.currentDataURL = dataURL
@@ -226,35 +279,59 @@ function detailModel(vueModel) {
                 //首先试图将index放在floor((SIZE-0.5)/2)上，然后可以计算出，firstIndex=index-floor((SIZE-0.5)/2)
                 //然后，如果firstIndex小于0，就向0偏移。
                 //lastIndex = firstIndex + SIZE.如果last大于等于showList.length，就向length-1偏移。
+                let old = this.thumbnailFirstIndex
                 const center = Math.floor((THUMBNAIL_SIZE - 0.5) / 2)
                 if(this.showIndex <= center) {
                     this.thumbnailFirstIndex = 0
                 }else if(this.showIndex >= this.showList.length - center) {
-                    this.thumbnailFirstIndex = this.showList.length - THUMBNAIL_SIZE
+                    if(this.showList.length - THUMBNAIL_SIZE > 0) {
+                        this.thumbnailFirstIndex = this.showList.length - THUMBNAIL_SIZE
+                    }else{
+                        this.thumbnailFirstIndex = 0
+                    }
                 }else{
-                    this.thumbnailFirstIndex = this.showIndex - center
+                    if(this.showIndex - center > 0) {
+                        this.thumbnailFirstIndex = this.showIndex - center
+                    }else{
+                        this.thumbnailFirstIndex = 0
+                    }
                 }
-                this.refreshThumbnails()
-
+                if(old !== this.thumbnailFirstIndex) this.refreshThumbnails()
             },
             nextThumbnailPartition: function() {
                 //将缩略图区滚动到下一个区间。滚动区间并不是完全滚动，它会保留上个区间的最后一个项。
-                this.refreshThumbnails()
+                let old = this.thumbnailFirstIndex
+                if(this.thumbnailFirstIndex + 2 * THUMBNAIL_SIZE - 1 >= this.showList.length) {
+                    if(this.showList.length - THUMBNAIL_SIZE > 0) {
+                        this.thumbnailFirstIndex = this.showList.length - THUMBNAIL_SIZE
+                    }else{
+                        this.thumbnailFirstIndex = 0
+                    }
+                }else{
+                    this.thumbnailFirstIndex += THUMBNAIL_SIZE -1
+                }
+                if(old !== this.thumbnailFirstIndex) this.refreshThumbnails()
             },
             prevThumbnailPartition: function() {
                 //将缩略图区滚动到上一个区间。滚动区间并不是完全滚动，它会保留下个区间的第一个项。
-                this.refreshThumbnails()
+                let old = this.thumbnailFirstIndex
+                if(this.thumbnailFirstIndex < THUMBNAIL_SIZE - 1) {
+                    this.thumbnailFirstIndex = 0
+                }else{
+                    this.thumbnailFirstIndex -= THUMBNAIL_SIZE - 1
+                }
+                if(old !== this.thumbnailFirstIndex) this.refreshThumbnails()
             },
             refreshThumbnails: function() {
                 //根据已经确定好的thumbnailFirstIndex，刷新thumbnails缩略图显示。
-                //TODO 图数量少于size时，最后一张图会导致前面的格子空缺。
                 this.thumbnails = []
                 for(let i = 0; i < THUMBNAIL_SIZE; ++i) {
                     let image = this.showList[i + this.thumbnailFirstIndex]
                     if(image) {
                         this.$set(this.thumbnails, i, {
                             dataURL: '',
-                            title: image.title ? image.title : image.collection
+                            title: image.title ? image.title : image.collection,
+                            index: i + this.thumbnailFirstIndex
                         })
                         db.engine.loadImageURL(image.id, ImageSpecification.Thumbnail, (dataURL) => {
                             this.$set(this.thumbnails[i], 'dataURL', dataURL)
@@ -262,7 +339,6 @@ function detailModel(vueModel) {
                     }
                 }
             },
-
 
             setTouchBar: function () {
                 if(db.platform.platform !== 'darwin') return;

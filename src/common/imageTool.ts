@@ -1,5 +1,6 @@
 import {NativeImage, nativeImage} from "electron"
 import {ImageSpecification} from "./engine"
+import {writeFile} from 'fs'
 
 const PREFIX = 'data:image/jpeg;base64,'
 const PREFIX_LENGTH = PREFIX.length
@@ -60,8 +61,16 @@ function translateDataURL(originURL: string, specification: ImageSpecification):
     }
     let native = nativeImage.createFromBuffer(Buffer.from(originURL, 'base64'))
     return PREFIX + translateNativeImage(native, specification).toJPEG(80).toString('base64')
-    // let ret = translateNativeImage(native, specification)
-    // return ret.toDataURL()
 }
 
-export {translateNativeImage, translateDataURL}
+function exportImage(dataURL: string, filepath: string, callback?: (success: boolean) => void): void {
+    if(dataURL.substr(0, PREFIX_LENGTH) === PREFIX) {
+        dataURL = dataURL.substring(PREFIX_LENGTH)
+    }
+    let buf = Buffer.from(dataURL, 'base64')
+    writeFile(filepath, buf, (e) => {
+        callback(!e)
+    })
+}
+
+export {translateNativeImage, translateDataURL, exportImage}

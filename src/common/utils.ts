@@ -1,4 +1,5 @@
 import {sha256, sha224} from "js-sha256"
+import Timer = NodeJS.Timer;
 
 /**
  * 将image的二进制信息加密到buffer。
@@ -231,6 +232,31 @@ function findLikeIn(search: string, keys: string[]): boolean {
     return false
 }
 
+class MyTimer {
+    private t: Timer = null
+    private interval = 0
+    private callback: () => void = null
+    set(interval: number, callback: () => void): void {
+        this.stop()
+        this.interval = interval
+        this.callback = callback
+        this.t = setTimeout(this.toggle, this.interval)
+    }
+    stop(): void {
+        if(this.t != null) {
+            clearTimeout(this.t)
+            this.t = null
+        }
+    }
+    private toggle(): void {
+        if(this.callback) {
+            this.callback()
+        }
+        this.t = setTimeout(this.toggle, this.interval)
+    }
+}
+
 export {turnToBinary, turnToString, loopChange, xor,
     encrypt, decrypt, encryptBuffer, decryptBuffer,
-    uuid, containsAll, containsElement, findLikeIn, calculateNumeric}
+    uuid, containsAll, containsElement, findLikeIn, calculateNumeric,
+    MyTimer}
