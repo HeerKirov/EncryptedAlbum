@@ -96,7 +96,7 @@ function turnToBinary(key: string): Buffer {
 }
 /**
  * 将buffer转换回字符串。
- * @param binary 
+ * @param binary
  */
 function turnToString(binary: Buffer): string {
     return binary.toString()
@@ -123,8 +123,8 @@ function loopChange(arr: Buffer, groupSize: number, step: number): Buffer {
 }
 /**
  * 异或两个buffer。这个异或以data为基准，key会循环使用。
- * @param data 
- * @param key 
+ * @param data
+ * @param key
  */
 function xor(data: Buffer, key: Buffer): Buffer {
     let ret = Buffer.alloc(data.length)
@@ -154,14 +154,14 @@ function calculateNumeric(key: string, limit: number=256): number {
 
 /**
  * 生成uuid。
- * @param len 
- * @param radix 
+ * @param len
+ * @param radix
  */
 function uuid(len, radix) {
     const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
     let uuid = []
     radix = radix || chars.length
- 
+
     if (len) {
       for (let i = 0; i < len; i++) {
           uuid[i] = chars[0 | Math.random() * radix]
@@ -232,31 +232,6 @@ function findLikeIn(search: string, keys: string[]): boolean {
     return false
 }
 
-class MyTimer {
-    private t: Timer = null
-    private interval = 0
-    private callback: () => void = null
-    set(interval: number, callback: () => void): void {
-        this.stop()
-        this.interval = interval
-        this.callback = callback
-        this.t = setTimeout(this.toggle, this.interval)
-    }
-    stop(): void {
-        if(this.t != null) {
-            clearTimeout(this.t)
-            this.t = null
-        }
-    }
-    private toggle(): void {
-        if(this.callback) {
-            this.callback()
-        }
-        this.t = setTimeout(this.toggle, this.interval)
-    }
-}
-
 export {turnToBinary, turnToString, loopChange, xor,
     encrypt, decrypt, encryptBuffer, decryptBuffer,
-    uuid, containsAll, containsElement, findLikeIn, calculateNumeric,
-    MyTimer}
+    uuid, containsAll, containsElement, findLikeIn, calculateNumeric}

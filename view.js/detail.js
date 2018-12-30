@@ -1,6 +1,5 @@
 const {ImageSpecification} = require("../target/common/engine")
-const {MyTimer} = require('../target/common/utils')
-const {remote} = require('electron')
+const {remote, shell} = require('electron')
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer, TouchBarPopover,
     TouchBarSlider, TouchBarSegmentedControl} = TouchBar
@@ -18,17 +17,6 @@ const PLAY_ITEMS = [
     {title: '1分钟', value: 60},
     {title: '2分钟', value: 120}
 ]
-
-const EMPTY_IMAGE = {
-    id: 0,
-    title: null,
-    collection: null,
-    tags: [],
-    favorite: false,
-    links: [],
-    resolution: {width: 0, height: 0},
-    createTime: 0
-}
 
 function buildPlayScrubbers() {
     let ret = []
@@ -103,11 +91,53 @@ function buildTouchBar(vm) {
     }
 }
 
+function copyArray(from) {
+    if(from) {
+        let ret = []
+        for(let i in from) {
+            ret[i] = from[i]
+        }
+        return ret
+    }else{
+        return []
+    }
+}
+function copyImage(from) {
+    if(from) {
+        return {
+            id: from.id | 0,
+            title: from.title,
+            collection: from.collection,
+            tags: copyArray(from.tags),
+            links: copyArray(from.links),
+            favorite: from.favorite | false,
+            resolution: {
+                width: from.resolution ? from.resolution.width : 0,
+                height: from.resolution ? from.resolution.height : 0
+            },
+            createTime: from.createTime | 0
+        }
+    }else{
+        return emptyImage()
+    }
+}
+function emptyImage() {
+    return {
+        id: 0,
+        title: null,
+        collection: null,
+        tags: [],
+        favorite: false,
+        links: [],
+        resolution: {width: 0, height: 0},
+        createTime: 0
+    }
+}
+
 function detailModel(vueModel) {
     let db = vueModel.db
 
-    let timer = new MyTimer()
-    let randCache = []
+    let timer = null
     let touchBar = null
     let vm = new Vue({
         el: '#detailView',
@@ -119,7 +149,8 @@ function detailModel(vueModel) {
             dockType: 'list',   //dock栏显示的内容[list, zoom, play]
             showTool: true,     //控制环绕在图片四周的工具按钮的显示
             showInfo: false,    //控制切换信息页
-            //TODO 实现轮播功能
+            editMode: false,    //信息页的编辑模式
+
             playItem: 0,        //轮播的值的index
             playRand: false,    //随机轮播
 
@@ -130,7 +161,13 @@ function detailModel(vueModel) {
             showIndex: -1,      //当前前台展示的image在列表内的index。
 
             currentDataURL: '',         //当前前台展示的image的dataURL。
-            currentImage: EMPTY_IMAGE,         //当前前台展示的image的Image。
+            currentImage: emptyImage(), //当前前台展示的image的Image。
+            editImage: {                //与edit模式控件绑定的变量组。
+                title: null,
+                collection: null,
+                tags: [],
+                links: []
+            },
             thumbnails: [],             //下方缩略图区正在展示的image的简略结构。{dataURL: string, title: string}
             thumbnailFirstIndex: null,  //下方缩略图区正在展示的image中，第一个的index。
 
@@ -165,14 +202,10 @@ function detailModel(vueModel) {
                     touchBar.playItemControl.selectedIndex = value
                 }
                 if(timer != null) {
-                    timer.set(PLAY_ITEMS[value].value * 1000, () => {
-                        if(this.playRand) {
-                            //TODO 做一个带部分防冲的随机
-                        }else{
-                            this.nextPage()
-                        }
-                    })
+                    clearInterval(timer)
+                    timer = null
                 }
+                if(PLAY_ITEMS[value].value) timer = setInterval(this.togglePlay, PLAY_ITEMS[value].value * 1000)
             },
             'playRand': function (value) {
                 if(touchBar != null) {
@@ -209,6 +242,8 @@ function detailModel(vueModel) {
                 this.showList = []
                 this.showIndex = -1
                 this.currentDataURL = ''
+                this.currentImage = this.editImage = emptyImage()
+                this.thumbnailFirstIndex = null
                 this.thumbnails = []
             },
             enterFullScreen: function () {
@@ -241,6 +276,14 @@ function detailModel(vueModel) {
                 }
                 this.clickThumbnail()
             },
+            togglePlay: function() {
+                if(this.playRand) {
+                    this.loadCurrentAs(Math.floor(Math.random() * this.showList.length))
+                    this.clickThumbnail()
+                }else{
+                    this.nextPage()
+                }
+            },
 
             loadShowList: function(list, index, aggregate) {
                 let showList = []
@@ -258,7 +301,6 @@ function detailModel(vueModel) {
                     }
                 }
                 this.showList = showList
-                randCache = []
                 this.loadCurrentAs(showIndex)
                 this.clickThumbnail()
             },
@@ -268,6 +310,7 @@ function detailModel(vueModel) {
                     let image = this.showList[index]
                     this.currentDataURL = ''    //TODO 添加一个loading图片
                     this.currentImage = image
+                    vueModel.setTitle(image.title ? image.title : image.collection ? image.collection : null)
                     db.engine.loadImageURL(image.id, ImageSpecification.Origin, (dataURL) => {
                         this.currentDataURL = dataURL
                     })
@@ -340,6 +383,85 @@ function detailModel(vueModel) {
                 }
             },
 
+            switchEditMode: function() {
+                this.editMode = !this.editMode
+                if(!this.editMode) {
+                    if(this.editImage.title.trim() === '') {
+                        this.currentImage.title = null
+                    }else{
+                        this.currentImage.title = this.editImage.title
+                    }
+                    if(this.editImage.collection.trim() === '') {
+                        this.currentImage.collection = null
+                    }else{
+                        this.currentImage.collection = this.editImage.collection
+                    }
+                    this.currentImage.tags = copyArray(this.editImage.tags)
+                    this.currentImage.links = []
+                    for(let i in this.editImage.links) {
+                        this.currentImage.links[i] = this.editImage.links[i].name
+                    }
+                    let successNum = db.engine.updateImage([this.currentImage]).length
+                    if(successNum > 0) db.engine.save()
+                    //save
+                }else{
+                    this.editImage.title = this.currentImage.title
+                    this.editImage.collection = this.currentImage.collection
+                    this.editImage.tags = copyArray(this.currentImage.tags)
+                    this.editImage.links = []
+                    for(let i in this.currentImage.links) {
+                        this.editImage.links[i] = {name: this.currentImage.links[i]}
+                    }
+                }
+            },
+            switchFavorite: function() {
+                this.currentImage.favorite = !this.currentImage.favorite
+                //save
+            },
+            deleteItem: function() {
+                let successNum = db.engine.deleteImage([this.currentImage.id])
+                if(successNum > 0) {
+                    db.engine.save()
+                    if(this.showList.length > 1) {
+                        this.showList.splice(this.showIndex, 1)
+                        this.loadCurrentAs(this.showIndex >= this.showList.length ? this.showList.length - 1 : this.showIndex)
+                        this.clickThumbnail()
+                    }
+                }
+            },
+
+            removeLink: function(index) {
+                let links = this.editImage.links
+                if(index < links.length) {
+                    links.splice(index, 1)
+                }
+            },
+            addNewLink: function() {
+                this.$set(this.editImage.links, this.editImage.links.length, {name: ''})
+            },
+
+            getTagType: function (tag) {
+                let flag = tag.slice(0, 1)
+                return {
+                    'badge-warning': flag === '@',
+                    'badge-info': flag === '%',
+                    'badge-success': flag === '#'
+                }
+            },
+            getTagName: function (tag) {
+                return tag.slice(1)
+            },
+            calcResolution: function (resolution) {
+                if(resolution != null) {
+                    return resolution.width + '×' + resolution.height
+                }else{
+                    return ''
+                }
+            },
+            openLink: function(link) {
+                shell.openExternal(link)
+            },
+
             setTouchBar: function () {
                 if(db.platform.platform !== 'darwin') return;
                 touchBar = buildTouchBar(this)
@@ -347,17 +469,39 @@ function detailModel(vueModel) {
             }
         }
     })
+
     $(document).keydown(function (e) {
         if(vm.visible) {
-            if(e.keyCode === 37) {  //arrow left
+            if(!vm.showInfo && e.keyCode === 37) {  //arrow left
                 vm.prevPage()
-            }else if(e.keyCode === 39) {    //arrow right
+            }else if(!vm.showInfo && e.keyCode === 39) {    //arrow right
                 vm.nextPage()
-            }else if(e.keyCode === 8 || e.keyCode === 27) {     //backspace or esc
+            }else if(e.keyCode === 27) {     //esc
                 vm.goBack()
             }
         }
     })
+    Date.prototype.format = function(fmt) {
+        let o = {
+            "M+" : this.getMonth()+1,                 //月份
+            "d+" : this.getDate(),                    //日
+            "h+" : this.getHours(),                   //小时
+            "m+" : this.getMinutes(),                 //分
+            "s+" : this.getSeconds(),                 //秒
+            "q+" : Math.floor((this.getMonth()+3)/3), //季度
+            "S"  : this.getMilliseconds()             //毫秒
+        }
+        if(/(y+)/.test(fmt)) {
+            fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length))
+        }
+        for(let k in o) {
+            if(new RegExp("("+ k +")").test(fmt)){
+                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)))
+            }
+        }
+        return fmt
+    }
+
     return vm
 }
 

@@ -240,8 +240,6 @@ function addModel(vueModel) {
                 let links = this.current.links
                 if(index < links.length) {
                     links.splice(index, 1)
-                    this.current.links = null
-                    this.current.links = links
                 }
             }
         }

@@ -79,6 +79,7 @@ function route(viewName, options) {
             vms[currentViewName].leave()
             setTouchBar(null)
         }
+        setTitle(null)
         currentViewName = viewName
         vms[viewName].load(options)
         updateTheme()
@@ -112,6 +113,7 @@ function setTouchBar(touchBar) {
 function setTitle(title) {
     if(!title) title = 'Photos'
     win.title = title
+    $('#titleBar').text(title)
 }
 
 $(document).ready(function () {

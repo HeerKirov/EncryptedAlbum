@@ -43,7 +43,7 @@
                     <div class="form-group">
                         <div><label>标签:</label></div>
                         <div>
-                        <span v-for="tag in current.tags" class="badge" :class="getTagType(tag)">
+                        <span v-for="tag in current.tags" class="badge m-1" :class="getTagType(tag)">
                             <a class="text-white" @click="removeTag(tag)">{{getTagName(tag)}}</a>
                         </span>
                         </div>

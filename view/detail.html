@@ -8,30 +8,103 @@
         <div class="p-5" style="position: absolute; width: 100%; height: 100%; overflow: auto" v-if="showInfo">
             <div class="row">
                 <div class="col-auto">
-                    <button class="btn btn-link text-white"><i class="fa fa-pencil-square-o"></i></button>
+                    <button class="btn btn-link text-white" @click="switchEditMode">
+                        <i class="fa fa-pencil-square-o"></i>
+                    </button>
                 </div>
-                <div class="col">
+                <div class="col" v-if="!editMode">
                     <h3 class="text-white">{{currentImage.title}}</h3>
                     <label class="text-white">{{currentImage.collection}}</label>
                 </div>
+                <div class="col pl-5 pr-5" v-if="editMode">
+                    <input type="text" class="form-control" placeholder="<标题...>" v-model="editImage.title"/>
+                    <input type="text" class="form-control" placeholder="<画集...>" v-model="editImage.collection"/>
+                </div>
                 <div class="col-auto">
-                    <button class="btn btn-link text-white"><i class="fa fa-star-o"></i></button>
+                    <button class="btn btn-link text-white" @click="switchFavorite">
+                        <i class="fa" :class="{'fa-star-o': !currentImage.favorite, 'fa-star': currentImage.favorite}"></i>
+                    </button>
                 </div>
             </div>
             <div class="row">
-                <div class="col-12 col-md-5">
+                <div class="col-12 col-md">
                     <img class="m-2" style="max-height: 40vh; max-width: 100%"
                         :src="currentDataURL"/>
                 </div>
-                <div class="col-12 col-md-7">
-                    <div class="row">
+                <div class="col-12 col-md p-3" v-if="!editMode">
+                    <div class="row p-1">
+                        <div>
+                            <span v-for="tag in currentImage.tags" class="badge m-1" :class="getTagType(tag)">
+                                <a class="text-white">{{getTagName(tag)}}</a>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row p-1">
+                        <table class="text-white text-left">
+                            <thead>
+                                <tr><th>相关链接:</th></tr>
+                            </thead>
+                            <tbody>
+                            <tr v-for="link in currentImage.links">
+                                <td><button class="btn btn-link" @click="openLink(link)">{{link}}</button></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="row p-1">
+                        <label class="text-white">分辨率: {{calcResolution(currentImage.resolution)}} </label>
+                    </div>
+                    <div class="row p-1">
+                        <label class="text-white" style="font-size: 11px">添加日期: {{new Date(currentImage.createTime).format('yyyy-MM-dd hh:mm')}}</label>
+                    </div>
+                </div>
+                <div class="col-12 col-md p-3" v-if="editMode">
+                    <div class="row p-1">
 
+                    </div>
+                    <div class="row p-1">
+                        <div><label class="text-white">相关链接:</label></div>
+                        <div class="btn-group" style="width:100%" v-for="(link, index) in editImage.links">
+                            <input type="text" class="form-control" v-model="link.name">
+                            <button type="button" class="btn btn-danger rounded" @click="removeLink(index)">
+                                <i class="fa fa-close"></i>
+                            </button>
+                        </div>
+                        <button type="button" class="btn mt-2 btn-sm btn-block btn-success" @click="addNewLink">
+                            <i class="fa fa-plus"></i>新条目
+                        </button>
+                    </div>
+                    <div class="row p-1">
+                        <label class="text-white">分辨率: {{calcResolution(currentImage.resolution)}} </label>
+                    </div>
+                    <div class="row p-1">
+                        <label class="text-white" style="font-size: 11px">添加日期: {{new Date(currentImage.createTime).format('yyyy-MM-dd hh:mm')}}</label>
+                    </div>
+                    <div class="row p-1">
+                        <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#deleteCheck"><i class="fa fa-trash"></i> 删除本项</button>
+                        <div class="modal fade" id="deleteCheck">
+                            <div class="modal-dialog modal-sm">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h4 class="modal-title">警告</h4>
+                                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        确认要删除吗？该操作不可逆。
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-danger" data-dismiss="modal" @click="deleteItem">确定</button>
+                                        <button type="button" class="btn btn-primary" data-dismiss="modal">取消</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div v-if="showTool">
+        <div v-if="showTool || showInfo">
             <button style="position: absolute; left: 5px; top: 5px; width: 36px; height: 36px; border-width: 0"
                     class="btn btn-outline-secondary" @click="goBack">
                 <i class="fa fa-close"></i>
