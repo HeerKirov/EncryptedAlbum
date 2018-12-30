@@ -1,9 +1,11 @@
 const {ImageSpecification} = require("../target/common/engine")
-const {remote, shell} = require('electron')
-const {TouchBar} = remote
-const {TouchBarButton, TouchBarSpacer, TouchBarPopover,
+const {containsElement} = require('../target/common/utils')
+const {remote, shell, nativeImage} = require('electron')
+const {TouchBar, dialog} = remote
+const {TouchBarSpacer, TouchBarPopover,
     TouchBarSlider, TouchBarSegmentedControl} = TouchBar
 const Vue = require('vue/dist/vue')
+const {writeFile} = require('fs')
 
 const THUMBNAIL_SIZE = 5
 
@@ -27,6 +29,14 @@ function buildPlayScrubbers() {
 }
 
 function buildTouchBar(vm) {
+    let showInfoControl = new TouchBarSegmentedControl({
+        mode: 'single',
+        segments: [{label: '预览页'}, {label: '信息页'}],
+        selectedIndex: vm.showInfo ? 1 : 0,
+        change: function (index, state) {
+            vm.showInfo = index !== 0
+        }
+    })
     let zoomValueControl = new TouchBarSlider({
         label: '尺寸',
         minValue: 0, maxValue: 100, value: vm.zoomValue,
@@ -64,11 +74,18 @@ function buildTouchBar(vm) {
 
     let touchBar = new TouchBar({
         items: [
-            new TouchBarButton({label: '返回', click: vm.goBack}),
-            new TouchBarSpacer({size: 'flexible'}),
-            new TouchBarButton({label: '上一页', click: vm.prevPage}),
-            new TouchBarButton({label: '下一页', click: vm.nextPage}),
             new TouchBarSpacer({size: 'large'}),
+            showInfoControl,
+            new TouchBarSpacer({size: 'flexible'}),
+            new TouchBarSegmentedControl({
+                mode: 'buttons',
+                segments: [{label: '上一页'}, {label: '下一页'}],
+                change: function (index, state) {
+                    if(index === 0) vm.prevPage()
+                    else vm.nextPage()
+                }
+            }),
+            new TouchBarSpacer({size: 'flexible'}),
             new TouchBarPopover({
                 label: '轮播',
                 items: [
@@ -86,6 +103,7 @@ function buildTouchBar(vm) {
 
     return {
         touchBar,
+        showInfoControl,
         zoomAbsoluteControl, zoomValueControl,
         playItemControl, playRandControl
     }
@@ -101,6 +119,16 @@ function copyArray(from) {
     }else{
         return []
     }
+}
+function equalArray(a, b) {
+    if(a && b) {
+        if(a.length !== b.length) return false
+        for(let i = 0; i < a.length; ++i) {
+            if(a[i] !== b[i]) return false
+        }
+        return true
+    }
+    return false
 }
 function copyImage(from) {
     if(from) {
@@ -119,6 +147,23 @@ function copyImage(from) {
         }
     }else{
         return emptyImage()
+    }
+}
+function equalImage(a, b) {
+    if(!a || !b) return false
+    else if(a.title !== b.title) return false
+    else if(a.collection !== b.collection) return false
+    else if(!equalArray(a.tags, b.tags)) return false
+    else {
+        if(a.links.length !== b.links.length) return false
+        for(let i = 0; i < a.links.length; ++i) {
+            let linkA = a.links[i]
+            let linkB = b.links[i]
+            if(typeof linkA === 'object') linkA = linkA['name']
+            if(typeof linkB === 'object') linkB = linkB['name']
+            if(linkA !== linkB) return false
+        }
+        return true
     }
 }
 function emptyImage() {
@@ -166,11 +211,14 @@ function detailModel(vueModel) {
                 title: null,
                 collection: null,
                 tags: [],
+                newTag: '',
+                newTagType: '#',
                 links: []
             },
             thumbnails: [],             //下方缩略图区正在展示的image的简略结构。{dataURL: string, title: string}
             thumbnailFirstIndex: null,  //下方缩略图区正在展示的image中，第一个的index。
 
+            existTags: [],
             playItems: PLAY_ITEMS    //绑定显示的常量
         },
         computed: {
@@ -221,6 +269,9 @@ function detailModel(vueModel) {
                 if(touchBar != null) {
                     touchBar.zoomValueControl.value = parseInt(value)
                 }
+            },
+            'showInfo': function (value) {
+                touchBar.showInfoControl.selectedIndex = value ? 1 : 0
             }
         },
         methods: {
@@ -235,6 +286,7 @@ function detailModel(vueModel) {
                 if(arg) {
                     this.loadShowList(arg['list'], arg['index'], arg['aggregate'])
                 }
+                this.existTags = db.engine.findTag({order: ['type', 'title']})
                 this.setTouchBar()
             },
             leave: function () {
@@ -258,6 +310,27 @@ function detailModel(vueModel) {
             },
             switchFullScreen: function() {
                 db.currentWindow.setFullScreen(!db.ui.fullscreen)
+            },
+            exportImage: function() {
+                let image = this.currentImage
+                let filename = image.title ? image.title : image.collection
+                dialog.showSaveDialog(db.currentWindow, {
+                    title: '导出图片',
+                    defaultPath: filename,
+                    filters: [
+                        {name: 'JPEG', extensions: ['jpg']},
+                        {name: 'PNG', extensions: ['png']}
+                    ]
+                }, (filename) => {
+                    if(filename) {
+                        let ext = filename.substring(filename.length - 3)
+                        let native = nativeImage.createFromDataURL(this.currentDataURL)
+                        let data = ext === 'jpg' ? native.toJPEG(80) : native.toPNG()
+                        writeFile(filename, data, () => {
+                            alert(`图片导出成功。`)
+                        })
+                    }
+                })
             },
 
             nextPage: function() {
@@ -306,6 +379,7 @@ function detailModel(vueModel) {
             },
             loadCurrentAs: function(index) {
                 if(index >= 0 && index < this.showList.length) {
+                    this.editMode = false
                     this.showIndex = index
                     let image = this.showList[index]
                     this.currentDataURL = ''    //TODO 添加一个loading图片
@@ -386,6 +460,7 @@ function detailModel(vueModel) {
             switchEditMode: function() {
                 this.editMode = !this.editMode
                 if(!this.editMode) {
+                    let origin = copyImage(this.currentImage)
                     if(this.editImage.title.trim() === '') {
                         this.currentImage.title = null
                     }else{
@@ -401,9 +476,10 @@ function detailModel(vueModel) {
                     for(let i in this.editImage.links) {
                         this.currentImage.links[i] = this.editImage.links[i].name
                     }
-                    let successNum = db.engine.updateImage([this.currentImage]).length
-                    if(successNum > 0) db.engine.save()
-                    //save
+                    if(!equalImage(origin, this.currentImage)) {
+                        let successNum = db.engine.updateImage([this.currentImage]).length
+                        if(successNum > 0) db.engine.save()
+                    }
                 }else{
                     this.editImage.title = this.currentImage.title
                     this.editImage.collection = this.currentImage.collection
@@ -439,17 +515,45 @@ function detailModel(vueModel) {
             addNewLink: function() {
                 this.$set(this.editImage.links, this.editImage.links.length, {name: ''})
             },
+            addNewTag: function () {
+                let newTag = this.editImage.newTagType + this.editImage.newTag
+                if(!containsElement(newTag, this.editImage.tags)) {
+                    this.$set(this.editImage.tags, this.editImage.tags.length, newTag)
+                    if(!containsElement(newTag, this.existTags)) {
+                        this.$set(this.existTags, this.existTags.length, newTag)
+                    }
+                }
+                this.editImage.newTag = ''
+            },
+            addOldTag: function(tag) {
+                if(!containsElement(tag, this.editImage.tags)) {
+                    this.$set(this.editImage.tags, this.editImage.tags.length, tag)
+                }
+            },
+            removeTag: function(tag) {
+                for(let i in this.editImage.tags) {
+                    if(this.editImage.tags[i] === tag) {
+                        this.editImage.tags.splice(i, 1)
+                        break
+                    }
+                }
+            },
 
-            getTagType: function (tag) {
-                let flag = tag.slice(0, 1)
-                return {
-                    'badge-warning': flag === '@',
-                    'badge-info': flag === '%',
-                    'badge-success': flag === '#'
+            getTagType: function (tag, prefix) {
+                if(tag) {
+                    let flag = tag.slice(0, 1)
+                    let ret = {}
+                    ret[prefix + '-warning'] = flag === '@'
+                    ret[prefix + '-info'] = flag === '%'
+                    ret[prefix + '-success'] = flag === '#'
+                    return ret
+                }else{
+                    return null
                 }
             },
             getTagName: function (tag) {
-                return tag.slice(1)
+                if(tag) return tag.slice(1)
+                else return null
             },
             calcResolution: function (resolution) {
                 if(resolution != null) {
@@ -460,6 +564,26 @@ function detailModel(vueModel) {
             },
             openLink: function(link) {
                 shell.openExternal(link)
+            },
+            calcDateTime: function(date, fmt) {
+                let o = {
+                    "M+" : date.getMonth() + 1,
+                    "d+" : date.getDate(),
+                    "h+" : date.getHours(),
+                    "m+" : date.getMinutes(),
+                    "s+" : date.getSeconds(),
+                    "q+" : Math.floor((date.getMonth() + 3) / 3),
+                    "S"  : date.getMilliseconds()
+                }
+                if(/(y+)/.test(fmt)) {
+                    fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length))
+                }
+                for(let k in o) {
+                    if(new RegExp("("+ k +")").test(fmt)){
+                        fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)))
+                    }
+                }
+                return fmt
             },
 
             setTouchBar: function () {
@@ -481,26 +605,6 @@ function detailModel(vueModel) {
             }
         }
     })
-    Date.prototype.format = function(fmt) {
-        let o = {
-            "M+" : this.getMonth()+1,                 //月份
-            "d+" : this.getDate(),                    //日
-            "h+" : this.getHours(),                   //小时
-            "m+" : this.getMinutes(),                 //分
-            "s+" : this.getSeconds(),                 //秒
-            "q+" : Math.floor((this.getMonth()+3)/3), //季度
-            "S"  : this.getMilliseconds()             //毫秒
-        }
-        if(/(y+)/.test(fmt)) {
-            fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length))
-        }
-        for(let k in o) {
-            if(new RegExp("("+ k +")").test(fmt)){
-                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)))
-            }
-        }
-        return fmt
-    }
 
     return vm
 }

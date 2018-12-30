@@ -43,7 +43,7 @@
                     <div class="form-group">
                         <div><label>标签:</label></div>
                         <div>
-                        <span v-for="tag in current.tags" class="badge m-1" :class="getTagType(tag)">
+                        <span v-for="tag in current.tags" class="badge m-1" :class="getTagType(tag, 'badge')">
                             <a class="text-white" @click="removeTag(tag)">{{getTagName(tag)}}</a>
                         </span>
                         </div>
@@ -51,19 +51,19 @@
                             <button class="btn text-dark collapsed" data-toggle="collapse" data-target="#edit-tag" aria-expanded="false">
                                 <i class="fa fa-caret-down"></i> 现有
                             </button>
-                            <input type="text" class="form-control rounded-0" v-model="newTagInput"/>
+                            <input type="text" class="form-control rounded-0" v-model="newTagInput" @keydown.enter="addNewTag"/>
                             <select class="form-control rounded-0" v-model="newTagSelect">
                                 <option value="%">题材</option>
                                 <option value="#">内容</option>
                                 <option value="@">作者</option>
                             </select>
 
-                            <button type="button" class="btn btn-success" @click="addNewTag">
+                            <button type="button" class="btn" :class="getTagType(newTagSelect, 'btn')" @click="addNewTag">
                                 <i class="fa fa-plus"></i> 新标签
                             </button>
                         </div>
                         <div class="collapse m-1" id="edit-tag">
-                        <span v-for="tag in tags" class="badge" :class="getTagType(tag)">
+                        <span v-for="tag in tags" class="badge m-1" :class="getTagType(tag, 'badge')">
                             <a class="text-white" @click="addOldTag(tag)">{{getTagName(tag)}}</a>
                         </span>
                         </div>
@@ -85,8 +85,12 @@
                             <input class="form-check-input" type="checkbox" v-model="current.favorite"> 加入收藏
                         </label>
                     </div>
+                    <div class="from-group pt-2" v-if="currentIndex > 0">
+                        <button class="btn btn-link btn-sm" @click="copyInfoFromPrev">
+                            <i class="fa fa-download"></i>从前一项复制信息
+                        </button>
+                    </div>
                 </div>
-                <!-- TODO 全部使用同一组信息的option -->
             </div>
         </div>
     </div>

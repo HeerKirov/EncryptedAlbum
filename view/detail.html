@@ -17,8 +17,8 @@
                     <label class="text-white">{{currentImage.collection}}</label>
                 </div>
                 <div class="col pl-5 pr-5" v-if="editMode">
-                    <input type="text" class="form-control" placeholder="<标题...>" v-model="editImage.title"/>
-                    <input type="text" class="form-control" placeholder="<画集...>" v-model="editImage.collection"/>
+                    <input type="text" class="form-control m-1" placeholder="<标题...>" v-model="editImage.title"/>
+                    <input type="text" class="form-control m-1" placeholder="<画集...>" v-model="editImage.collection"/>
                 </div>
                 <div class="col-auto">
                     <button class="btn btn-link text-white" @click="switchFavorite">
@@ -34,12 +34,12 @@
                 <div class="col-12 col-md p-3" v-if="!editMode">
                     <div class="row p-1">
                         <div>
-                            <span v-for="tag in currentImage.tags" class="badge m-1" :class="getTagType(tag)">
+                            <span v-for="tag in currentImage.tags" class="badge m-1" :class="getTagType(tag, 'badge')">
                                 <a class="text-white">{{getTagName(tag)}}</a>
                             </span>
                         </div>
                     </div>
-                    <div class="row p-1">
+                    <div class="row p-1" v-if="currentImage.links.length">
                         <table class="text-white text-left">
                             <thead>
                                 <tr><th>相关链接:</th></tr>
@@ -55,12 +55,37 @@
                         <label class="text-white">分辨率: {{calcResolution(currentImage.resolution)}} </label>
                     </div>
                     <div class="row p-1">
-                        <label class="text-white" style="font-size: 11px">添加日期: {{new Date(currentImage.createTime).format('yyyy-MM-dd hh:mm')}}</label>
+                        <label class="text-white" style="font-size: 11px">添加日期: {{calcDateTime(new Date(currentImage.createTime), 'yyyy-MM-dd hh:mm')}}</label>
                     </div>
                 </div>
                 <div class="col-12 col-md p-3" v-if="editMode">
                     <div class="row p-1">
+                        <div><label class="text-white">标签:</label></div>
+                        <div>
+                            <span v-for="tag in editImage.tags" class="badge m-1" :class="getTagType(tag, 'badge')">
+                                <a class="text-white" @click="removeTag(tag)">{{getTagName(tag)}}</a>
+                            </span>
+                        </div>
+                        <div class="btn-group mt-2 ml-1">
+                            <button class="btn text-dark collapsed" data-toggle="collapse" data-target="#edit-tag" aria-expanded="false">
+                                <i class="fa fa-caret-down"></i> 现有
+                            </button>
+                            <input type="text" class="form-control rounded-0" v-model="editImage.newTag" @keydown.enter="addNewTag"/>
+                            <select class="form-control rounded-0" v-model="editImage.newTagType">
+                                <option value="%">题材</option>
+                                <option value="#">内容</option>
+                                <option value="@">作者</option>
+                            </select>
 
+                            <button type="button" class="btn" :class="getTagType(editImage.newTagType, 'btn')" @click="addNewTag">
+                                <i class="fa fa-plus"></i> 新标签
+                            </button>
+                        </div>
+                        <div class="collapse m-1 text-left" id="edit-tag">
+                            <span v-for="tag in existTags" class="badge m-1" :class="getTagType(tag, 'badge')">
+                                <a class="text-white" @click="addOldTag(tag)">{{getTagName(tag)}}</a>
+                            </span>
+                        </div>
                     </div>
                     <div class="row p-1">
                         <div><label class="text-white">相关链接:</label></div>
@@ -78,10 +103,13 @@
                         <label class="text-white">分辨率: {{calcResolution(currentImage.resolution)}} </label>
                     </div>
                     <div class="row p-1">
-                        <label class="text-white" style="font-size: 11px">添加日期: {{new Date(currentImage.createTime).format('yyyy-MM-dd hh:mm')}}</label>
+                        <label class="text-white" style="font-size: 11px">添加日期: {{calcDateTime(new Date(currentImage.createTime), 'yyyy-MM-dd hh:mm')}}</label>
                     </div>
                     <div class="row p-1">
-                        <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#deleteCheck"><i class="fa fa-trash"></i> 删除本项</button>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-sm btn-primary" @click="switchEditMode"><i class="fa fa-save"></i> 保存更改</button>
+                            <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#deleteCheck"><i class="fa fa-trash"></i> 删除本项</button>
+                        </div>
                         <div class="modal fade" id="deleteCheck">
                             <div class="modal-dialog modal-sm">
                                 <div class="modal-content">
@@ -135,6 +163,10 @@
         <button style="position: absolute; left: 5px; bottom: 79px; width: 36px; height: 36px; border-width: 0"
                 class="btn btn-outline-secondary" @click="showInfo = !showInfo">
             <i class="fa fa-info"></i>
+        </button>
+        <button style="position: absolute; left: 5px; bottom: 42px; width: 36px; height: 36px; border-width: 0"
+                class="btn btn-outline-secondary" @click="exportImage">
+            <i class="fa fa-upload"></i>
         </button>
         <button style="position: absolute; left: 5px; bottom: 5px; width: 36px; height: 36px; border-width: 0"
                 class="btn btn-outline-secondary" @click="showDock = false">

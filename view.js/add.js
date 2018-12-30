@@ -1,7 +1,7 @@
-const electron = require('electron')
-const {dialog, TouchBar} = electron.remote
+const {nativeImage, remote} = require('electron')
+const {containsElement} = require('../target/common/utils')
+const {dialog, TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer, TouchBarPopover, TouchBarSlider} = TouchBar
-const {nativeImage} = electron
 const Vue = require('vue/dist/vue')
 const {readFile} = require('fs')
 
@@ -14,6 +14,19 @@ const defaultCurrent = {
     resolution: { width: 0, height: 0 },
     dataURL: ''
 }
+
+function copyArray(from) {
+    if(from) {
+        let ret = []
+        for(let i in from) {
+            ret[i] = from[i]
+        }
+        return ret
+    }else{
+        return []
+    }
+}
+
 function addModel(vueModel) {
     let db = vueModel.db
     let vm = new Vue({
@@ -56,6 +69,7 @@ function addModel(vueModel) {
                 db.ui.theme = 'gray'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
+                this.tags = db.engine.findTag({order: ['type', 'title']})
                 vueModel.setTouchBar(new TouchBar({
                     items: [
                         new TouchBarSpacer({size: 'flexible'}),
@@ -152,7 +166,6 @@ function addModel(vueModel) {
                                 })
                             })(i)
                         }
-                        // this.toPage(this.items.length - 1)
                     }
                 })
             },
@@ -164,7 +177,7 @@ function addModel(vueModel) {
             },
             appendToList: function(items) {
                 for(let i in items) {
-                    vm.$set(this.items, this.count + parseInt(i), items[i])
+                    this.$set(this.items, this.count + parseInt(i), items[i])
                 }
                 let nextPageIndex = this.count
                 this.count += items.length
@@ -195,51 +208,66 @@ function addModel(vueModel) {
                 if(index >= 0 && index < this.count) {
                     this.currentIndex = index
                     this.currentIndexInput = index + 1
-                    this.current = defaultCurrent
                     this.current = this.items[index]
                 }
             },
-            getTagType: function (tag) {
-                let flag = tag.slice(0, 1)
-                return {
-                    'badge-warning': flag === '@',
-                    'badge-info': flag === '%',
-                    'badge-success': flag === '#'
+            getTagType: function (tag, prefix) {
+                if(tag) {
+                    let flag = tag.slice(0, 1)
+                    let ret = {}
+                    ret[prefix + '-warning'] = flag === '@'
+                    ret[prefix + '-info'] = flag === '%'
+                    ret[prefix + '-success'] = flag === '#'
+                    return ret
+                }else{
+                    return null
                 }
             },
             getTagName: function (tag) {
-                return tag.slice(1)
+                if(tag) return tag.slice(1)
+                else return null
             },
             addNewTag: function () {
                 let newTag = this.newTagSelect + this.newTagInput
-                if(!(newTag in this.current.tags)) {
-                    vm.$set(this.current.tags, this.current.tags.length, newTag)
+                if(!containsElement(newTag, this.current.tags)) {
+                    this.$set(this.current.tags, this.current.tags.length, newTag)
+                    if(!containsElement(newTag, this.tags)) {
+                        this.$set(this.tags, this.tags.length, newTag)
+                    }
                 }
                 this.newTagInput = ''
             },
             addOldTag: function(tag) {
-                if(!(tag in this.current.tags)) {
-                    vm.$set(this.current.tags, this.current.tags.length, tag)
+                if(!containsElement(tag, this.current.tags)) {
+                    this.$set(this.current.tags, this.current.tags.length, tag)
                 }
             },
             removeTag: function(tag) {
                 for(let i in this.current.tags) {
                     if(this.current.tags[i] === tag) {
                         this.current.tags.splice(i, 1)
-                        let mid = this.current.tags
-                        this.current.tags = []
-                        this.current.tags = mid
                         break
                     }
                 }
             },
             addNewLink: function () {
-                vm.$set(this.current.links, this.current.links.length, {name: ''})
+                this.$set(this.current.links, this.current.links.length, {name: ''})
             },
             removeLink: function (index) {
                 let links = this.current.links
                 if(index < links.length) {
                     links.splice(index, 1)
+                }
+            },
+            
+            copyInfoFromPrev: function () {
+                if(this.currentIndex > 0) {
+                    let prev = this.items[this.currentIndex - 1]
+                    if(prev.title) this.$set(this.current, 'title', prev.title)
+                    if(prev.collection) this.$set(this.current, 'collection', prev.collection)
+                    if(prev.links) this.$set(this.current, 'links', copyArray(prev.links))
+                    if(prev.tags) this.$set(this.current, 'tags', copyArray(prev.tags))
+                    this.$set(this.current, 'favorite', prev.favorite)
                 }
             }
         }

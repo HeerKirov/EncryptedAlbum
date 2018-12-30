@@ -9,7 +9,7 @@ import {
 } from './engine'
 import {Formula} from './appStorage'
 import {BufferCache} from './bufferCache'
-import {decrypt, encrypt, encryptBuffer, decryptBuffer} from './utils'
+import {decrypt, encrypt, encryptBuffer, decryptBuffer, containsElement} from './utils'
 import {translateDataURL} from './imageTool'
 
 const PREFIX = 'data:image/jpeg;base64,'
@@ -50,7 +50,7 @@ class LocalDataEngine implements DataEngine {
             }
             this.imageMemory[this.imageMemory.length] = image
             for(let tag of image.tags) {
-                if(!(tag in this.tagMemory)) {
+                if(!containsElement(tag, this.tagMemory)) {
                     this.tagMemory[this.tagMemory.length] = tag
                 }
             }
@@ -66,7 +66,7 @@ class LocalDataEngine implements DataEngine {
             for(let idx in this.imageMemory) {
                 if(this.imageMemory[idx].id === image.id) {
                     for(let tag of image.tags) {
-                        if((!(tag in this.imageMemory[idx].tags))&&(!(tag in this.tagMemory))) {
+                        if((!containsElement(tag, this.imageMemory[idx].tags))&&(!containsElement(tag, this.tagMemory))) {
                             this.tagMemory[this.tagMemory.length] = tag
                         }
                     }
@@ -209,7 +209,7 @@ class LocalDataEngine implements DataEngine {
                 }
                 for(let image of this.imageMemory) {
                     for(let tag of image.tags) {
-                        if(!(tag in this.tagMemory)) {
+                        if(!containsElement(tag, this.tagMemory)) {
                             this.tagMemory[this.tagMemory.length] = tag
                         }
                     }

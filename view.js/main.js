@@ -2,7 +2,7 @@ const {containsElement} = require('../target/common/utils')
 const {ImageSpecification} = require("../target/common/engine")
 const {remote, ipcRenderer} = require('electron')
 const {TouchBar} = remote
-const {TouchBarButton, TouchBarSpacer, TouchBarPopover, TouchBarSlider} = TouchBar
+const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 
 function mainModel(vueModel) {
@@ -17,6 +17,9 @@ function mainModel(vueModel) {
             filterInput: {
                 favorite: false,
                 tags: [],
+                tagSearchText: '',
+                existTags: [],
+                existTagsAll: []
             },
             sortInput: {
                 by: '',
@@ -58,7 +61,6 @@ function mainModel(vueModel) {
             showRecord: 0,   //用于标记已经从showBackend中加载的数量。
             items: [],      //用于保存当前正在查询的列表。在被正式上载之前不含dataURL。
             temps: []      //用于保存临时文件夹。
-
         },
         computed: {
             leastSelectOne: function () {
@@ -85,6 +87,7 @@ function mainModel(vueModel) {
                 if(this.viewFolder === 'list') this.search()
                 this.loadTempsFromMain()
                 this.loadListToPage()
+                this.filterInput.existTags = this.filterInput.existTagsAll = db.engine.findTag({order: ['type', 'title']})
             },
             leave: function() {
                 this.visible = false
@@ -126,7 +129,6 @@ function mainModel(vueModel) {
                 let tags = []
                 for(let i = 0; i < this.filterInput.tags.length; ++i) tags[i] = this.filterInput.tags[i]
                 this.filter.tags = tags
-                // ipcRenderer.sendSync('save-main-cache', {filter: this.filter})
                 this.search()
                 this.loadListToPage()
             },
@@ -155,6 +157,47 @@ function mainModel(vueModel) {
                 this.loadListToPage()
             },
 
+            getTagType: function (tag, prefix) {
+                if(tag) {
+                    let flag = tag.slice(0, 1)
+                    let ret = {}
+                    ret[prefix + '-warning'] = flag === '@'
+                    ret[prefix + '-info'] = flag === '%'
+                    ret[prefix + '-success'] = flag === '#'
+                    return ret
+                }else{
+                    return null
+                }
+            },
+            getTagName: function (tag) {
+                if(tag) return tag.slice(1)
+                else return null
+            },
+            searchFilterTags: function() {
+                let text = this.filterInput.tagSearchText.trim()
+                if(text !== '') {
+                    let tags = []
+                    for(let tag of this.filterInput.existTagsAll) {
+                        if(tag.indexOf(text) >= 0) {
+                            tags[tags.length] = tag
+                        }
+                    }
+                    this.filterInput.existTags = tags
+                }else{
+                    this.filterInput.existTags = this.filterInput.existTagsAll
+                }
+            },
+            addFilterTag: function(tag) {
+                if(!containsElement(tag, this.filterInput.tags)) {
+                    this.$set(this.filterInput.tags, this.filterInput.tags.length, tag)
+                }
+            },
+            removeFilterTag: function(index) {
+                if(index >= 0 && index < this.filterInput.tags.length) {
+                    this.filterInput.tags.splice(index, 1)
+                }
+            },
+
             loadTempsFromMain: function() {
                 //从主线程加载临时文件夹。
                 let {temps} = ipcRenderer.sendSync('load-cache', ['temps'])
@@ -177,7 +220,7 @@ function mainModel(vueModel) {
                 if(this.sort.by) findOption['order'] = [this.sort.by]
                 findOption['desc'] = this.sort.desc
                 if(this.filter.favorite) findOption['favorite_eq'] = true
-                if(this.filter.tags) findOption['tags'] = this.filter.tags
+                if(this.filter.tags) findOption['tag_contains'] = this.filter.tags
                 this.items = db.engine.findImage(findOption)
             },
             loadListToPage: function () {
@@ -380,6 +423,26 @@ function mainModel(vueModel) {
                     this.viewFolder = type
                     this.loadListToPage()
                     this.setTouchBar()
+                }
+            },
+            selectToView: function() {
+                if(this.selected.count > 0) {
+                    let items = []
+                    for(let sel of this.selected.list) {
+                        let item = this.showList[sel]
+                        if(this.view.aggregateByCollection) {
+                            for(let i in this.showBackend[item.index]) {
+                                items[items.length] = this.showBackend[item.index][i]
+                            }
+                        }else{
+                            items[items.length] = this.showBackend[item.index]
+                        }
+                    }
+                    vueModel.route('detail', {
+                        list: items,
+                        index: 0,
+                        aggregate: false
+                    })
                 }
             },
 

@@ -147,12 +147,31 @@
           <div class="modal-body">
             <div class="row">
               <div class="col-auto"><label>收藏夹</label></div>
-              <div class="col"><input v-model="filterInput.favorite" type="checkbox" class="form-check-input" value=""></div>
+              <div class="col"><input v-model="filterInput.favorite" type="checkbox" class="form-check-input m-1" value=""></div>
             </div>
             <div class="row">
-              <!-- TODO 处理标签组及其绑定 -->
-              <div class="col">标签组</div>
-              <div class="col">/*TODO*/</div>
+              <div class="col-auto"><label>标签组</label></div>
+              <div class="col">
+                  <div class="card">
+                      <div class="card-body p-2">
+                          <span v-if="filterInput.tags.length === 0" class="text-secondary">没有选择任何标签</span>
+                          <span v-for="(tag, index) in filterInput.tags" class="badge m-1" :class="getTagType(tag, 'badge')">
+                              <a class="text-white" @click="removeFilterTag(index)">{{getTagName(tag)}}</a>
+                          </span>
+                      </div>
+                  </div>
+                  <div class="btn-group mt-2 ml-1" v-if="filterInput.existTagsAll.length > 0">
+                      <input type="text" placeholder="在标签中搜索" class="form-control rounded-0" v-model="filterInput.tagSearchText" @keydown.enter="searchFilterTags"/>
+                      <button type="button" class="btn btn-secondary" @click="searchFilterTags">
+                          <i class="fa fa-search"></i>
+                      </button>
+                  </div>
+                  <div class="m-1 text-left" style="overflow: auto; max-height: 360px" v-if="filterInput.existTagsAll.length > 0">
+                      <span v-for="tag in filterInput.existTags" class="badge m-1" :class="getTagType(tag, 'badge')">
+                          <a class="text-white" @click="addFilterTag(tag)">{{getTagName(tag)}}</a>
+                      </span>
+                  </div>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -176,15 +195,23 @@
           </div>
           <div class="col-auto">
             <div class="btn-group btn-group-sm">
-              <!-- TODO 添加到收藏夹功能.如果当前全在收藏夹，那么替换为移出收藏夹。 -->
-              <button type="button" class="btn btn-sm btn-primary" :class="{disabled: !leastSelectOne}" v-if="viewFolder === 'list'" @click="selectAddToTemp">添加到临时文件夹</button>
-              <button type="button" class="btn btn-sm btn-primary" :class="{disabled: !leastSelectOne}" v-if="viewFolder === 'temp'" @click="selectRemoveFromTemp">移出临时文件夹</button>
+              <button type="button" class="btn btn-sm btn-primary"
+                      :class="{disabled: !leastSelectOne}" @click="selectToView">
+                    <i class="fa fa-picture-o"></i> 预览
+              </button>
+              <button type="button" class="btn btn-sm btn-primary"
+                      :class="{disabled: !leastSelectOne}" v-if="viewFolder === 'list'" @click="selectAddToTemp">
+                  添加到临时文件夹
+              </button>
+              <button type="button" class="btn btn-sm btn-primary"
+                      :class="{disabled: !leastSelectOne}" v-if="viewFolder === 'temp'" @click="selectRemoveFromTemp">
+                  移出临时文件夹
+              </button>
               <div class="btn-group">
                 <button type="button" class="btn btn-sm btn-primary dropdown-toggle" :class="{disabled: !leastSelectOne}" data-toggle="dropdown">更多</button>
                 <div class="dropdown-menu">
-                  <!-- TODO 添加导出/修改/删除功能 -->
+                  <!-- TODO 添加导出/删除功能 -->
                   <a class="dropdown-item" href="#">批量导出</a>
-                  <a class="dropdown-item" href="#">批量修改</a>
                   <a class="dropdown-item" href="#">批量删除</a>
                 </div>
               </div>
