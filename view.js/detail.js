@@ -1,11 +1,11 @@
 const {ImageSpecification} = require("../target/common/engine")
 const {containsElement} = require('../target/common/utils')
-const {remote, shell, nativeImage} = require('electron')
+const {exportImage} = require('../target/common/imageTool')
+const {remote, shell} = require('electron')
 const {TouchBar, dialog} = remote
 const {TouchBarSpacer, TouchBarPopover,
     TouchBarSlider, TouchBarSegmentedControl} = TouchBar
 const Vue = require('vue/dist/vue')
-const {writeFile} = require('fs')
 
 const THUMBNAIL_SIZE = 5
 
@@ -323,11 +323,12 @@ function detailModel(vueModel) {
                     ]
                 }, (filename) => {
                     if(filename) {
-                        let ext = filename.substring(filename.length - 3)
-                        let native = nativeImage.createFromDataURL(this.currentDataURL)
-                        let data = ext === 'jpg' ? native.toJPEG(80) : native.toPNG()
-                        writeFile(filename, data, () => {
-                            alert(`图片导出成功。`)
+                        exportImage(this.currentDataURL, filename, (success) => {
+                            if(success) {
+                                alert('图片导出成功。')
+                            }else{
+                                alert('发生了未知的错误。')
+                            }
                         })
                     }
                 })
@@ -382,7 +383,7 @@ function detailModel(vueModel) {
                     this.editMode = false
                     this.showIndex = index
                     let image = this.showList[index]
-                    this.currentDataURL = ''    //TODO 添加一个loading图片
+                    this.currentDataURL = ''
                     this.currentImage = image
                     vueModel.setTitle(image.title ? image.title : image.collection ? image.collection : null)
                     db.engine.loadImageURL(image.id, ImageSpecification.Origin, (dataURL) => {
@@ -461,12 +462,12 @@ function detailModel(vueModel) {
                 this.editMode = !this.editMode
                 if(!this.editMode) {
                     let origin = copyImage(this.currentImage)
-                    if(this.editImage.title.trim() === '') {
+                    if(this.editImage.title == null || this.editImage.title.trim() === '') {
                         this.currentImage.title = null
                     }else{
                         this.currentImage.title = this.editImage.title
                     }
-                    if(this.editImage.collection.trim() === '') {
+                    if(this.editImage.collection == null || this.editImage.collection.trim() === '') {
                         this.currentImage.collection = null
                     }else{
                         this.currentImage.collection = this.editImage.collection

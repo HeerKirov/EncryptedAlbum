@@ -12,7 +12,7 @@
         </div>
         <div class="row p-2">
             <div class="col">
-                <button type="button" class="btn btn-link" @click="addURL">添加网络URL…</button>
+                <button type="button" class="btn btn-link" data-toggle="modal" data-target="#importURLModal">添加网络URL…</button>
             </div>
         </div>
     </div>
@@ -140,7 +140,7 @@
                 <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"></button>
                 <div class="dropdown-menu dropdown-menu-right">
                     <a class="dropdown-item" @click="addPixiv">添加Pixiv项目…</a>
-                    <a class="dropdown-item" @click="addURL" href="#">添加URL…</a>
+                    <a class="dropdown-item" data-toggle="modal" data-target="#importURLModal">添加URL…</a>
                 </div>
             </div>
         </div>
@@ -150,4 +150,32 @@
             </button>
         </div>
     </nav>
+
+    <div class="modal fade" id="importURLModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">添加网络URL</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group" style="overflow: auto; max-height: 460px">
+                        <div><label>添加的URL:</label></div>
+                        <div class="btn-group" style="width:100%" v-for="(item, index) in importURL">
+                            <input type="text" class="form-control" placeholder="https://" v-model="item.name">
+                            <button type="button" class="btn btn-danger rounded" @click="removeURL(index)">
+                                <i class="fa fa-close"></i>
+                            </button>
+                        </div>
+                        <button type="button" class="btn mt-2 btn-sm btn-block btn-success" @click="addNewURL">
+                            <i class="fa fa-plus"></i>新条目
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" @click="addURL"><i class="fa fa-download"></i> 下载并导入</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

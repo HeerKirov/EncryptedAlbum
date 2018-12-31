@@ -1,5 +1,6 @@
 const {nativeImage, remote} = require('electron')
 const {containsElement} = require('../target/common/utils')
+const {downloadImageDataURL} = require('../target/common/imageTool')
 const {dialog, TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer, TouchBarPopover, TouchBarSlider} = TouchBar
 const Vue = require('vue/dist/vue')
@@ -41,7 +42,10 @@ function addModel(vueModel) {
             tags: [],
             newTagInput: '',
             newTagSelect: '#',
-            currentIndexInput: '0'
+            currentIndexInput: '0',
+
+            importURL: [],
+            importPixiv: []
         },
         computed: {
             showNavigator: function() {
@@ -82,6 +86,8 @@ function addModel(vueModel) {
             leave: function() {
                 this.visible = false
                 this.clearItems()
+                this.importURL = []
+                this.importPixiv= []
             },
             enterFullScreen: function() {
                 this.fullscreen = true
@@ -173,7 +179,35 @@ function addModel(vueModel) {
                 alert('尚待开发。') // TODO 尚待开发
             },
             addURL: function() {
-                alert('尚待开发。') // TODO 尚待开发
+                if(this.importURL) {
+                    let results = []
+                    let cnt = this.importURL.length
+                    for(let i in this.importURL) {
+                        ((index, path) => {
+                            downloadImageDataURL(path, (dataURL, status) => {
+                                if(dataURL) {
+                                    let image = nativeImage.createFromDataURL(dataURL)
+                                    results[index] = {
+                                        title: '',
+                                        collection: '',
+                                        tags: [],
+                                        links: [],
+                                        favorite: false,
+                                        resolution: image.getSize(),
+                                        dataURL: dataURL
+                                    }
+                                    cnt --
+                                    if(cnt <= 0) {
+                                        vm.appendToList(results)
+                                    }
+                                }else{
+                                    alert(`尝试下载${path}时发生错误。错误代码: ${status}`)
+                                }
+                            })
+                        })(i, this.importURL[i].name)
+                    }
+                    this.importURL = []
+                }
             },
             appendToList: function(items) {
                 for(let i in items) {
@@ -268,6 +302,16 @@ function addModel(vueModel) {
                     if(prev.links) this.$set(this.current, 'links', copyArray(prev.links))
                     if(prev.tags) this.$set(this.current, 'tags', copyArray(prev.tags))
                     this.$set(this.current, 'favorite', prev.favorite)
+                }
+            },
+
+            addNewURL: function () {
+                this.$set(this.importURL, this.importURL.length, {name: ''})
+            },
+            removeURL: function (index) {
+                let urls = this.importURL
+                if(index < urls.length) {
+                    urls.splice(index, 1)
                 }
             }
         }

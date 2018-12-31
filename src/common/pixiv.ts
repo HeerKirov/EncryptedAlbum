@@ -1,0 +1,7 @@
+
+
+function downloadIllust() {
+    
+}
+
+export {downloadIllust}

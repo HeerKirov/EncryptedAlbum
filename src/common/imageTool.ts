@@ -73,4 +73,24 @@ function exportImage(dataURL: string, filepath: string, callback?: (success: boo
     })
 }
 
-export {translateNativeImage, translateDataURL, exportImage}
+function downloadImageDataURL(url: string, callback?: (dataURL: string, status?: number) => void): void {
+    let xhr = new XMLHttpRequest()
+    xhr.open('GET', url, true)
+    xhr.responseType = 'blob'
+    xhr.onload = function() {
+        if(xhr.status === 200) {
+            let blob = this.response
+            let reader = new FileReader()
+            reader.onload = (e) => {
+                let dataURL = e.target['result']
+                if(callback) callback(dataURL, 200)
+            }
+            reader.readAsDataURL(blob)
+        }else{
+            if(callback) callback(null, xhr.status)
+        }
+    }
+    xhr.send()
+}
+
+export {translateNativeImage, translateDataURL, exportImage, downloadImageDataURL}

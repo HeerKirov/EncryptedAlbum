@@ -4,7 +4,7 @@
             <ul style="margin: 0; padding: 0">
                 <li v-for="(image, index) in showList" style="display: inline-block;" :style="{width: 60 + view.zoom * 40 + 'px'}">
                     <div class="card" style="margin: 2px">
-                        <img class="card-img-top" :src="image.buffer" alt="Card image" style="width:100%" @click="selectOne(index)">
+                        <img class="card-img-top" :src="image.buffer" alt="Card image" style="width:100%" @click="selectOne(index, 'left')" @mouseup.right="selectOne(index, 'right')">
                         <div class="" v-if="view.showTitle">
                             <h6 class="m-2">{{image.title}}</h6>
                         </div>
@@ -210,14 +210,72 @@
               <div class="btn-group">
                 <button type="button" class="btn btn-sm btn-primary dropdown-toggle" :class="{disabled: !leastSelectOne}" data-toggle="dropdown">更多</button>
                 <div class="dropdown-menu">
-                  <!-- TODO 添加导出/删除功能 -->
-                  <a class="dropdown-item" href="#">批量导出</a>
-                  <a class="dropdown-item" href="#">批量删除</a>
+                  <a class="dropdown-item" @click="selectToExport">批量导出</a>
+                  <a class="dropdown-item" data-toggle="modal" data-target="#deleteAllCheck">批量删除</a>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="modal fade" id="deleteAllCheck">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">警告</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    确认要删除吗？该操作不可逆。
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal" @click="selectToDelete">确定</button>
+                    <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="exportAllCheck">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">导出确认</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row p-1">
+                        <div class="col-auto">导出位置</div>
+                        <div class="col">{{exportPanel.path}}</div>
+                    </div>
+                    <div class="row p-1">
+                        <div class="col-auto">导出类型</div>
+                        <div class="col">
+                            <select class="form-control" v-model="exportPanel.ext">
+                                <option value="jpg">JPEG</option>
+                                <option value="png">PNG</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row p-1">
+                        <div class="col-auto">文件一览</div>
+                        <div class="col">
+                            <div class="card p-1" style="overflow: auto; max-height: 360px; width: 100%">
+                                <table>
+                                    <tbody>
+                                        <tr v-for="item in exportPanel.items"><td>{{item.title}}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-success" data-dismiss="modal" @click="selectToExportOk"><i class="fa fa-upload"></i> 导出</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

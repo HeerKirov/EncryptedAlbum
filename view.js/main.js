@@ -1,7 +1,8 @@
 const {containsElement} = require('../target/common/utils')
 const {ImageSpecification} = require("../target/common/engine")
+const {exportImage} = require('../target/common/imageTool')
 const {remote, ipcRenderer} = require('electron')
-const {TouchBar} = remote
+const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 
@@ -53,6 +54,12 @@ function mainModel(vueModel) {
                 mode: false,
                 count: 0,
                 list: []
+            },
+            //绑定导出功能
+            exportPanel: {
+                items: [],   //{id: number, title: string, collection: string}
+                ext: 'jpg',
+                path: ''
             },
             //绑定内容展示列表和区分
             viewFolder: 'list', //list or temp
@@ -152,7 +159,6 @@ function mainModel(vueModel) {
             },
             saveOptionFromSearch: function () {
                 this.searchText = this.searchTextInput
-                // ipcRenderer.sendSync('save-main-cache', {search: this.searchText})
                 this.search()
                 this.loadListToPage()
             },
@@ -286,11 +292,11 @@ function mainModel(vueModel) {
                     loadLock = false
                 }
             },
-            selectOne: function(index) {
+            selectOne: function(index, k) {
                 //单击一张图片。
                 if(this.selected.mode) {
                     //单击选定|取消选定某一个index上的项。
-                    vm.$set(this.showList[index], 'selected', !this.showList[index].selected)
+                    this.$set(this.showList[index], 'selected', !this.showList[index].selected)
                     if(this.showList[index].selected) {
                         let flag = true;
                         for(let i of this.selected.list) {
@@ -310,6 +316,10 @@ function mainModel(vueModel) {
                             this.selected.count --
                         }
                     }
+                }else if(k === 'right') {
+                    //右键进入选择模式同时选中。
+                    if(!this.selected.mode) this.selected.mode = true
+                    this.selectOne(index, k)
                 }else{
                     //单击进入阅览模式。
                     vueModel.route('detail', {
@@ -330,13 +340,13 @@ function mainModel(vueModel) {
                 this.selected.count = 0
                 this.selected.list = []
                 for(let item of this.showList) {
-                    vm.$set(item, 'selected', false)
+                    this.$set(item, 'selected', false)
                 }
             },
             selectAll: function () {
                 //选定所有项。
                 for(let i of this.showList) {
-                    vm.$set(i, 'selected', true)
+                    this.$set(i, 'selected', true)
                 }
                 this.selected.list = []
                 for(let i = 0; i < this.showList.length; ++i) this.selected.list[i] = i
@@ -405,7 +415,7 @@ function mainModel(vueModel) {
                         return
                     }
                 }
-                vm.$set(this.temps, this.temps.length, newItem)
+                this.$set(this.temps, this.temps.length, newItem)
             },
             removeFromTemp: function(removeIds) {
                 for(let i = removeIds.length - 1; i >= 0; --i) {
@@ -442,6 +452,106 @@ function mainModel(vueModel) {
                         list: items,
                         index: 0,
                         aggregate: false
+                    })
+                }
+            },
+            selectToDelete: function() {
+                if(this.selected.count > 0) {
+                    let items = []
+                    for(let sel of this.selected.list) {
+                        let item = this.showList[sel]
+                        if(this.view.aggregateByCollection) {
+                            for(let i in this.showBackend[item.index]) {
+                                items[items.length] = this.showBackend[item.index][i]
+                            }
+                        }else{
+                            items[items.length] = this.showBackend[item.index]
+                        }
+                    }
+                    let successNum = db.engine.deleteImage(items)
+                    if(successNum > 0) {
+                        db.engine.save()
+                        this.search()
+                        this.loadListToPage()
+                    }
+                }
+            },
+            selectToExport: function() {
+                if(this.selected.count > 0) {
+                    dialog.showOpenDialog(db.currentWindow, {
+                        title: '选择导出的文件夹',
+                        buttonLabel: '选择此位置',
+                        properties: ['openDirectory', 'createDirectory']
+                    }, (path) => {
+                        if(path) {
+                            this.exportPanel.path = path[0]
+                            let items = []
+                            let titles = {}
+                            for(let sel of this.selected.list) {
+                                let item = this.showList[sel]
+                                if(this.view.aggregateByCollection) {
+                                    for(let i in this.showBackend[item.index]) {
+                                        let image = this.showBackend[item.index][i]
+                                        let title = image.title ? image.title : image.collection ? image.collection : ''
+                                        if(title in titles) titles[title] += 1
+                                        else titles[title] = 1
+                                        items[items.length] = {id: image.id, title: title}
+                                    }
+                                }else{
+                                    let image = this.showBackend[item.index]
+                                    let title = image.title ? image.title : image.collection ? image.collection : ''
+                                    if(!(title in titles)) titles[title] = 'single'
+                                    else titles[title] = 'multiple'
+                                    items[items.length] = {id: image.id, title: title}
+                                }
+                            }
+                            for(let item of items) {
+                                let flag = titles[item.title]
+                                if(flag === 'single') {
+                                    if(item.title === '') {
+                                        item.title = '未命名'
+                                    }
+                                }else if(flag === 'multiple') {
+                                    titles[item.title] = 1
+                                    if(item.title === '') {
+                                        item.title = '1'
+                                    }else{
+                                        item.title = item.title + '1'
+                                    }
+                                }else{
+                                    titles[item.title] += 1
+                                    if(item.title === '') {
+                                        item.title = titles[item.title]
+                                    }else{
+                                        item.title = item.title + titles[item.title]
+                                    }
+                                }
+                            }
+                            this.exportPanel.items = items
+                            $('#exportAllCheck').modal()
+                        }
+                    })
+                }
+            },
+            selectToExportOk: function() {
+                if(this.exportPanel.path && this.exportPanel.items.length) {
+                    this.selectToExportFunction(0)
+                }
+            },
+            selectToExportFunction: function(index) {
+                if(index >= this.exportPanel.items.length) {
+                    alert('图片导出成功。')
+                }else{
+                    let {id, title} = this.exportPanel.items[index]
+                    db.engine.loadImageURL(id, ImageSpecification.Origin, (url) => {
+                        let filename = `${this.exportPanel.path}/${title}.${this.exportPanel.ext}`
+                        exportImage(url, filename, (success) => {
+                            if(success) {
+                                this.selectToExportFunction(index + 1)
+                            }else{
+                                alert(`导出[${title}.${this.exportPanel.ext}]时发生了未知的错误。`)
+                            }
+                        })
                     })
                 }
             },
