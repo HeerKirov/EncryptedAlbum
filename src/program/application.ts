@@ -1,5 +1,5 @@
-import {app, ipcMain, BrowserWindow} from 'electron'
-
+import {app, ipcMain, BrowserWindow, Menu, shell} from 'electron'
+import {existsSync, mkdirSync} from 'fs'
 interface ApplicationOption {
     debugMode?: boolean,
     defaultAuthentication?: string
@@ -8,6 +8,7 @@ interface ApplicationOption {
 const applicationRun: (ApplicationOption?) => void = (function () {
     let debug: boolean
     let platform: string
+    let userData: string
 
     let mainWindow: BrowserWindow = null
 
@@ -16,12 +17,13 @@ const applicationRun: (ApplicationOption?) => void = (function () {
     function run(option?: ApplicationOption): void {
         debug = 'debugMode' in option ? option.debugMode : false
         platform = process.platform
+        userData = app.getPath('userData')
         registerRendererEvents()
         registerAppEvents()
     }
     
     function registerAppEvents() {
-        app.on('ready', activeMainWindow)
+        app.on('ready', applicationReady)
         app.on('activate', activeMainWindow)
         app.on('window-all-closed', () => {
             if(platform !== 'darwin') {
@@ -35,7 +37,8 @@ const applicationRun: (ApplicationOption?) => void = (function () {
             //return: {...}
             e.returnValue = {
                 platform: platform,
-                debug: debug
+                debug: debug,
+                userData: userData
             }
         })
         ipcMain.on('save-cache', (e, arg) => {
@@ -68,15 +71,91 @@ const applicationRun: (ApplicationOption?) => void = (function () {
         })
     }
 
+    function applicationReady() {
+        if(platform === 'darwin') {
+            let devTool = debug ? {role: 'toggledevtools', label: '开发者工具'} : {role: 'forcereload', label: '完全重新加载'}
+            Menu.setApplicationMenu(Menu.buildFromTemplate([
+                {
+                    label: 'Photos',
+                    submenu: [
+                        {role: 'about', label: '关于Photos'},
+                        {type: 'separator'},
+                        {label: '偏好设置', click() {}},
+                        {type: 'separator'},
+                        {role: 'hide', label: '隐藏Photos'},
+                        {role: 'hideOthers', label: '隐藏其他'},
+                        {role: 'unhide', label: '取消隐藏'},
+                        {type: 'separator'},
+                        {role: 'quit', label: '退出Photos'},
+                    ]
+                },
+                {
+                    label: '编辑',
+                    role: 'editMenu',
+                    submenu: [
+                        {role: 'undo', label: '撤销'},
+                        {role: 'redo', label: '重做'},
+                        {type: 'separator'},
+                        {role: 'cut', label: '剪切'},
+                        {role: 'copy', label: '复制'},
+                        {role: 'paste', label: '粘贴'},
+                        {type: 'separator'},
+                        {role: 'delete', label: '删除'},
+                        {role: 'selectall', label: '全选'}
+                    ]
+                },
+                {
+                    label: '显示',
+                    submenu: [
+                        {role: 'reload', label: '重新加载'},
+                        devTool,
+                        {type: 'separator'},
+                        {role: 'togglefullscreen', label: '全屏'}
+                    ]
+                },
+                {
+                    label: '窗口',
+                    role: 'windowMenu',
+                    submenu: [
+                        {role: 'minimize', label: '最小化'},
+                        {role: 'close', label: '关闭窗口'}
+                    ]
+                },
+                {
+                    label: '帮助',
+                    role: 'help',
+                    submenu: [
+                        {
+                            label: '关于本项目',
+                            click() {
+                                shell.openExternal('https://github.com/HeerKirov/photos')
+                            }
+                        }
+                    ]
+                }
+            ]))
+        }
+        if(!existsSync(userData)) {
+            try {
+                mkdirSync(userData)
+            }catch (e) {
+                //resume
+            }
+        }
+        activeMainWindow()
+    }
+
     function activeMainWindow(): void {
         if(mainWindow == null) {
             let win: BrowserWindow = new BrowserWindow({
                 minWidth: 640, minHeight: 480,
-                width: 1200, height: 800,
+                width: 960, height: 640,
                 titleBarStyle: "hidden",
                 title: "Photos"
             })
-            win.setMenuBarVisibility(false)
+            if(platform !== 'darwin') {
+                win.setMenuBarVisibility(false)
+            }
             win.on('closed', () => {
                 mainWindow = null
             })

@@ -1,5 +1,5 @@
 const electron = require('electron')
-const {getCurrentWindow} = electron.remote
+const {getCurrentWindow, app} = electron.remote
 const {ipcRenderer} = electron
 const {AppStorage} = require('../target/common/appStorage')
 window['$'] = window['jQuery'] = require('jquery')
@@ -14,7 +14,8 @@ let currentViewName = null
 const db = {
     platform: {
         platform: 'darwin',
-        debug: false
+        debug: false,
+        userData: '.'
     },
     ui: {
         theme: 'white',
@@ -119,7 +120,8 @@ function setTitle(title) {
 $(document).ready(function () {
     registerWindowEvents()
     updateTitleBarStatus()
-
+    db.platform = ipcRenderer.sendSync('get-platform-info')
+    AppStorage.setBaseFolder(db.platform.userData)
     let {password} = ipcRenderer.sendSync('load-cache', ['password'])
     if(password) {
         let storage = AppStorage.authenticate(password)
@@ -139,4 +141,16 @@ $(document).ready(function () {
     }else{
         route('register')
     }
+
+    //TEST PIXIV
+    const {PixivClient} = require('../target/common/pixiv')
+    let client = new PixivClient()
+    client.login('', '', (b) => {
+        if(b){
+            console.log('login success.')
+            client.loadIllust('67233160')
+        }else{
+            console.log('login failed.')
+        }
+    })
 })

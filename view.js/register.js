@@ -48,9 +48,10 @@ function registerModel(vueModel) {
                             type: 'local',
                             id: 'main',
                             key: this.key,
-                            storage: 'data/local'
+                            storage: `${db.platform.userData}/local`
                         })
                         if(result) {
+                            db.storage = result
                             this.error = ''
                             this.step ++
                         }else{

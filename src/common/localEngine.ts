@@ -1,4 +1,4 @@
-import {close, existsSync, open, read, readFileSync, write, writeFileSync} from 'fs'
+import {close, existsSync, mkdirSync, open, read, readFileSync, write, writeFileSync} from 'fs'
 import {
     DataEngine,
     Image,
@@ -218,6 +218,13 @@ class LocalDataEngine implements DataEngine {
             }
             return false
         }else{
+            if(!existsSync(this.storageFolder)) {
+                try{
+                    mkdirSync(this.storageFolder)
+                }catch (e) {
+                    //resume
+                }
+            }
             this.indexMemory = 1
             this.imageMemory = []
             this.tagMemory = []
@@ -235,6 +242,11 @@ class LocalDataEngine implements DataEngine {
             blockMax: this.blockMaxMemory,
             config: this.config
         })
+        try {
+            mkdirSync(this.storageFolder) //该方法并不可以递归创建文件夹。
+        }catch (e) {
+            //resume
+        }
         writeFileSync(`${this.storageFolder}/${STORAGE}`, buf)
     }
 
@@ -318,6 +330,7 @@ function saveImageBuffer(folder: string, buffer: Buffer, blockMaxIndex: number, 
         let mapBlock = map[filename]
         let flag = mapBlock.length
         open(filename, 'a', (err, fd) => {
+            if(err) console.log(err)
             for(let {id, block, size} of mapBlock) {
                 write(fd, buffer, id * BLOCK_SIZE, size, block * BLOCK_SIZE, (err, read, buf) => {
                     flag -= 1

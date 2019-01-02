@@ -142,7 +142,6 @@ function mainModel(vueModel) {
             saveOptionFromSort: function () {
                 this.sort.by = this.sortInput.by
                 this.sort.desc = this.sortInput.desc
-                // ipcRenderer.sendSync('save-main-cache', {sort: this.sort})
                 this.search()
                 this.loadListToPage()
             },
