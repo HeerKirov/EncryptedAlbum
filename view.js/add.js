@@ -1,8 +1,9 @@
 const {nativeImage, remote} = require('electron')
 const {containsElement} = require('../target/common/utils')
 const {downloadImageDataURL} = require('../target/common/imageTool')
+const {PixivClient} = require('../target/common/pixiv')
 const {dialog, TouchBar} = remote
-const {TouchBarButton, TouchBarSpacer, TouchBarPopover, TouchBarSlider} = TouchBar
+const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 const {readFile} = require('fs')
 
@@ -28,6 +29,97 @@ function copyArray(from) {
     }
 }
 
+// class TaskManager {
+//     setItemFunc = null
+//     clearItemFunc = null
+//     allCompleteFunc = null
+//     nextIndex = 0
+//
+//     tasks = {}
+//     taskCount = 0
+//
+//     constructor(addItem, clearItem) {
+//         this.setItemFunc = addItem
+//         this.clearItemFunc = clearItem
+//     }
+//
+//     setAllComplete(allComplete) {
+//         this.allCompleteFunc = allComplete
+//     }
+//
+//     checkTaskCount() {
+//         if(this.taskCount <= 0) {
+//             this.taskCount = 0
+//             this.tasks.clear()
+//             this.clearItemFunc()
+//             //TODO add err msg
+//             if(this.allCompleteFunc) this.allCompleteFunc()
+//         }
+//     }
+//
+//     /**
+//      * 向管理器注册一个监控进度的任务。
+//      * task需要是一个function(step: (percent: number) => boolean, error: (message: string) => void).
+//      *      回调step函数以更新任务进度.需要一个介于[0, 100]的数字。回调100会导致任务完成。这个函数还会返回一个布尔值，告知当前任务是否未被取消。
+//      *      回调error函数以告知有异常抛出，任务终止。
+//      * @param title
+//      * @param task
+//      * @return 返回该任务的id.
+//      */
+//     register(title, task) {
+//         if(task) {
+//             let id = ++this.nextIndex
+//             let stepFunc = function (percent) {
+//                 this.manager.tasks[id].percent = percent
+//                 if(percent >= 100 && !this.manager.tasks[id].completed) {
+//                     this.manager.tasks[id].completed = true
+//                     this.manager.taskCount --
+//                     this.manager.checkTaskCount()
+//                 }
+//             }
+//             stepFunc.prototype.manager = this
+//             let errorFunc = function(message) {
+//                 this.manager.tasks[id].completed = true
+//                 this.manager.tasks[id].error = message
+//                 this.manager.taskCount --
+//                 this.manager.checkTaskCount()
+//             }
+//             errorFunc.prototype.manager = this
+//             task(stepFunc, errorFunc)
+//             let t = {
+//                 id: id,
+//                 title: title,
+//                 percent: 0,
+//                 completed: false,
+//                 error: null,
+//                 cancel: false
+//             }
+//             this.tasks[id] = t
+//             this.setItemFunc(id, t)
+//         }
+//     }
+//
+//     cancel(id) {
+//         if(id in this.tasks) {
+//             this.tasks[id].cancel = true
+//             this.tasks[id].completed = true
+//             this.taskCount --
+//             this.checkTaskCount()
+//         }
+//     }
+//     cancelAll() {
+//         for(let task of this.tasks) {
+//             task.cancel = true
+//             task.completed = true
+//         }
+//         this.taskCount = 0
+//         this.checkTaskCount()
+//     }
+// }
+//TODO 添加author tag
+//TODO 将tag获得方式做一个修正，当EN只包含英文字母，且包含空格时，优先使用JP。
+//TODO 获得的tag统一给上【内容】标签。
+//TODO 修正从pixiv获得的link不直接绑定的问题
 function addModel(vueModel) {
     let db = vueModel.db
     let vm = new Vue({
@@ -176,7 +268,65 @@ function addModel(vueModel) {
                 })
             },
             addPixiv: function() {
-                alert('尚待开发。') // TODO 尚待开发
+                if(this.importPixiv) {
+                    let client = new PixivClient()
+                    client.login('', '', (b) => {
+                        if(b) {
+                            console.log('login success.')
+                            let results = []
+                            let cnt = this.importPixiv.length
+                            for(let i in this.importPixiv) {
+                                ((index, pid) => {
+                                    let info = null
+                                    let buffers = []
+                                    client.loadIllust(pid, (illust) => {
+                                        console.log(`[${pid}]illust download success.`)
+                                        if(illust) {
+                                            info = illust
+                                        }else{
+                                            alert(`pixiv ID=${pid}的项目无法被正确识别。`)
+                                        }
+                                    }, (id, buf) => {
+                                        if(id >= 0 && buf) {
+                                            console.log(`[${pid}]image ${id} download success.`)
+                                            buffers[id] = buf
+                                        }else if(id === -1){
+                                            addToResult()
+                                        }else{
+                                            console.log(`[${pid}]image ${id} download failed.`)
+                                        }
+                                    })
+                                    function addToResult() {
+                                        console.log(`[${pid}]add to result.`)
+                                        console.log(buffers)
+                                        for(let i in buffers) {
+                                            let buf = buffers[i]
+                                            if(!buf) continue
+                                            let native = nativeImage.createFromBuffer(buf)
+                                            results[index] = {
+                                                title: info.pageCount > 1 ? `${info.title}-${i}` : info.title,
+                                                collection: info.pageCount > 1 ? info.title : null,
+                                                tags: info.tags,
+                                                links: [info.webLink],
+                                                favorite: false,
+                                                resolution: native.getSize(),
+                                                dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
+                                            }
+                                            cnt --
+                                            if(cnt <= 0) {
+                                                vm.appendToList(results)
+                                            }
+                                        }
+                                    }
+                                })(i, this.importPixiv[i].name)
+                            }
+                            this.importPixiv = []
+                        }else{
+                            alert('Pixiv账户登录失败。请检查用户名、密码或网络连接。')
+                        }
+                    })
+
+                }
             },
             addURL: function() {
                 if(this.importURL) {
@@ -312,6 +462,15 @@ function addModel(vueModel) {
                 let urls = this.importURL
                 if(index < urls.length) {
                     urls.splice(index, 1)
+                }
+            },
+            addNewPID: function () {
+                this.$set(this.importPixiv, this.importPixiv.length, {name: ''})
+            },
+            removePID: function (index) {
+                let pids = this.importPixiv
+                if(index < pids.length) {
+                    pids.splice(index, 1)
                 }
             }
         }

@@ -34,4 +34,4 @@ tsc
 打包后的程序的位置为`build/darwin/target/Photos.app`。
 
 #### Windows
-还没有做。自行构建参考[https://electronjs.org/docs/tutorial/application-distribution]。
+还没有做。自行构建参考[application-distribution](https://electronjs.org/docs/tutorial/application-distribution)。
