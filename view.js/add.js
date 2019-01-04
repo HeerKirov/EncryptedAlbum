@@ -116,10 +116,7 @@ function copyArray(from) {
 //         this.checkTaskCount()
 //     }
 // }
-//TODO 添加author tag
-//TODO 将tag获得方式做一个修正，当EN只包含英文字母，且包含空格时，优先使用JP。
-//TODO 获得的tag统一给上【内容】标签。
-//TODO 修正从pixiv获得的link不直接绑定的问题
+
 function addModel(vueModel) {
     let db = vueModel.db
     let vm = new Vue({
@@ -170,8 +167,8 @@ function addModel(vueModel) {
                     items: [
                         new TouchBarSpacer({size: 'flexible'}),
                         new TouchBarButton({label: '导入本地', click: this.addGeneral}),
-                        new TouchBarButton({label: '添加Pixiv', click: this.addPixiv}),
-                        new TouchBarButton({label: '添加URL', click: this.addURL}),
+                        new TouchBarButton({label: '添加Pixiv', click: () => $('#importPixivModal').modal()}),
+                        new TouchBarButton({label: '添加URL', click: () => $('#importURLModal').modal()}),
                     ]
                 }))
             },
@@ -303,11 +300,14 @@ function addModel(vueModel) {
                                             let buf = buffers[i]
                                             if(!buf) continue
                                             let native = nativeImage.createFromBuffer(buf)
+                                            let tags = []
+                                            for(let tag of info.tags) tags[tags.length] = `%${tag}`
+                                            tags[tags.length] = `@${info.member}`
                                             results[index] = {
                                                 title: info.pageCount > 1 ? `${info.title}-${i}` : info.title,
                                                 collection: info.pageCount > 1 ? info.title : null,
-                                                tags: info.tags,
-                                                links: [info.webLink],
+                                                tags: tags,
+                                                links: [{name: info.webLink}],
                                                 favorite: false,
                                                 resolution: native.getSize(),
                                                 dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
@@ -433,6 +433,13 @@ function addModel(vueModel) {
                         break
                     }
                 }
+            },
+            changeTagType: function(index) {
+                let type = this.current.tags[index].slice(0, 1)
+                if(type === '@') type = '%'
+                else if(type === '%') type = '#'
+                else type = '@'
+                this.$set(this.current.tags, index, type + this.current.tags[index].slice(1))
             },
             addNewLink: function () {
                 this.$set(this.current.links, this.current.links.length, {name: ''})

@@ -31,7 +31,11 @@ tsc
 #### macOS
 相关工具存放在`build/darwin`目录下。  
 运行`build.sh`，以自动执行打包工作。    
-打包后的程序的位置为`build/darwin/target/Photos.app`。
+打包后得到：
+```build/darwin/target/
+    Photos.app
+    Photos.dmg
+```
 
 #### Windows
 还没有做。自行构建参考[application-distribution](https://electronjs.org/docs/tutorial/application-distribution)。

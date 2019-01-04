@@ -1,4 +1,5 @@
 const request = require('request')
+import {containsOnlyWord} from './utils'
 import {writeFileSync} from 'fs'
 
 class URL {
@@ -45,7 +46,7 @@ function takeTag(tag: Object): string {
         let titleJP = ('tag' in tag) ? tag['tag'] : null
         let titleEn = getFieldPath(tag, 'translation', 'en')    //愚蠢的p站，中文翻译也在这个值上……
         let titleRM = ('romaji' in tag) ? tag['romaji'] : null
-        return titleEn ? titleEn : titleJP ? titleJP : titleRM ? titleRM : null
+        return titleEn && !containsOnlyWord(titleEn) ? titleEn : titleJP ? titleJP : titleRM ? titleRM : null
     }else{
         return null
     }

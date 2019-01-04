@@ -539,6 +539,13 @@ function detailModel(vueModel) {
                     }
                 }
             },
+            changeTagType: function(index) {
+                let type = this.editImage.tags[index].slice(0, 1)
+                if(type === '@') type = '%'
+                else if(type === '%') type = '#'
+                else type = '@'
+                this.$set(this.editImage.tags, index, type + this.editImage.tags[index].slice(1))
+            },
 
             getTagType: function (tag, prefix) {
                 if(tag) {

@@ -6,3 +6,6 @@ cp -R target view view.css view.font view.js node_modules build/darwin/target/Ph
 cd - > /dev/null
 rm -rf target/Photos.app/Contents/Resources/app/node_modules/typescript
 rm -rf target/Photos.app/Contents/Resources/app/node_modules/electron/dist
+
+echo
+echo Photos.app update success.

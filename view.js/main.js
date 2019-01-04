@@ -6,6 +6,7 @@ const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 
+//TODO 默认倒序排序，按最新的在前。
 function mainModel(vueModel) {
     let db = vueModel.db
     let loadLock = false

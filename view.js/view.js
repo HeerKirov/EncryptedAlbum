@@ -141,16 +141,4 @@ $(document).ready(function () {
     }else{
         route('register')
     }
-
-    //TEST PIXIV
-    const {PixivClient} = require('../target/common/pixiv')
-    let client = new PixivClient()
-    client.login('', '', (b) => {
-        if(b){
-            console.log('login success.')
-            client.loadIllust('67233160')
-        }else{
-            console.log('login failed.')
-        }
-    })
 })

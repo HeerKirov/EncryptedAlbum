@@ -1,5 +1,9 @@
 import {sha256, sha224} from "js-sha256"
-import Timer = NodeJS.Timer;
+
+const cLowerA = 'a'.charCodeAt(0), cLowerZ = 'z'.charCodeAt(0)
+const cUpperA = 'A'.charCodeAt(0), cUpperZ = 'Z'.charCodeAt(0)
+const cNum0 = '0'.charCodeAt(0), cNum9 = '9'.charCodeAt(0)
+const cSpace = ' '.charCodeAt(0)
 
 /**
  * 将image的二进制信息加密到buffer。
@@ -232,6 +236,20 @@ function findLikeIn(search: string, keys: string[]): boolean {
     return false
 }
 
+/**
+ * 检查目标字符串是否仅具有字母、数字、空格。
+ * @param str
+ */
+function containsOnlyWord(str: string): boolean {
+    for(let i = 0; i < str.length; ++i) {
+        let c = str.charCodeAt(i)
+        if((c < cLowerA || c > cLowerZ)&&(c < cUpperA || c > cUpperZ)&&(c < cNum0 || c > cNum9)&& c !== cSpace) {
+            return false
+        }
+    }
+    return true
+}
+
 export {turnToBinary, turnToString, loopChange, xor,
     encrypt, decrypt, encryptBuffer, decryptBuffer,
-    uuid, containsAll, containsElement, findLikeIn, calculateNumeric}
+    uuid, containsAll, containsElement, findLikeIn, calculateNumeric, containsOnlyWord}
