@@ -13,6 +13,7 @@
                 <div v-if="step===1">经过简单的设置，就可以开始使用此软件。</div>
                 <div v-if="step===2">
                     <div>设置您的认证密码。此密码将在以后打开软件时被使用。</div>
+                    <div>如果将密码留空，将会在打开软件时无需使用密码。</div>
                     <div><input v-model="password" type="password" class="form-control mt-4" placeholder="输入密码"></div>
                     <div><input v-model="checkPassword" type="password" class="form-control mt-2" placeholder="再次输入密码"></div>
                 </div>
@@ -27,7 +28,6 @@
         </div>
         <div class="row" style="height: 15%">
             <div class="col">
-                <div v-if="error==='empty-passwd'" class="alert alert-danger"><strong>错误</strong> 选择的密码不能为空。</div>
                 <div v-if="error==='not-eq-passwd'" class="alert alert-danger"><strong>错误</strong> 两次输入的密码不一致。</div>
                 <div v-if="error==='empty-key'" class="alert alert-danger"><strong>错误</strong> KEY不允许为空。</div>
                 <div v-if="error==='unknown'" class="alert alert-danger"><strong>错误</strong> 主进程发生不可预料的错误。</div>

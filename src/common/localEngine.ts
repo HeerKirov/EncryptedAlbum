@@ -66,7 +66,7 @@ class LocalDataEngine implements DataEngine {
             for(let idx in this.imageMemory) {
                 if(this.imageMemory[idx].id === image.id) {
                     for(let tag of image.tags) {
-                        if((!containsElement(tag, this.imageMemory[idx].tags))&&(!containsElement(tag, this.tagMemory))) {
+                        if(!containsElement(tag, this.tagMemory)) {
                             this.tagMemory[this.tagMemory.length] = tag
                         }
                     }

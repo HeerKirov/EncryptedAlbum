@@ -72,7 +72,14 @@ class PixivClient {
                 }
                 request.post({url: URL.login(), form: data, headers: headers, proxy: proxy, jar: this.jar}, (e, res, body) => {
                     if(res && res.statusCode === 200) {
-                        callback(true)
+                        let data = JSON.parse(body)
+                        if(data['error']) {
+                            callback(false)
+                        }else if('body' in data && 'success' in data.body) {
+                            callback(true)
+                        }else{
+                            callback(false)
+                        }
                     }else{
                         callback(false)
                     }
@@ -105,9 +112,14 @@ class PixivClient {
         request.get({url: URL.illust(pixivId), proxy: proxy, jar: this.jar}, (e, res, body) => {
             if(res && res.statusCode === 200) {
                 let match = body.match(/\(({.*})\)/)
-                writeFileSync('test.html', body)
                 if(match) {
-                    let data = (new Function('return ' + match[1]))()
+                    let data;
+                    try {
+                        data = (new Function('return ' + match[1]))()
+                    }catch (e) {
+                        if(illustCallback) illustCallback(null)
+                        return
+                    }
                     let id = parseInt(pixivId)
                     let dataTags = getFieldPath(data, 'preload', 'illust', id, 'tags', 'tags')
                     let tags = []

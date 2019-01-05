@@ -59,13 +59,15 @@
                     </div>
                 </div>
                 <div class="col-12 col-md p-3" v-if="editMode">
-                    <div class="row p-1">
+                    <div class="row pl-1 pt-1">
                         <div><label class="text-white">标签:</label></div>
                         <div>
                             <span v-for="(tag, index) in editImage.tags" class="badge m-1" :class="getTagType(tag, 'badge')">
                                 <a class="text-white" @click="removeTag(tag)" @mousedown.right="changeTagType(index)">{{getTagName(tag)}}</a>
                             </span>
                         </div>
+                    </div>
+                    <div class="row pb-2">
                         <div class="btn-group mt-2 ml-1">
                             <button class="btn text-dark collapsed" data-toggle="collapse" data-target="#edit-tag" aria-expanded="false">
                                 <i class="fa fa-caret-down"></i> 现有
@@ -76,7 +78,6 @@
                                 <option value="#">内容</option>
                                 <option value="@">作者</option>
                             </select>
-
                             <button type="button" class="btn" :class="getTagType(editImage.newTagType, 'btn')" @click="addNewTag">
                                 <i class="fa fa-plus"></i> 新标签
                             </button>

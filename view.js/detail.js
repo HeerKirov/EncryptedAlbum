@@ -294,7 +294,7 @@ function detailModel(vueModel) {
                 this.showList = []
                 this.showIndex = -1
                 this.currentDataURL = ''
-                this.currentImage = this.editImage = emptyImage()
+                this.currentImage = emptyImage()
                 this.thumbnailFirstIndex = null
                 this.thumbnails = []
             },

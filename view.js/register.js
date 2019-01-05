@@ -31,9 +31,7 @@ function registerModel(vueModel) {
                 if(this.step === 1) {
                     this.step ++
                 }else if(this.step === 2) {
-                    if(this.password === '') {
-                        this.error = 'empty-passwd'
-                    }else if(this.password !== this.checkPassword) {
+                    if(this.password !== this.checkPassword) {
                         this.error = 'not-eq-passwd'
                     }else{
                         this.error = ''

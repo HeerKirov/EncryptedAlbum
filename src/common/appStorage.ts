@@ -3,11 +3,6 @@ import {readFileSync, existsSync, writeFileSync, mkdirSync} from "fs"
 import {encrypt, decrypt} from "./utils"
 import {LocalFormula} from "./localEngine"
 
-/**
- * TODO 添加一个新功能，使密码可以被免除。
- *      具体实现可以是，记密码为空。在init时，同时测试一下使用空串能否解密。如果可以，就视作没有密码直接登入。
- */
-
 const STORAGE = "data.dat"
 let base: string = ''
 function APP_FOLDER() {

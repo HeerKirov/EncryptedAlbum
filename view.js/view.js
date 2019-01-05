@@ -55,6 +55,14 @@ function registerWindowEvents() {
             }
         }
     })
+    ipcRenderer.on('route', (event, arg) => {
+        if(arg instanceof Object) {
+            let {view, options} = arg
+            route(view, options)
+        }else{
+            route(arg)
+        }
+    })
 }
 function registerVue(viewName, callback) {
     if(!(viewName in vms)) {
@@ -122,22 +130,25 @@ $(document).ready(function () {
     updateTitleBarStatus()
     db.platform = ipcRenderer.sendSync('get-platform-info')
     AppStorage.setBaseFolder(db.platform.userData)
-    let {password} = ipcRenderer.sendSync('load-cache', ['password'])
-    if(password) {
+    if(AppStorage.isInitialized()) {
+        let {password} = ipcRenderer.sendSync('load-cache', ['password'])
+        if(!password) password = ''
         let storage = AppStorage.authenticate(password)
         if(storage != null) {
             db.password = password
             db.storage = storage
             db.engine = storage.loadMainEngine()
             db.engine.connect()
-            route('main')
-        }else if(AppStorage.isInitialized()) {
-            route('login')
+
+            let customPage = ipcRenderer.sendSync('first-page')
+            if(customPage) {
+                route(customPage)
+            }else{
+                route('main')
+            }
         }else{
-            route('register')
+            route('login')
         }
-    }else if(AppStorage.isInitialized()) {
-        route('login')
     }else{
         route('register')
     }

@@ -6,7 +6,6 @@ const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 
-//TODO 默认倒序排序，按最新的在前。
 function mainModel(vueModel) {
     let db = vueModel.db
     let loadLock = false
@@ -24,7 +23,7 @@ function mainModel(vueModel) {
                 existTagsAll: []
             },
             sortInput: {
-                by: '',
+                by: 'createTime',
                 desc: true
             },
             viewInput: {
@@ -40,7 +39,7 @@ function mainModel(vueModel) {
                 tags: []
             },
             sort: {
-                by: '',
+                by: 'createTime',
                 desc: true
             },
             view: {
@@ -108,6 +107,9 @@ function mainModel(vueModel) {
             },
             add: function() {
                 vueModel.route('add')
+            },
+            setting: function() {
+                vueModel.route('setting')
             },
             //与控件绑定的事件
             loadOptionToFilter: function () {
@@ -220,7 +222,7 @@ function mainModel(vueModel) {
             },
 
             search: function () {
-                //提交一次查询操作。这个操作将会同时将option提交到主线程，并使主线程缓存查询结果。
+                //提交一次查询操作。
                 let findOption = {}
                 if(this.searchText) findOption['search'] = this.searchText
                 if(this.sort.by) findOption['order'] = [this.sort.by]

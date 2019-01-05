@@ -11,7 +11,7 @@ const applicationRun: (ApplicationOption?) => void = (function () {
     let userData: string
 
     let mainWindow: BrowserWindow = null
-
+    let firstPage: string = null
     let rendererCache: Object = {}
     
     function run(option?: ApplicationOption): void {
@@ -24,7 +24,7 @@ const applicationRun: (ApplicationOption?) => void = (function () {
     
     function registerAppEvents() {
         app.on('ready', applicationReady)
-        app.on('activate', activeMainWindow)
+        app.on('activate', () => activeMainWindow())
         app.on('window-all-closed', () => {
             if(platform !== 'darwin') {
                 app.quit()
@@ -69,6 +69,15 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                 e.returnValue = rendererCache
             }
         })
+        ipcMain.on('first-page', (e, arg) => {
+            //看看主进程是否指定了一个初始页面。
+            if(firstPage) {
+                e.returnValue = firstPage
+                firstPage = null
+            }else{
+                e.returnValue = null
+            }
+        })
     }
 
     function applicationReady() {
@@ -80,7 +89,11 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                     submenu: [
                         {role: 'about', label: '关于Photos'},
                         {type: 'separator'},
-                        {label: '偏好设置', click() {}},
+                        {
+                            label: '偏好设置',
+                            accelerator: 'Command+,',
+                            click() {activeMainWindow('setting')}
+                        },
                         {type: 'separator'},
                         {role: 'hide', label: '隐藏Photos'},
                         {role: 'hideOthers', label: '隐藏其他'},
@@ -126,6 +139,10 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                     role: 'help',
                     submenu: [
                         {
+                            label: '帮助向导',
+                            click() {activeMainWindow('help')}
+                        },
+                        {
                             label: '关于本项目',
                             click() {
                                 shell.openExternal('https://github.com/HeerKirov/photos')
@@ -145,8 +162,11 @@ const applicationRun: (ApplicationOption?) => void = (function () {
         activeMainWindow()
     }
 
-    function activeMainWindow(): void {
+    function activeMainWindow(setFirstPage?: string): void {
         if(mainWindow == null) {
+            if(setFirstPage) {
+                firstPage = setFirstPage
+            }
             let win: BrowserWindow = new BrowserWindow({
                 minWidth: 640, minHeight: 480,
                 width: 960, height: 640,
@@ -167,6 +187,9 @@ const applicationRun: (ApplicationOption?) => void = (function () {
             }
         }else if(!mainWindow.isVisible()) {
             mainWindow.show()
+            if(setFirstPage) {
+                mainWindow.webContents.send('route', setFirstPage)
+            }
         }
     }
 

@@ -29,94 +29,6 @@ function copyArray(from) {
     }
 }
 
-// class TaskManager {
-//     setItemFunc = null
-//     clearItemFunc = null
-//     allCompleteFunc = null
-//     nextIndex = 0
-//
-//     tasks = {}
-//     taskCount = 0
-//
-//     constructor(addItem, clearItem) {
-//         this.setItemFunc = addItem
-//         this.clearItemFunc = clearItem
-//     }
-//
-//     setAllComplete(allComplete) {
-//         this.allCompleteFunc = allComplete
-//     }
-//
-//     checkTaskCount() {
-//         if(this.taskCount <= 0) {
-//             this.taskCount = 0
-//             this.tasks.clear()
-//             this.clearItemFunc()
-//             //TODO add err msg
-//             if(this.allCompleteFunc) this.allCompleteFunc()
-//         }
-//     }
-//
-//     /**
-//      * 向管理器注册一个监控进度的任务。
-//      * task需要是一个function(step: (percent: number) => boolean, error: (message: string) => void).
-//      *      回调step函数以更新任务进度.需要一个介于[0, 100]的数字。回调100会导致任务完成。这个函数还会返回一个布尔值，告知当前任务是否未被取消。
-//      *      回调error函数以告知有异常抛出，任务终止。
-//      * @param title
-//      * @param task
-//      * @return 返回该任务的id.
-//      */
-//     register(title, task) {
-//         if(task) {
-//             let id = ++this.nextIndex
-//             let stepFunc = function (percent) {
-//                 this.manager.tasks[id].percent = percent
-//                 if(percent >= 100 && !this.manager.tasks[id].completed) {
-//                     this.manager.tasks[id].completed = true
-//                     this.manager.taskCount --
-//                     this.manager.checkTaskCount()
-//                 }
-//             }
-//             stepFunc.prototype.manager = this
-//             let errorFunc = function(message) {
-//                 this.manager.tasks[id].completed = true
-//                 this.manager.tasks[id].error = message
-//                 this.manager.taskCount --
-//                 this.manager.checkTaskCount()
-//             }
-//             errorFunc.prototype.manager = this
-//             task(stepFunc, errorFunc)
-//             let t = {
-//                 id: id,
-//                 title: title,
-//                 percent: 0,
-//                 completed: false,
-//                 error: null,
-//                 cancel: false
-//             }
-//             this.tasks[id] = t
-//             this.setItemFunc(id, t)
-//         }
-//     }
-//
-//     cancel(id) {
-//         if(id in this.tasks) {
-//             this.tasks[id].cancel = true
-//             this.tasks[id].completed = true
-//             this.taskCount --
-//             this.checkTaskCount()
-//         }
-//     }
-//     cancelAll() {
-//         for(let task of this.tasks) {
-//             task.cancel = true
-//             task.completed = true
-//         }
-//         this.taskCount = 0
-//         this.checkTaskCount()
-//     }
-// }
-
 function addModel(vueModel) {
     let db = vueModel.db
     let vm = new Vue({
@@ -133,8 +45,14 @@ function addModel(vueModel) {
             newTagSelect: '#',
             currentIndexInput: '0',
 
-            importURL: [],
-            importPixiv: []
+            importURL: [{name: ''}],
+            importPixiv: [{name: ''}],
+            loadDialog: {
+                show: false,
+                title: '',
+                description: '',
+                step: 0, max: 1
+            }
         },
         computed: {
             showNavigator: function() {
@@ -167,16 +85,21 @@ function addModel(vueModel) {
                     items: [
                         new TouchBarSpacer({size: 'flexible'}),
                         new TouchBarButton({label: '导入本地', click: this.addGeneral}),
-                        new TouchBarButton({label: '添加Pixiv', click: () => $('#importPixivModal').modal()}),
-                        new TouchBarButton({label: '添加URL', click: () => $('#importURLModal').modal()}),
+                        new TouchBarButton({label: '添加Pixiv', click: () => {
+                                if(!this.loadDialog.show) $('#importPixivModal').modal()
+                            }
+                        }),
+                        new TouchBarButton({label: '添加URL', click: () => {
+                                if(!this.loadDialog.show) $('#importURLModal').modal()
+                            }
+                        }),
                     ]
                 }))
             },
             leave: function() {
                 this.visible = false
-                this.clearItems()
-                this.importURL = []
-                this.importPixiv= []
+                this.importURL = [{name: ''}]
+                this.importPixiv= [{name: ''}]
             },
             enterFullScreen: function() {
                 this.fullscreen = true
@@ -265,37 +188,48 @@ function addModel(vueModel) {
                 })
             },
             addPixiv: function() {
-                if(this.importPixiv) {
+                if(this.importPixiv.length > 0) {
                     let client = new PixivClient()
+                    this.showLoadingDialog('解析Pixiv项目', 1 + this.importPixiv.length * 2)
+                    this.loadDialog.description = '尝试登录pixiv……'
                     client.login('', '', (b) => {
+                        if(!this.loadDialog.show) return;
                         if(b) {
-                            console.log('login success.')
+                            console.log('[Pixiv] login success.')
                             let results = []
                             let cnt = this.importPixiv.length
+                            this.addLoadingStep(1)
+                            this.loadDialog.description = '正在下载并分析illust……'
                             for(let i in this.importPixiv) {
                                 ((index, pid) => {
                                     let info = null
                                     let buffers = []
                                     client.loadIllust(pid, (illust) => {
-                                        console.log(`[${pid}]illust download success.`)
+                                        if(!this.loadDialog.show) return;
+                                        console.log(`[Pixiv][${pid}]illust download success.`)
                                         if(illust) {
                                             info = illust
+                                            this.loadDialog.description = '正在下载图片……'
+                                            this.addLoadingStep(1)
                                         }else{
                                             alert(`pixiv ID=${pid}的项目无法被正确识别。`)
+                                            this.addLoadingStep(2)
                                         }
                                     }, (id, buf) => {
+                                        if(!this.loadDialog.show) return;
                                         if(id >= 0 && buf) {
                                             console.log(`[${pid}]image ${id} download success.`)
                                             buffers[id] = buf
                                         }else if(id === -1){
                                             addToResult()
+                                            this.addLoadingStep(1)
                                         }else{
-                                            console.log(`[${pid}]image ${id} download failed.`)
+                                            console.log(`[Pixiv][${pid}]image ${id} download failed.`)
                                         }
                                     })
-                                    function addToResult() {
-                                        console.log(`[${pid}]add to result.`)
-                                        console.log(buffers)
+                                    let addToResult = () => {
+                                        if(!this.loadDialog.show) return;
+                                        console.log(`[Pixiv][${pid}]add to result.`)
                                         for(let i in buffers) {
                                             let buf = buffers[i]
                                             if(!buf) continue
@@ -303,8 +237,8 @@ function addModel(vueModel) {
                                             let tags = []
                                             for(let tag of info.tags) tags[tags.length] = `%${tag}`
                                             tags[tags.length] = `@${info.member}`
-                                            results[index] = {
-                                                title: info.pageCount > 1 ? `${info.title}-${i}` : info.title,
+                                            results[results.length] = {
+                                                title: info.pageCount > 1 ? `${info.title}-${parseInt(i) + 1}` : info.title,
                                                 collection: info.pageCount > 1 ? info.title : null,
                                                 tags: tags,
                                                 links: [{name: info.webLink}],
@@ -312,16 +246,17 @@ function addModel(vueModel) {
                                                 resolution: native.getSize(),
                                                 dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
                                             }
-                                            cnt --
-                                            if(cnt <= 0) {
-                                                vm.appendToList(results)
-                                            }
+                                        }
+                                        cnt --
+                                        if(cnt <= 0) {
+                                            this.appendToList(results)
                                         }
                                     }
                                 })(i, this.importPixiv[i].name)
                             }
-                            this.importPixiv = []
+                            this.importPixiv = [{name: ''}]
                         }else{
+                            this.stopLoadingDialog()
                             alert('Pixiv账户登录失败。请检查用户名、密码或网络连接。')
                         }
                     })
@@ -329,12 +264,15 @@ function addModel(vueModel) {
                 }
             },
             addURL: function() {
-                if(this.importURL) {
+                if(this.importURL.length > 0) {
                     let results = []
                     let cnt = this.importURL.length
+                    this.showLoadingDialog('下载URL项目', this.importURL.length)
+                    this.loadDialog.description = '下载中……'
                     for(let i in this.importURL) {
                         ((index, path) => {
                             downloadImageDataURL(path, (dataURL, status) => {
+                                if(!this.loadDialog.show) return
                                 if(dataURL) {
                                     let image = nativeImage.createFromDataURL(dataURL)
                                     results[index] = {
@@ -353,18 +291,18 @@ function addModel(vueModel) {
                                 }else{
                                     alert(`尝试下载${path}时发生错误。错误代码: ${status}`)
                                 }
+                                this.addLoadingStep(1)
                             })
                         })(i, this.importURL[i].name)
                     }
-                    this.importURL = []
+                    this.importURL = [{name: ''}]
                 }
             },
             appendToList: function(items) {
-                for(let i in items) {
-                    this.$set(this.items, this.count + parseInt(i), items[i])
-                }
                 let nextPageIndex = this.count
-                this.count += items.length
+                for(let i in items) {
+                    this.$set(this.items, this.count++, items[i])
+                }
                 this.toPage(nextPageIndex)
             },
             removeItem: function() {
@@ -479,6 +417,25 @@ function addModel(vueModel) {
                 if(index < pids.length) {
                     pids.splice(index, 1)
                 }
+            },
+
+            showLoadingDialog: function (title, max) {
+                //打开加载框，并重置所有配置.
+                this.loadDialog.show = true
+                this.loadDialog.step = 0
+                this.loadDialog.title = title ? title : 'Loading'
+                this.loadDialog.max = max
+            },
+            addLoadingStep: function(step) {
+                if(!this.loadDialog.show) return
+                this.loadDialog.step += step
+                if(this.loadDialog.step >= this.loadDialog.max) {
+                    this.stopLoadingDialog()
+                }
+            },
+            stopLoadingDialog: function () {
+                //关闭加载框。取消加载也用这个.
+                this.loadDialog.show = false
             }
         }
     })
