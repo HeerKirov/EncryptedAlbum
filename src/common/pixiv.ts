@@ -1,6 +1,5 @@
 const request = require('request')
 import {containsOnlyWord} from './utils'
-import {writeFileSync} from 'fs'
 
 class URL {
     static homePage(): string {return 'https://www.pixiv.net/'}
@@ -13,11 +12,6 @@ class URL {
     static member(uid: string, page: number): string {
         return `https://www.pixiv.net/member_illust.php?id=${uid}&type=all&p=${page}`
     }
-}
-
-const proxy = {
-    host: 'localhost',
-    port: '1087'
 }
 
 const headers = {
@@ -54,8 +48,11 @@ function takeTag(tag: Object): string {
 
 class PixivClient {
     private jar = request.jar()
+    private proxy = undefined
+    private session = undefined
     constructor() {}
     login(username: string, password: string, callback?: (boolean) => void) {
+        this.generateSession()
         this.getLoginKey((key: string) => {
             if(key == null) {
                 callback(false)
@@ -70,7 +67,7 @@ class PixivClient {
                     'ref': 'wwwtop_accounts_index',
                     'return_to': URL.homePage()
                 }
-                request.post({url: URL.login(), form: data, headers: headers, proxy: proxy, jar: this.jar}, (e, res, body) => {
+                this.session.post({url: URL.login(), form: data, headers: headers}, (e, res, body) => {
                     if(res && res.statusCode === 200) {
                         let data = JSON.parse(body)
                         if(data['error']) {
@@ -87,8 +84,18 @@ class PixivClient {
             }
         })
     }
+    setProxy(proxy: any): PixivClient {
+        this.proxy = proxy
+        return this
+    }
+    private generateSession() {
+        if(this.session == undefined) {
+            if(this.proxy == undefined) this.session = request.defaults({jar: this.jar})
+            else this.session = request.defaults({jar: this.jar, proxy: this.proxy})
+        }
+    }
     private getLoginKey(callback: (key: string) => void): void {
-        request.get({url: URL.loginPage(), headers: headers, proxy: proxy, jar: this.jar}, (e, res, body) => {
+        this.session.get({url: URL.loginPage(), headers: headers}, (e, res, body) => {
             if(res && res.statusCode === 200) {
                 let matched = body.match(/"pixivAccount.postKey":"([\w]*)"/)
                 if(matched) {
@@ -109,7 +116,8 @@ class PixivClient {
      * @param imageCallback 依次回调图片buffer。其下标从0开始。数值为-1的回调也会发生，以通知所有的图片下载均已完成。
      */
     loadIllust(pixivId: string, illustCallback?: (illust: PixivIllust) => void, imageCallback?: (index: number, buf: Buffer) => void): void {
-        request.get({url: URL.illust(pixivId), proxy: proxy, jar: this.jar}, (e, res, body) => {
+        this.generateSession()
+        this.session.get({url: URL.illust(pixivId)}, (e, res, body) => {
             if(res && res.statusCode === 200) {
                 let match = body.match(/\(({.*})\)/)
                 if(match) {
@@ -167,11 +175,11 @@ class PixivClient {
     }
 
     loadImageBuffer(url: string, id: number, referer: string, callback: (buffer: Buffer, id: number) => void): void {
-        request.get({url: url, proxy: proxy, jar: this.jar, headers: {Referer: referer}, encoding: null}, (e, res, body) => {
+        this.generateSession()
+        this.session.get({url: url, headers: {Referer: referer}, encoding: null}, (e, res, body) => {
             if(res && res.statusCode === 200) {
                 if(callback) callback(body, id)
             }else{
-                console.log(`load image buffer ${id}: status = ${res ? res.statusCode : 'null'}`)
                 if(callback) callback(null, id)
             }
         })

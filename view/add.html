@@ -180,7 +180,7 @@
     </div>
     <div class="modal fade" id="importPixivModal">
         <div class="modal-dialog">
-            <div class="modal-content">
+            <div class="modal-content" v-if="networkConfig.pixiv">
                 <div class="modal-header">
                     <h4 class="modal-title">添加Pixiv项目</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
@@ -204,6 +204,18 @@
                         <i class="fa fa-download"></i> 解析并导入
                     </button>
                 </div>
+            </div>
+            <div class="modal-content" v-if="!networkConfig.pixiv">
+                <div class="modal-header">
+                    <h4 class="modal-title">添加Pixiv项目</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <label>【添加Pixiv】项目可以自动解析来自Pixiv的作品，下载图片文件，并分析标题、标签等信息。</label>
+                    <label>要使用此功能，首先需要配置一组Pixiv账户。</label>
+                    <button class="btn btn-link" @click="goSettingPixiv"><i class="fa fa-cog"></i> 前往偏好设置配置Pixiv选项</button>
+                </div>
+                <div class="modal-footer"></div>
             </div>
         </div>
     </div>

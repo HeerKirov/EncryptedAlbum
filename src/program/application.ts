@@ -13,6 +13,8 @@ const applicationRun: (ApplicationOption?) => void = (function () {
     let mainWindow: BrowserWindow = null
     let firstPage: string = null
     let rendererCache: Object = {}
+
+    let quitFlag: boolean = false
     
     function run(option?: ApplicationOption): void {
         debug = 'debugMode' in option ? option.debugMode : false
@@ -29,6 +31,9 @@ const applicationRun: (ApplicationOption?) => void = (function () {
             if(platform !== 'darwin') {
                 app.quit()
             }
+        })
+        app.on('before-quit', () => {
+            quitFlag = true
         })
     }
     function registerRendererEvents() {
@@ -142,6 +147,7 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                             label: '帮助向导',
                             click() {activeMainWindow('help')}
                         },
+                        {type: 'separator'},
                         {
                             label: '关于本项目',
                             click() {
@@ -176,6 +182,12 @@ const applicationRun: (ApplicationOption?) => void = (function () {
             if(platform !== 'darwin') {
                 win.setMenuBarVisibility(false)
             }
+            win.on('close', (e) => {
+                if(!quitFlag) {
+                    e.preventDefault()
+                    win.hide()
+                }
+            })
             win.on('closed', () => {
                 mainWindow = null
             })
@@ -185,8 +197,8 @@ const applicationRun: (ApplicationOption?) => void = (function () {
             if(debug) {
                 mainWindow.webContents.openDevTools()
             }
-        }else if(!mainWindow.isVisible()) {
-            mainWindow.show()
+        }else{
+            if(!mainWindow.isVisible()) mainWindow.show()
             if(setFirstPage) {
                 mainWindow.webContents.send('route', setFirstPage)
             }

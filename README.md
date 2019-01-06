@@ -32,7 +32,8 @@ tsc
 相关工具存放在`build/darwin`目录下。  
 运行`build.sh`，以自动执行打包工作。    
 打包后得到：
-```build/darwin/target/
+```
+build/darwin/target/
     Photos.app
     Photos.dmg
 ```

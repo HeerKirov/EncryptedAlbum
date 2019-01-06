@@ -31,23 +31,64 @@
                     <div class="tab-content">
                         <div class="tab-pane active container" id="storage">
                             <div v-if="storage.mainFormula && storage.mainFormula.type === 'local'">
-                                主存储方案： 本地存储<p></p>
-                                存储位置：{{storage.mainFormula.storage}}<p></p>
-                                您无法查阅或更改您的存储密钥。
+                                <h6>主存储方案： 本地存储</h6>
+                                <label class="m-1">存储位置：{{storage.mainFormula.storage}}</label><p>
+                                <label class="m-1">您无法查阅或更改您的存储密钥。</label>
                             </div>
                             <div v-if="!storage.mainFormula">
-                                未能读取您的主存储方案。
+                                <h6>未能读取您的主存储方案。</h6>
                             </div>
                         </div>
                         <div class="tab-pane container" id="security">
                             <h6>更改登入密码</h6>
+                            <label>修改进入软件时，进行验证的口令。如果将口令留空，则不会进行此登录验证。</label>
                             <input type="password" class="form-control m-1" placeholder="请输入旧密码" v-model="security.oldPassword"/>
                             <input type="password" class="form-control m-1" placeholder="请输入新密码" v-model="security.newPassword"/>
                             <input type="password" class="form-control m-1" placeholder="请再次输入新密码" v-model="security.checkPassword"/>
-                            <button class="btn btn-primary btn-sm m-1">确认更改</button>
+                            <div class="alert alert-success" v-if="security.msg === 'success'">
+                                密码修改成功。
+                            </div>
+                            <div class="alert alert-success" v-if="security.msg === 'success-empty'">
+                                密码修改成功。已经将口令设置为空，登录不再需要验证。
+                            </div>
+                            <div class="alert alert-danger" v-if="security.msg === 'wrong-password'">
+                                旧密码错误。
+                            </div>
+                            <div class="alert alert-danger" v-if="security.msg === 'wrong-check'">
+                                两次输入的新密码不一致。
+                            </div>
+                            <button class="btn btn-primary btn-sm m-1" @click="setPassword">确认更改</button>
                         </div>
-                        <div class="tab-pane container" id="pixiv">...</div>
-                        <div class="tab-pane container" id="proxy">...</div>
+                        <div class="tab-pane container" id="pixiv">
+                            <h6>Pixiv解析配置</h6>
+                            <label class="m-1">为了获得更好的解析质量，在您使用Pixiv解析功能时，需要一组账号密码来配置登录。</label>
+                            <input type="text" class="form-control m-1" placeholder="Pixiv账号" v-model="pixiv.username"/>
+                            <input type="password" class="form-control m-1" placeholder="Pixiv密码" v-model="pixiv.password"/>
+                            <div class="alert alert-success" v-if="pixiv.msg === 'success'">
+                                保存成功。
+                            </div>
+                            <div class="btn-group btn-group-sm m-1">
+                                <button class="btn btn-primary btn-sm" @click="savePixiv">保存</button>
+                                <button class="btn btn-warning btn-sm" @click="clearPixiv">清除</button>
+                            </div>
+                        </div>
+                        <div class="tab-pane container" id="proxy">
+                            <h6>网络代理配置</h6>
+                            <label class="m-1">软件中的联网功能，比如Pixiv解析和URL下载，都会途经网络代理。</label>
+                            <select class="form-control m-1" v-model="proxy.protocol">
+                                <option value="http:">HTTP</option>
+                                <option value="https:">HTTPS</option>
+                            </select>
+                            <input type="text" class="form-control m-1" placeholder="代理Host" v-model="proxy.host"/>
+                            <input type="text" class="form-control m-1" placeholder="代理端口" v-model="proxy.port"/>
+                            <div class="alert alert-success" v-if="proxy.msg === 'success'">
+                                保存成功。
+                            </div>
+                            <div class="btn-group btn-group-sm m-1">
+                                <button class="btn btn-primary btn-sm" @click="saveProxy">保存</button>
+                                <button class="btn btn-warning btn-sm" @click="clearProxy">清除</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

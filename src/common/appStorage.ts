@@ -51,6 +51,12 @@ class AppStorage {
         }
     }
 
+    getPassword(): string {
+        return this.password
+    }
+    setPassword(password: string): void {
+        this.password = password
+    }
     save() {
         let buf = encrypt(this.password, {
             mainFormula: this.mainFormula,

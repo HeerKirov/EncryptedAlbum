@@ -1,6 +1,6 @@
 const {nativeImage, remote} = require('electron')
 const {containsElement} = require('../target/common/utils')
-const {downloadImageDataURL} = require('../target/common/imageTool')
+const {downloadImageBuffer} = require('../target/common/imageTool')
 const {PixivClient} = require('../target/common/pixiv')
 const {dialog, TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
@@ -47,6 +47,10 @@ function addModel(vueModel) {
 
             importURL: [{name: ''}],
             importPixiv: [{name: ''}],
+            networkConfig: {
+                pixiv: null,
+                proxy: null
+            },
             loadDialog: {
                 show: false,
                 title: '',
@@ -81,6 +85,8 @@ function addModel(vueModel) {
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
                 this.tags = db.engine.findTag({order: ['type', 'title']})
+                this.networkConfig.pixiv = db.engine.getConfig('pixiv')
+                this.networkConfig.proxy = db.engine.getConfig('proxy')
                 vueModel.setTouchBar(new TouchBar({
                     items: [
                         new TouchBarSpacer({size: 'flexible'}),
@@ -97,6 +103,8 @@ function addModel(vueModel) {
                 }))
             },
             leave: function() {
+                $('#importPixivModal').modal('hide')
+                $('#importURLModal').modal('hide')
                 this.visible = false
                 this.importURL = [{name: ''}]
                 this.importPixiv= [{name: ''}]
@@ -150,6 +158,9 @@ function addModel(vueModel) {
                     alert(e)
                 }
             },
+            goSettingPixiv: function() {
+                vueModel.route('setting', 'pixiv')
+            },
 
             addGeneral: function() {
                 dialog.showOpenDialog(db.currentWindow, {
@@ -189,10 +200,15 @@ function addModel(vueModel) {
             },
             addPixiv: function() {
                 if(this.importPixiv.length > 0) {
+                    if(!this.networkConfig.pixiv) {
+                        alert('Pixiv账户和密码未配置。')
+                        return
+                    }
                     let client = new PixivClient()
+                    if(this.networkConfig.proxy) client = client.setProxy(this.networkConfig.proxy)
                     this.showLoadingDialog('解析Pixiv项目', 1 + this.importPixiv.length * 2)
                     this.loadDialog.description = '尝试登录pixiv……'
-                    client.login('', '', (b) => {
+                    client.login(this.networkConfig.pixiv.username, this.networkConfig.pixiv.password, (b) => {
                         if(!this.loadDialog.show) return;
                         if(b) {
                             console.log('[Pixiv] login success.')
@@ -212,7 +228,7 @@ function addModel(vueModel) {
                                             this.loadDialog.description = '正在下载图片……'
                                             this.addLoadingStep(1)
                                         }else{
-                                            alert(`pixiv ID=${pid}的项目无法被正确识别。`)
+                                            alert(`pixiv ID为${pid}的项目无法被正确识别。`)
                                             this.addLoadingStep(2)
                                         }
                                     }, (id, buf) => {
@@ -271,18 +287,18 @@ function addModel(vueModel) {
                     this.loadDialog.description = '下载中……'
                     for(let i in this.importURL) {
                         ((index, path) => {
-                            downloadImageDataURL(path, (dataURL, status) => {
+                            downloadImageBuffer({url: path, proxy: this.networkConfig.proxy}, (buffer, status) => {
                                 if(!this.loadDialog.show) return
-                                if(dataURL) {
-                                    let image = nativeImage.createFromDataURL(dataURL)
+                                if(buffer) {
+                                    let native = nativeImage.createFromBuffer(buffer)
                                     results[index] = {
                                         title: '',
                                         collection: '',
                                         tags: [],
                                         links: [],
                                         favorite: false,
-                                        resolution: image.getSize(),
-                                        dataURL: dataURL
+                                        resolution: native.getSize(),
+                                        dataURL: 'data:image/jpeg;base64,' + buffer.toString('base64')
                                     }
                                     cnt --
                                     if(cnt <= 0) {

@@ -1,6 +1,7 @@
 import {NativeImage, nativeImage} from "electron"
 import {ImageSpecification} from "./engine"
 import {writeFile} from 'fs'
+const request = require('request')
 
 const PREFIX = 'data:image/jpeg;base64,'
 const PREFIX_LENGTH = PREFIX.length
@@ -73,24 +74,20 @@ function exportImage(dataURL: string, filepath: string, callback?: (success: boo
     })
 }
 
-function downloadImageDataURL(url: string, callback?: (dataURL: string, status?: number) => void): void {
-    let xhr = new XMLHttpRequest()
-    xhr.open('GET', url, true)
-    xhr.responseType = 'blob'
-    xhr.onload = function() {
-        if(xhr.status === 200) {
-            let blob = this.response
-            let reader = new FileReader()
-            reader.onload = (e) => {
-                let dataURL = e.target['result']
-                if(callback) callback(dataURL, 200)
-            }
-            reader.readAsDataURL(blob)
-        }else{
-            if(callback) callback(null, xhr.status)
-        }
+function downloadImageBuffer(url: {url: string, proxy?: any}, callback?: (buffer: Buffer, status?: number) => void): void {
+    let option: object = {url: url.url, encoding: null}
+    if(url.proxy) option['proxy'] = {
+        protocol: url.proxy['protocol'],
+        host: url.proxy['host'],
+        port: url.proxy['port']
     }
-    xhr.send()
+    request.get(option, (e, res, body) => {
+        if(res && res.statusCode === 200) {
+            if(callback) callback(body, res.statusCode)
+        }else{
+            if(callback) callback(null, res ? res.statusCode : e)
+        }
+    })
 }
 
-export {translateNativeImage, translateDataURL, exportImage, downloadImageDataURL}
+export {translateNativeImage, translateDataURL, exportImage, downloadImageBuffer}

@@ -1,0 +1,343 @@
+<div id="helpView" class="panel" v-if="visible">
+    <div style="position: absolute; width: 100%; bottom: 0" :style="{'top': fullscreen ? '0px' : '22px'}">
+        <button style="position: absolute; left: 5px; top: 5px; width: 36px; height: 36px"
+                class="btn btn-link" @click="goBack">
+            <i class="fa fa-close"></i>
+        </button>
+
+        <div class="container m-5">
+            <div class="row">
+                <div class="col-auto">
+                    <ul class="nav nav-pills flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-toggle="pill" id="overview-btn" @click="setTab('overview')">概述</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" id="main-page-btn" @click="setTab('main-page')">主页</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" id="filter-btn" @click="setTab('filter')">-&nbsp;&nbsp;过滤查找</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" id="temp-btn" @click="setTab('temp')">-&nbsp;&nbsp;选择模式与临时文件夹</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" id="add-btn" @click="setTab('add')">添加项目</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" id="add-url-btn" @click="setTab('add-url')">-&nbsp;&nbsp;添加网络URL</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" id="add-pixiv-btn" @click="setTab('add-pixiv')">-&nbsp;&nbsp;添加Pixiv项目</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" id="view-btn" @click="setTab('view')">展览项目</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" id="info-btn" @click="setTab('info')">-&nbsp;&nbsp;查阅与更改项目详情</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col">
+                    <div class="tab-content">
+                        <div class="tab-pane active container" id="overview">
+                            <h3>Photos</h3>
+                            <label style="font-size: 12px">version 0.0.1 Beta</label>
+                            <label style="font-size: 15px">By Heer Kirov</label><p>
+                            <label>这是一个使用标签进行分类管理，并加密存储图片的应用程序。</label><p>
+                            <label>快速查阅的常见问题列表：</label>
+                            <ul>
+                                <li><button class="btn btn-link" @click="setTab('add')">如何添加新的图片？</button></li>
+                                <li><button class="btn btn-link" @click="setTab('info')">如何修改图片的详细信息？</button></li>
+                                <li><button class="btn btn-link" @click="setTab('info')">如何删除图片？</button></li>
+                                <li><button class="btn btn-link" @click="setTab('add-pixiv')">如何从Pixiv添加图片？</button></li>
+                                <li><button class="btn btn-link" @click="setTab('filter')">如何挑选出想浏览的图片？</button></li>
+                                <li><button class="btn btn-link" @click="setTab('temp')">如何方便地管理一批图片？</button></li>
+                                <li><button class="btn btn-link" @click="setTab('view')">如何使用展览功能？</button></li>
+                            </ul>
+                        </div>
+                        <div class="tab-pane container" id="main-page">
+                            通过登入确认后，首先进入主页。<p>
+                            主页用于展示您存储的所有图片，并提供查询、排序和操作选项。<p>
+                            <h6>工具栏</h6>
+                            主页顶部的工具栏包含主页的主要功能和跳转项。<p>
+                            <ul>
+                                <li class="mb-1">
+                                    <button class="btn btn-sm btn-success"><i class="fa fa-plus"></i></button>
+                                    前往<a class="text-primary" @click="setTab('add')">添加项目</a>页面。
+                                </li>
+                                <li class="mb-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-check-square-o"></i></button>
+                                    开启或关闭<a class="text-primary" @click="setTab('temp')">选择模式</a>。
+                                </li>
+                                <li class="mb-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-sort-amount-desc"></i></button>
+                                    打开<a class="text-primary" @click="setTab('filter')">排序</a>选单。
+                                </li>
+                                <li class="mb-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-filter"></i></button>
+                                    打开<a class="text-primary" @click="setTab('filter')">过滤</a>选单。
+                                </li>
+                                <li class="mb-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-search"></i></button>
+                                    执行<a class="text-primary" @click="setTab('filter')">宽泛搜索</a>。
+                                </li>
+                                <li class="mb-1">
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-secondary">
+                                            <div class="d-none d-md-block"><i class="fa fa-list"></i> 阅览列表</div>
+                                            <div class="d-md-none"><i class="fa fa-list"></i></div>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary">
+                                            <div class="d-none d-md-block"><i class="fa fa-folder-o"></i> 临时文件夹</div>
+                                            <div class="d-md-none"><i class="fa fa-folder-o"></i></div>
+                                        </button>
+                                    </div>
+                                    在查询结果列表和<a class="text-primary" @click="setTab('temp')">临时文件夹</a>之间切换。
+                                </li>
+                                <li class="mb-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-eye"></i></button>
+                                    打开视图选单。
+                                </li>
+                                <li class="mb-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"><i class="fa fa-cog"></i></button>
+                                    打开偏好设置页。
+                                </li>
+                            </ul>
+                            <h6>视图区域和视图选单</h6>
+                            主页的其他区域将会进行缩略图展示。<p>
+                            【左键点击】任一缩略图，将会打开<a class="text-primary" @click="setTab('view')">展览页</a>。<p>
+                            【右键点击】任一缩略图，会进入<a class="text-primary" @click="setTab('temp')">选择模式</a>并选中/取消选中当前项目。<p>
+                            视图选单中提供了对展示内容的调整。<p>
+                            <ul>
+                                <li class="mb-1">
+                                    按照画集聚合显示：展示区中的图片，属于相同画集的将会被收入同一个展项，并显示画集名称。
+                                </li>
+                                <li class="mb-1">
+                                    显示标题：在展示区显示图片的标题。
+                                </li>
+                                <li class="mb-1">
+                                    图片缩放：控制展示区缩略图的绝对大小。
+                                </li>
+                                <li class="mb-1">
+                                    一次加载数量：展示区会限制一次加载出的图片数量。如果加载的图片数量较多，会首先只加载一部分图片，并在下方显示【加载更多】按钮。
+                                    将选项设为【全部】，会取消限制，总是加载全部图片。
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="tab-pane container" id="filter">
+                            主页中提供了过滤精确浏览目标的过滤和排序功能。
+                            <h6>筛选</h6>
+                            点击主页的【筛选】按钮，打开筛选选单。<p>
+                            <ul>
+                                <li class="mb-1">
+                                    收藏夹：仅显示勾选收藏夹的图片。
+                                </li>
+                                <li class="mb-1">
+                                    标签组：仅查找具有所有指定标签的图片。标签组下方给出所有已存在的标签，并且可以搜索标签。
+                                </li>
+                            </ul>
+                            <h6>排序</h6>
+                            点击主页的【排序】按钮，打开排序选单。<p>
+                            <ul>
+                                <li class="mb-1">
+                                    按标题排序：仅按照图片的标题一项进行排序。
+                                </li>
+                                <li class="mb-1">
+                                    按创建时间排序：仅按照图片的创建时间一项进行排序。这是默认的排序选项。
+                                </li>
+                                <li class="mb-1">
+                                    按大小排序：仅按照图片的分辨率一项进行排序。
+                                </li>
+                                <li class="mb-1">
+                                    降序排序：按照降序排序。这是默认的排序选项。
+                                </li>
+                            </ul>
+                            <h6>泛搜索</h6>
+                            在主页工具栏的搜索框，可以执行宽泛搜索。<p>
+                            宽泛搜索将使用关键字匹配图片的标题和画集名称。
+                        </div>
+                        <div class="tab-pane container" id="temp">
+                            <h6>选择模式</h6>
+                            主页提供了选择模式，来做一些选择项上的操作。<p>
+                            点击主页工具栏的【选择模式】按钮，或者直接右键点击一项缩略图，进入选择模式，并在主页左下角出现选择模式的状态栏。<p>
+                            <ul>
+                                <li class="mb-1">
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary">全选</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary">反选</button>
+                                    </div>
+                                    选择全部项目，或者反选当前的选择项。
+                                </li>
+                                <li class="mb-1">
+                                    <button type="button" class="btn btn-sm btn-primary">
+                                        <i class="fa fa-picture-o"></i> 预览
+                                    </button>
+                                    将当前所有选择的项目送入展览页。通常，当您点击图片进入展览页时，展览页会浏览您当前浏览的所有项；
+                                    而从选择模式进入展览页时，展览页仅浏览被选择的项。
+                                </li>
+                                <li class="mb-1">
+                                    <button type="button" class="btn btn-sm btn-primary">
+                                        添加到临时文件夹
+                                    </button>
+                                    将当前的选择项添加到【临时文件夹】。
+                                </li>
+                                <li class="mb-1">
+                                    批量导出：将当前选中项批量输出到本地硬盘。
+                                </li>
+                                <li class="mb-1">
+                                    批量删除：从存储删除当前所有的选中项。
+                                </li>
+                            </ul>
+                            <h6>批量导出</h6>
+                            批量导出功能将要求指定一个文件夹作为输出位置，之后弹出导出选单，提示您确认您的选择。
+                            <ul>
+                                <li class="mb-1">导出位置：显示您选择的导出位置。</li>
+                                <li class="mb-1">导出类型：选择导出的图片类型。仅[JPEG]和[PNG]可选。</li>
+                                <li class="mb-1">文件一览：显示根据您选中的图片生成的文件名列表。</li>
+                            </ul>
+                            <h6>临时文件夹</h6>
+                            选择模式的操作空间比较小，也无法持久化您的选择。如果有在一次使用中，持久化批量处理一些图片的需要，则可以使用临时文件夹。<p>
+                            在选择模式状态栏点击【添加到临时文件夹】，即可将选中的图片添加到临时文件夹。<p>
+                            在菜单栏点击【临时文件夹】按钮，即可切换到临时文件夹中。<p>
+                            临时文件夹的展示与普通列表别无二致。不过，在临时文件夹中不提供过滤选项。<p>
+                            在临时文件夹下，打开选择模式，可以将选中的项【移出临时文件夹】。<p>
+                            在您退出应用程序之前，临时文件夹中的项都持久存在。
+                        </div>
+                        <div class="tab-pane container" id="add">
+                            点击主页左上角的【添加】按钮，进入添加页面。<p>
+                            添加页面有3种可用的添加方案：添加本地文件、
+                            <a class="text-primary" @click="setTab('add-pixiv')">添加Pixiv项目</a>、
+                            <a class="text-primary" @click="setTab('add-url')">添加网络URL项目</a>。可以分多次添加多个图片文件。<p>
+                            添加成功之后，在添加页面，将会预览要添加的图片，并给出信息填充表单。
+                            为图片编写尽可能详细且准确的信息，以在日后能使用更精确的分类来浏览。<p>
+                            <ul>
+                                <li class="mb-1">标题：图片的标题。可以重复或留空。</li>
+                                <li class="mb-1">画集：原则上，将一组图片(比如一部漫画、一组插画)视作同一个画集。可以留空。</li>
+                                <li class="mb-1">
+                                    标签：用于筛选归类。标签有3个预定类(内容、题材、作者)，以区分不同的标签类型。
+                                    左键点击已经生成的标签，将删除标签；右键点击已经生成的标签，将切换标签的类型。
+                                </li>
+                                <li class="mb-1">
+                                    相关链接：与图片有关系的URL。
+                                </li>
+                                <li class="mb-1">
+                                    加入收藏：放入收藏夹。用于主页筛选。
+                                </li>
+                            </ul>
+                            右下角的【删除】按钮用于删除当前项。<p>
+                            上方工具栏的导航按钮组用于在正在编辑的项目中切换。<p>
+                            点击右上角的【全部保存】按钮，将所有图片保存到存储。
+                        </div>
+                        <div class="tab-pane container" id="add-url">
+                            除了从本地硬盘选取本地文件外，还可以直接通过URL下载网络上的图片文件。<p>
+                            在添加页面点击【添加网络URL】，打开添加URL选单。<p>
+                            在选单中，填写想要下载的图片URL地址，并点击【下载并导入】。<p>
+                            <label style="font-size: 14px">需要注意的是，URL下载是纯粹的HTTP GET下载行为，需要登录认证才能访问的URL将无法下载。</label>
+                            <label style="font-size: 14px">如果您的需求是从Pixiv下载图片，可以参考<a class="text-primary" @click="setTab('add-pixiv')">从Pixiv下载</a>。</label><p>
+                            如果有代理网络需求，请前往【偏好设置】【网络代理】设置网络代理。<p>
+                        </div>
+                        <div class="tab-pane container" id="add-pixiv">
+                            应用程序提供对Pixiv illust的解析功能。<p>
+                            要使用解析功能，首先请前往【偏好设置】【Pixiv功能】配置一组Pixiv账户。这个Pixiv账户将用于解析时模拟登录访问Pixiv。<p>
+                            在添加页面点击【添加Pixiv项目】，打开添加Pixiv ID选单。<p>
+                            在选单中，填写想要下载的Pixiv ID，并点击【解析并导入】。<p>
+                            解析功能将下载origin规模的图片，并分析图片的详细信息，提前放入详情表单以供编写和修改。<p>
+                            如果有代理网络需求，请前往【偏好设置】【网络代理】设置网络代理。<p>
+                        </div>
+                        <div class="tab-pane container" id="view">
+                            在主页点击缩略图，或者通过选择模式的【预览】，将进入展览页。<p>
+                            展览页将以大图模式展示您的图片，包括被选中的图片列表。<p>
+                            <h6>图片区域</h6>
+                            图片区域以原图分辨率展示当前浏览的图片。<p>
+                            点击图片区域，会显示/隐藏图片区域周围的功能按钮，包括：
+                            <ul>
+                                <li class="mb-1">
+                                    <button style="width: 36px; height: 36px; border-width: 0"
+                                            class="btn btn-outline-secondary">
+                                        <i class="fa fa-close"></i>
+                                    </button>
+                                    返回按钮。
+                                </li>
+                                <li class="mb-1">
+                                    <button style="width: 36px; height: 36px; border-width: 0"
+                                            class="btn btn-outline-secondary">
+                                        <i class="fa fa-angle-left"></i>
+                                    </button>
+                                    <button style="width: 36px; height: 36px; border-width: 0"
+                                            class="btn btn-outline-secondary">
+                                        <i class="fa fa-angle-right"></i>
+                                    </button>
+                                    上一项/下一项。
+                                </li>
+                                <li class="mb-1">
+                                    <button style="width: 36px; height: 36px; border-width: 0"
+                                            class="btn btn-outline-secondary">
+                                        <i class="fa fa-arrows-alt"></i>
+                                    </button>
+                                    切换全屏模式。(仅Windows系统)
+                                </li>
+                                <li class="mb-1">
+                                    <button style="width: 36px; height: 36px; border-width: 0"
+                                            class="btn btn-outline-secondary">
+                                        <i class="fa fa-bars"></i>
+                                    </button>
+                                    打开/关闭下方的工具栏。
+                                </li>
+                            </ul>
+                            <h6>工具栏</h6>
+                            工具栏提供
+                            <button style="width: 40px;height: 36px; border-width: 0"
+                                    class="btn btn-outline-secondary">
+                                <i class="fa fa-film"></i>
+                            </button>浏览项列表、
+                            <button style="width: 40px;height: 36px; border-width: 0"
+                                    class="btn btn-outline-secondary">
+                                <i class="fa fa-video-camera"></i>
+                            </button>轮播、
+                            <button style="width: 40px;height: 36px; border-width: 0"
+                                    class="btn btn-outline-secondary">
+                                <i class="fa fa-joomla"></i>
+                            </button>缩放，以及
+                            <button style="width: 40px;height: 36px; border-width: 0"
+                                    class="btn btn-outline-secondary">
+                                <i class="fa fa-upload"></i>
+                            </button>导出、
+                            <button style="width: 40px;height: 36px; border-width: 0"
+                                    class="btn btn-outline-secondary">
+                                <i class="fa fa-info"></i>
+                            </button><a class="text-primary" @click="setTab('info')">详情页</a>功能。
+                            <h6>浏览项列表</h6>
+                            图片列表的其他图片，会以5项一组展示在工具栏中。点击缩略图，快速跳转到指定的项。<p>
+                            点击列表两侧的左右按钮，滚动浏览列表。
+                            <h6>轮播</h6>
+                            拖动轮播工具栏的滚动条，设定一个轮播时间间隔，将以此时间间隔，自动切换浏览项。<p>
+                            勾选【随机轮播】，将随机切换浏览项，而不是按顺序行进。
+                            <h6>缩放</h6>
+                            控制大图的缩放比例。<p>
+                            默认情况下，大图的缩放策略是【自适应】，这将使图片使用保持长宽比占用最大的可视区域。<p>
+                            你也可以选择使用【绝对值】。在这个模式下，严格按照图片本身的分辨率进行缩放。
+                            <h6>导出</h6>
+                            选择一个本地硬盘上的位置，即可将当前图片导出保存到硬盘。
+                        </div>
+                        <div class="tab-pane container" id="info">
+                            点击详情页工具栏的【详情】按钮，将切换图片区域到详情展示页。<p>
+                            <h6>详情页</h6>
+                            此页面将详细展示该图片的信息。
+                            点击右上角的
+                            <button class="btn btn-link" @click="switchFavorite">
+                                <i class="fa fa-star-o"></i>
+                            </button>按钮，将当前图片加入收藏夹/移出收藏夹。<p>
+                            点击左上角的
+                            <button class="btn btn-link" @click="switchFavorite">
+                                <i class="fa fa-pencil-square-o"></i>
+                            </button>按钮，进入编辑模式。
+                            <h6>编辑模式</h6>
+                            编辑模式可以编辑图片的详细信息。可编辑的项目与<a class="text-primary" @click="setTab('add')">添加</a>页的项目一致。此外还可以在这里删除项目。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
