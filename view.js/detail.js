@@ -222,6 +222,9 @@ function detailModel(vueModel) {
             playItems: PLAY_ITEMS    //绑定显示的常量
         },
         computed: {
+            noTitleBar: function() {
+                return this.fullscreen || db.platform.platform !== 'darwin'
+            },
             showFullScreenButton: function () {
                 return db.platform.platform !== 'darwin'
             },
@@ -271,7 +274,9 @@ function detailModel(vueModel) {
                 }
             },
             'showInfo': function (value) {
-                touchBar.showInfoControl.selectedIndex = value ? 1 : 0
+                if(touchBar != null) {
+                    touchBar.showInfoControl.selectedIndex = value ? 1 : 0
+                }
             }
         },
         methods: {
@@ -290,6 +295,9 @@ function detailModel(vueModel) {
                 this.setTouchBar()
             },
             leave: function () {
+                if(this.showFullScreenButton && this.fullscreen) {
+                    db.currentWindow.setFullScreen(false)
+                }
                 this.visible = false
                 this.showList = []
                 this.showIndex = -1

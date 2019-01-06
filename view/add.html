@@ -99,7 +99,7 @@
         <button class="btn btn-sm m-2 btn-danger" v-if="!emptyList" @click="removeItem"><i class="fa fa-trash"></i> 移除</button>
     </div>
 
-    <nav id="navBar" class="navbar navbar-expand-sm" style="position: absolute; height: 50px; width: 100%;" :style="{'top': fullscreen ? '0' : '22px'}">
+    <nav id="navBar" class="navbar navbar-expand-sm" style="position: absolute; height: 50px; width: 100%;" :style="{'top': noTitleBar ? '0' : '22px'}">
         <div class="row" style="width: 100%" v-if="showNavigator">
             <div class="col"></div>
             <div class="col-auto">

@@ -8,6 +8,11 @@ function helpModel(vueModel) {
             visible: false,
             fullscreen: false
         },
+        computed: {
+            noTitleBar: function() {
+                return this.fullscreen || db.platform.platform !== 'darwin'
+            }
+        },
         methods: {
             load: function () {
                 db.ui.theme = 'white'

@@ -1,5 +1,5 @@
 <div id="helpView" class="panel" v-if="visible">
-    <div style="position: absolute; width: 100%; bottom: 0" :style="{'top': fullscreen ? '0px' : '22px'}">
+    <div style="position: absolute; width: 100%; bottom: 0" :style="{'top': noTitleBar ? '0px' : '22px'}">
         <button style="position: absolute; left: 5px; top: 5px; width: 36px; height: 36px"
                 class="btn btn-link" @click="goBack">
             <i class="fa fa-close"></i>
@@ -325,11 +325,11 @@
                             <h6>详情页</h6>
                             此页面将详细展示该图片的信息。
                             点击右上角的
-                            <button class="btn btn-link" @click="switchFavorite">
+                            <button class="btn btn-link">
                                 <i class="fa fa-star-o"></i>
                             </button>按钮，将当前图片加入收藏夹/移出收藏夹。<p>
                             点击左上角的
-                            <button class="btn btn-link" @click="switchFavorite">
+                            <button class="btn btn-link">
                                 <i class="fa fa-pencil-square-o"></i>
                             </button>按钮，进入编辑模式。
                             <h6>编辑模式</h6>

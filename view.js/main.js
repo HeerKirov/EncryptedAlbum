@@ -70,6 +70,9 @@ function mainModel(vueModel) {
             temps: []      //用于保存临时文件夹。
         },
         computed: {
+            noTitleBar: function() {
+                return this.fullscreen || db.platform.platform !== 'darwin'
+            },
             leastSelectOne: function () {
                 return this.selected.mode && this.selected.count > 0
             },

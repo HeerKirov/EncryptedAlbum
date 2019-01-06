@@ -183,7 +183,7 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                 win.setMenuBarVisibility(false)
             }
             win.on('close', (e) => {
-                if(!quitFlag) {
+                if(!quitFlag && platform === 'darwin') {
                     e.preventDefault()
                     win.hide()
                 }

@@ -34,7 +34,9 @@ function settingModel(vueModel) {
             }
         },
         computed: {
-
+            noTitleBar: function() {
+                return this.fullscreen || db.platform.platform !== 'darwin'
+            },
         },
         methods: {
             load: function (option) {
