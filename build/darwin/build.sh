@@ -11,9 +11,9 @@ else
     rm electron.zip
 fi
 
-mv target/Electron.app/Contents/MacOS/Electron target/Electron.app/Contents/MacOS/Photos
+mv target/Electron.app/Contents/MacOS/Electron "target/Electron.app/Contents/MacOS/Encrypted Album"
 cp files/Info.plist target/Electron.app/Contents/Info.plist
-cp files/photos.icns target/Electron.app/Contents/Resources/photos.icns
+cp files/album.icns target/Electron.app/Contents/Resources/album.icns
 rm target/Electron.app/Contents/Resources/electron.icns
 
 mkdir target/Electron.app/Contents/Resources/app
@@ -26,16 +26,16 @@ rm -rf target/Electron.app/Contents/Resources/app/node_modules/typescript
 rm -rf target/Electron.app/Contents/Resources/app/node_modules/electron/dist
 rm target/Electron.app/Contents/Resources/default_app.asar
 
-mv target/Electron.app target/Photos.app
+mv target/Electron.app "target/Encrypted Album.app"
 rm target/LICENSE*
 rm target/version
 
 echo
-echo Photos.app build success.
+echo Encrypted Album.app build success.
 
-if [ -f "target/Photos.dmg" ]; then
-    rm target/Photos.dmg
+if [ -f "target/Encrypted Album.dmg" ]; then
+    rm "target/Encrypted Album.dmg"
 fi
 npm -g install appdmg
-appdmg files/dmg.json target/Photos.dmg
-echo Photos.dmg build success.
+appdmg files/dmg.json "target/Encrypted Album.dmg"
+echo Encrypted Album.dmg build success.

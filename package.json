@@ -1,6 +1,6 @@
 {
-  "name": "Photos",
-  "version": "0.0.1b",
+  "name": "Encrypted Album",
+  "version": "0.1.0B",
   "description": "An encrypt album application",
   "main": "target/main.js",
   "scripts": {

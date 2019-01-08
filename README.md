@@ -1,5 +1,5 @@
-# Photos
-编写中……
+# Encrypted Album
+> version 0.1.0 Beta
 
 ## 简介
 一个普通的相册APP。功能上的主要特点：  
@@ -34,9 +34,10 @@ tsc
 打包后得到：
 ```
 build/darwin/target/
-    Photos.app
-    Photos.dmg
+    Encrypted Album.app
+    Encrypted Album.dmg
 ```
 
 #### Windows
-还没有做。自行构建参考[application-distribution](https://electronjs.org/docs/tutorial/application-distribution)。
+还没有做。自行构建参考[application-distribution](https://electronjs.org/docs/tutorial/application-distribution)。  
+当前版本在Windows平台下存在严重的bug，导致完全不可用。

@@ -5,23 +5,23 @@
 	<key>BuildMachineOSBuild</key>
 	<string>16G1510</string>
 	<key>CFBundleDisplayName</key>
-	<string>Photos</string>
+	<string>Encrypted Album</string>
 	<key>CFBundleExecutable</key>
-	<string>Photos</string>
+	<string>Encrypted Album</string>
 	<key>CFBundleIconFile</key>
-	<string>photos.icns</string>
+	<string>album.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.heerkirov.photos</string>
+	<string>com.heerkirov.encrypted-album</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Photos</string>
+	<string>Encrypted Album</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.0.1-beta</string>
+	<string>0.1.0-beta</string>
 	<key>CFBundleVersion</key>
-	<string>0.0.1-beta</string>
+	<string>version 0.1.0 Beta</string>
 	<key>DTSDKBuild</key>
 	<string>16E185</string>
 	<key>DTSDKName</key>

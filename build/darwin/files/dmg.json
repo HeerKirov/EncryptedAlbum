@@ -1,9 +1,9 @@
 {
-  "title": "Photos",
-  "icon": "photos.icns",
+  "title": "Encrypted Album",
+  "icon": "album.icns",
   "background-color": "#FFFFFF",
   "contents": [
     { "x": 448, "y": 240, "type": "link", "path": "/Applications" },
-    { "x": 192, "y": 240, "type": "file", "path": "../target/Photos.app" }
+    { "x": 192, "y": 240, "type": "file", "path": "../target/Encrypted Album.app" }
   ]
 }

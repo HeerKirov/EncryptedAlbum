@@ -90,9 +90,9 @@ const applicationRun: (ApplicationOption?) => void = (function () {
             let devTool = debug ? {role: 'toggledevtools', label: '开发者工具'} : {role: 'forcereload', label: '完全重新加载'}
             Menu.setApplicationMenu(Menu.buildFromTemplate([
                 {
-                    label: 'Photos',
+                    label: 'Encrypted Album',
                     submenu: [
-                        {role: 'about', label: '关于Photos'},
+                        {role: 'about', label: '关于Encrypted Album'},
                         {type: 'separator'},
                         {
                             label: '偏好设置',
@@ -100,11 +100,11 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                             click() {activeMainWindow('setting')}
                         },
                         {type: 'separator'},
-                        {role: 'hide', label: '隐藏Photos'},
+                        {role: 'hide', label: '隐藏Encrypted Album'},
                         {role: 'hideOthers', label: '隐藏其他'},
                         {role: 'unhide', label: '取消隐藏'},
                         {type: 'separator'},
-                        {role: 'quit', label: '退出Photos'},
+                        {role: 'quit', label: '退出Encrypted Album'},
                     ]
                 },
                 {
@@ -151,7 +151,7 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                         {
                             label: '关于本项目',
                             click() {
-                                shell.openExternal('https://github.com/HeerKirov/photos')
+                                shell.openExternal('https://github.com/HeerKirov/EncryptedAlbum')
                             }
                         }
                     ]
@@ -177,7 +177,7 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                 minWidth: 640, minHeight: 480,
                 width: 960, height: 640,
                 titleBarStyle: "hidden",
-                title: "Photos"
+                title: "Encrypted Album"
             })
             if(platform !== 'darwin') {
                 win.setMenuBarVisibility(false)

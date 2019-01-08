@@ -1,5 +1,5 @@
 const electron = require('electron')
-const {getCurrentWindow, app} = electron.remote
+const {getCurrentWindow} = electron.remote
 const {ipcRenderer} = electron
 const {AppStorage} = require('../target/common/appStorage')
 window['$'] = window['jQuery'] = require('jquery')
@@ -120,7 +120,7 @@ function setTouchBar(touchBar) {
     }
 }
 function setTitle(title) {
-    if(!title) title = 'Photos'
+    if(!title) title = 'Encrypted Album'
     win.title = title
     $('#titleBar').text(title)
 }
