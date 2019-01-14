@@ -46,7 +46,7 @@ function registerModel(vueModel) {
                             type: 'local',
                             id: 'main',
                             key: this.key,
-                            storage: `${db.platform.userData}/local`
+                            storage: db.platform.debug ? `./data/local` : `${db.platform.userData}/local`
                         })
                         if(result) {
                             db.storage = result

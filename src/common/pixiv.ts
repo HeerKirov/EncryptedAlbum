@@ -46,6 +46,19 @@ function takeTag(tag: Object): string {
     }
 }
 
+function takePid(str: string): string {
+    if(/^\d+$/.test(str)) {
+        return str
+    }else{
+        let match = str.match(/pixiv.net\/.*\?.*illust_id=(\d+)/)
+        if(match) {
+            return match[1]
+        }else{
+            return null
+        }
+    }
+}
+
 class PixivClient {
     private jar = request.jar()
     private proxy = undefined
@@ -111,12 +124,13 @@ class PixivClient {
 
     /**
      * 解析一个pid的信息及其所有图片内容。
-     * @param pixivId
+     * @param pixivId, 或者包含pixivId的url
      * @param illustCallback 回调图片信息。
      * @param imageCallback 依次回调图片buffer。其下标从0开始。数值为-1的回调也会发生，以通知所有的图片下载均已完成。
      */
     loadIllust(pixivId: string, illustCallback?: (illust: PixivIllust) => void, imageCallback?: (index: number, buf: Buffer) => void): void {
         this.generateSession()
+        pixivId = takePid(pixivId)
         this.session.get({url: URL.illust(pixivId)}, (e, res, body) => {
             if(res && res.statusCode === 200) {
                 let match = body.match(/\(({.*})\)/)

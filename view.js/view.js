@@ -129,7 +129,11 @@ $(document).ready(function () {
     registerWindowEvents()
     updateTitleBarStatus()
     db.platform = ipcRenderer.sendSync('get-platform-info')
-    AppStorage.setBaseFolder(db.platform.userData)
+    if(db.platform.debug) {
+        AppStorage.setBaseFolder('.')
+    }else{
+        AppStorage.setBaseFolder(db.platform.userData)
+    }
     if(AppStorage.isInitialized()) {
         let {password} = ipcRenderer.sendSync('load-cache', ['password'])
         if(!password) password = ''

@@ -525,6 +525,9 @@ function detailModel(vueModel) {
                 this.$set(this.editImage.links, this.editImage.links.length, {name: ''})
             },
             addNewTag: function () {
+                if(!this.newTagInput) {
+                    return
+                }
                 let newTag = this.editImage.newTagType + this.editImage.newTag
                 if(!containsElement(newTag, this.editImage.tags)) {
                     this.$set(this.editImage.tags, this.editImage.tags.length, newTag)

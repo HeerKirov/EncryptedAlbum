@@ -93,7 +93,10 @@ function addModel(vueModel) {
                 vueModel.setTouchBar(new TouchBar({
                     items: [
                         new TouchBarSpacer({size: 'flexible'}),
-                        new TouchBarButton({label: '导入本地', click: this.addGeneral}),
+                        new TouchBarButton({label: '导入本地', click: () => {
+                                if(!this.loadDialog.show) this.addGeneral()
+                            }
+                        }),
                         new TouchBarButton({label: '添加Pixiv', click: () => {
                                 if(!this.loadDialog.show) $('#importPixivModal').modal()
                             }
@@ -125,6 +128,7 @@ function addModel(vueModel) {
                 let newImages = []
                 let dataURLs = []
                 let nextId = db.engine.getNextId()
+                let timestamp = new Date().getTime()
                 for(let i in this.items) {
                     let item = this.items[i]
 
@@ -139,7 +143,7 @@ function addModel(vueModel) {
                         links: links,
                         favorite: item.favorite,
                         resolution: item.resolution,
-                        createTime: new Date().getTime()
+                        createTime: timestamp
                     }
                     dataURLs[dataURLs.length] = {id: id, dataURL: item.dataURL}
                 }
@@ -269,11 +273,11 @@ function addModel(vueModel) {
                                         cnt --
                                         if(cnt <= 0) {
                                             this.appendToList(results)
+                                            this.importPixiv = [{name: ''}]
                                         }
                                     }
                                 })(i, this.importPixiv[i].name)
                             }
-                            this.importPixiv = [{name: ''}]
                         }else{
                             this.stopLoadingDialog()
                             alert('Pixiv账户登录失败。请检查用户名、密码或网络连接。')
@@ -369,6 +373,9 @@ function addModel(vueModel) {
                 else return null
             },
             addNewTag: function () {
+                if(!this.newTagInput) {
+                    return
+                }
                 let newTag = this.newTagSelect + this.newTagInput
                 if(!containsElement(newTag, this.current.tags)) {
                     this.$set(this.current.tags, this.current.tags.length, newTag)

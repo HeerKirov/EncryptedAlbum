@@ -99,7 +99,7 @@ function sortImage(images: Image[], order: string[], desc: boolean): Image[] {
             }else if(field === 'title') {
                 let titleA = a.title ? a.title : a.collection ? a.collection : null
                 let titleB = b.title ? b.title : b.collection ? b.collection : null
-                if(titleA !== titleB) return titleA > titleB ? gt : lt
+                if(titleA !== titleB) return titleA.localeCompare(titleB, 'zh') > 0 ? gt : lt
             }else if(field === 'favorite') {
                 if(a.favorite !== b.favorite) return a.favorite ? gt : lt
             }else if(field === 'resolution') {
@@ -130,7 +130,7 @@ function sortTag(tags: string[], order: string[], desc: boolean): string[] {
                 if(tA !== tB) return tA > tB ? gt : lt
             }else if(field === 'title') {
                 let tA = a.substring(1), tB = b.substring(1)
-                if(tA !== tB) return tA > tB ? gt : lt
+                if(tA !== tB) return tA.localeCompare(tB, 'zh') > 0 ? gt : lt
             }
         }
         return 0
