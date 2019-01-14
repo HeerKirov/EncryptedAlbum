@@ -1,5 +1,5 @@
 # Encrypted Album
-> version 0.1.0 Beta
+> version 0.2.0 Beta
 
 ## 简介
 一个普通的相册APP。功能上的主要特点：  

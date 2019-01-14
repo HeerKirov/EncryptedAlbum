@@ -62,8 +62,9 @@
                     <div class="row pl-1 pt-1">
                         <div><label class="text-white">标签:</label></div>
                         <div>
-                            <span v-for="(tag, index) in editImage.tags" class="badge m-1" :class="getTagType(tag, 'badge')">
-                                <a class="text-white" @click="removeTag(tag)" @mousedown.right="changeTagType(index)">{{getTagName(tag)}}</a>
+                            <span v-for="(tag, index) in editImage.tags" class="badge m-1" :class="getTagType(tag, 'badge')"
+                                  @click="removeTag(tag)" @mousedown.right="changeTagType(index)">
+                                {{getTagName(tag)}}
                             </span>
                         </div>
                     </div>

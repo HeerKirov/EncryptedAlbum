@@ -2,3 +2,5 @@
 /target
 /build/darwin/target
 /build/windows/target
+/.idea
+/data

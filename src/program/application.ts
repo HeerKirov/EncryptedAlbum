@@ -194,9 +194,6 @@ const applicationRun: (ApplicationOption?) => void = (function () {
 
             mainWindow = win
             win.loadFile('view/view.html')
-            if(debug) {
-                mainWindow.webContents.openDevTools()
-            }
         }else{
             if(!mainWindow.isVisible()) mainWindow.show()
             if(setFirstPage) {
