@@ -1,10 +1,11 @@
-const {containsElement} = require('../target/common/utils')
-const {ImageSpecification} = require("../target/common/engine")
-const {exportImage} = require('../target/common/imageTool')
-const {remote, ipcRenderer} = require('electron')
+import {containsElement} from '../common/utils'
+import {ImageSpecification} from "../common/engine"
+import {exportImage} from '../common/imageTool'
+import {remote, ipcRenderer} from 'electron'
 const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
+const $ = window['$']
 
 function mainModel(vueModel) {
     let db = vueModel.db

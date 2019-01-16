@@ -1,11 +1,12 @@
-const {nativeImage, remote} = require('electron')
-const {containsElement} = require('../target/common/utils')
-const {downloadImageBuffer} = require('../target/common/imageTool')
-const {PixivClient} = require('../target/common/pixiv')
+import {nativeImage, remote} from 'electron'
+import {containsElement} from '../common/utils'
+import {downloadImageBuffer} from '../common/imageTool'
+import {PixivClient} from '../common/pixiv'
+import {readFile} from 'fs'
 const {dialog, TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
-const {readFile} = require('fs')
+const $ = window['$']
 
 const defaultCurrent = {
     title: null,
@@ -147,19 +148,19 @@ function addModel(vueModel) {
                     }
                     dataURLs[dataURLs.length] = {id: id, dataURL: item.dataURL}
                 }
+                function saveOne(i) {
+                    if(i >= dataURLs.length) {
+                        db.engine.save()
+                        vm.clearItems()
+                        vueModel.route('main')
+                    }else{
+                        db.engine.saveImageURL(dataURLs[i].id, dataURLs[i].dataURL, () => {
+                            saveOne(i + 1)
+                        })
+                    }
+                }
                 try {
                     db.engine.createImage(newImages)
-                    function saveOne(i) {
-                        if(i >= dataURLs.length) {
-                            db.engine.save()
-                            vm.clearItems()
-                            vueModel.route('main')
-                        }else{
-                            db.engine.saveImageURL(dataURLs[i].id, dataURLs[i].dataURL, () => {
-                                saveOne(i + 1)
-                            })
-                        }
-                    }
                     saveOne(0)
                 }catch (e) {
                     alert(e)
@@ -414,7 +415,7 @@ function addModel(vueModel) {
                     links.splice(index, 1)
                 }
             },
-            
+
             copyInfoFromPrev: function () {
                 if(this.currentIndex > 0) {
                     let prev = this.items[this.currentIndex - 1]

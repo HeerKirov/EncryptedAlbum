@@ -1,7 +1,8 @@
-const {remote, ipcRenderer} = require('electron')
+import {remote, ipcRenderer} from 'electron'
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
+const $ = window['$']
 
 function settingModel(vueModel) {
     let db = vueModel.db
@@ -108,9 +109,9 @@ function settingModel(vueModel) {
                         }else{
                             this.security.msg = 'success'
                         }
-                    this.security.oldPassword = ''
-                    this.security.newPassword = ''
-                    this.security.checkPassword = ''
+                        this.security.oldPassword = ''
+                        this.security.newPassword = ''
+                        this.security.checkPassword = ''
                     }else{
                         this.security.msg = 'wrong-check'
                     }

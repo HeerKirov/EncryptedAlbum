@@ -1,17 +1,18 @@
-const electron = require('electron')
-const {getCurrentWindow} = electron.remote
-const {ipcRenderer} = electron
-const {AppStorage} = require('../target/common/appStorage')
-window['$'] = window['jQuery'] = require('jquery')
+import {ipcRenderer, TouchBar, BrowserWindow, remote} from 'electron'
+import {AppStorage} from '../common/appStorage'
+import {CommonDB, CommonModel} from './model'
+import {existsSync} from 'fs'
+const {getCurrentWindow} = remote
+const $ = window['$'] = window['jQuery'] = require('jquery')
 window['Bootstrap'] = require('bootstrap')
 
 //本窗口。
-const win = getCurrentWindow()
+const win: BrowserWindow = getCurrentWindow()
 //与vue模型相关的存储。
 let vms = {}
-let currentViewName = null
+let currentViewName: string = null
 //本页面的公共数据库。
-const db = {
+const db: CommonDB = {
     platform: {
         platform: 'darwin',
         debug: false,
@@ -27,14 +28,14 @@ const db = {
     engine: null
 }
 //传递给vue模块进行初始化的通讯类。用于当前存储与vue模块交换存储。
-const vueModel = {
-    route: route,
-    setTouchBar: setTouchBar,
-    setTitle: setTitle,
-    db: db
+const vueModel: CommonModel = {
+    route,
+    setTouchBar,
+    setTitle,
+    db
 }
 
-function registerWindowEvents() {
+function registerWindowEvents(): void {
     win.on('enter-full-screen', () => {
         db.ui.fullscreen = true
         updateTitleBarStatus()
@@ -64,12 +65,19 @@ function registerWindowEvents() {
         }
     })
 }
-function registerVue(viewName, callback) {
+function registerVue(viewName: string, callback: (vm: any) => void): void {
     if(!(viewName in vms)) {
         let container = $('<div></div>')
         $('#body').append(container)
         container.load(`${viewName}.html`, () => {
-            let vm = require(`../view.js/${viewName}`)(vueModel)
+            let vm
+            if(existsSync(`target/view/${viewName}.js`)) {
+                console.log(`[${viewName}]load typescript.`)
+                vm = require(`./${viewName}`)(vueModel)
+            }else{
+                console.log(`[${viewName}]load javascript.`)
+                vm = require(`../../view.js/${viewName}`)(vueModel)
+            }
             vms[viewName] = vm
             callback(vm)
         })
@@ -78,7 +86,7 @@ function registerVue(viewName, callback) {
     }
 }
 
-function route(viewName, options) {
+function route(viewName: string, options?: any): void {
     if(!(viewName in vms)) {
         registerVue(viewName, () => {
             route(viewName, options)
@@ -96,7 +104,7 @@ function route(viewName, options) {
     }
 }
 
-function updateTitleBarStatus() {
+function updateTitleBarStatus(): void {
     if(db.platform.platform !== 'darwin' || db.ui.fullscreen) {
         $('#titleBar').hide()
         $('#app').css('top', '0')
@@ -105,7 +113,7 @@ function updateTitleBarStatus() {
         $('#app').css('top', '14px')
     }
 }
-function updateTheme() {
+function updateTheme(): void {
     $('#titleBar')
         .css('background', db.ui.theme === 'dark' ? '#222222' : '#FFFFFF')
         .css('color', db.ui.theme === 'dark' ? '#FFFFFF' : '#000000')
@@ -114,18 +122,18 @@ function updateTheme() {
     else $('#body').css('background', '#1A1A1A')
 }
 
-function setTouchBar(touchBar) {
+function setTouchBar(touchBar: TouchBar): void {
     if(db.platform.platform === 'darwin') {
         win.setTouchBar(touchBar)
     }
 }
-function setTitle(title) {
+function setTitle(title: string): void {
     if(!title) title = 'Encrypted Album'
-    win.title = title
+    win.setTitle(title)
     $('#titleBar').text(title)
 }
 
-$(document).ready(function () {
+$(document)['ready'](function () {
     registerWindowEvents()
     updateTitleBarStatus()
     db.platform = ipcRenderer.sendSync('get-platform-info')

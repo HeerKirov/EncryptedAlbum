@@ -1,9 +1,10 @@
-const {remote, ipcRenderer} = require('electron')
+import {remote, ipcRenderer} from 'electron'
+import {AppStorage} from '../common/appStorage'
+import {LocalFormula} from '../common/localEngine'
+import {uuid} from '../common/utils'
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
-const {AppStorage} = require('../target/common/appStorage')
-const {uuid} = require('../target/common/utils')
 
 function registerModel(vueModel) {
     let db = vueModel.db
@@ -42,12 +43,8 @@ function registerModel(vueModel) {
                     if(this.key === '') {
                         this.error = 'empty-key'
                     }else{
-                        let result = AppStorage.initialize(this.password, {
-                            type: 'local',
-                            id: 'main',
-                            key: this.key,
-                            storage: db.platform.debug ? `./data/local` : `${db.platform.userData}/local`
-                        })
+                        let result = AppStorage.initialize(this.password, new LocalFormula('main', this.key as string,
+                            db.platform.debug ? `./data/local` : `${db.platform.userData}/local`))
                         if(result) {
                             db.storage = result
                             this.error = ''

@@ -1,11 +1,11 @@
-const {ImageSpecification} = require("../target/common/engine")
-const {containsElement} = require('../target/common/utils')
-const {exportImage} = require('../target/common/imageTool')
-const {remote, shell} = require('electron')
+import {ImageSpecification} from "../common/engine"
+import {containsElement} from '../common/utils'
+import {exportImage} from '../common/imageTool'
+import {remote, shell} from 'electron'
 const {TouchBar, dialog} = remote
-const {TouchBarSpacer, TouchBarPopover,
-    TouchBarSlider, TouchBarSegmentedControl} = TouchBar
+const {TouchBarSpacer, TouchBarPopover, TouchBarSlider, TouchBarSegmentedControl} = TouchBar
 const Vue = require('vue/dist/vue')
+const $ = window['$']
 
 const THUMBNAIL_SIZE = 5
 
@@ -88,15 +88,17 @@ function buildTouchBar(vm) {
             new TouchBarSpacer({size: 'flexible'}),
             new TouchBarPopover({
                 label: '轮播',
-                items: [
-                    playRandControl,
-                    new TouchBarSpacer({size: 'large'}),
-                    playItemControl
-                ]
+                items: new TouchBar({
+                    items: [
+                        playRandControl,
+                        new TouchBarSpacer({size: 'large'}),
+                        playItemControl
+                    ]
+                }),
             }),
             new TouchBarPopover({
                 label: '缩放',
-                items: [zoomValueControl, zoomAbsoluteControl]
+                items: new TouchBar({items: [zoomValueControl, zoomAbsoluteControl]})
             })
         ]
     })
@@ -138,7 +140,7 @@ function copyImage(from) {
             collection: from.collection,
             tags: copyArray(from.tags),
             links: copyArray(from.links),
-            favorite: from.favorite | false,
+            favorite: from.favorite as boolean | false,
             resolution: {
                 width: from.resolution ? from.resolution.width : 0,
                 height: from.resolution ? from.resolution.height : 0
@@ -234,7 +236,7 @@ function detailModel(vueModel) {
             mainImageZoom: function () {
                 if(this.zoomAbsolute) {
                     let rate = this.zoomValue < 50 ? this.zoomValue / 250 + 0.1
-                            :  this.zoomValue > 50 ? this.zoomValue / 62.5 - 0.5 : 0.3
+                        :  this.zoomValue > 50 ? this.zoomValue / 62.5 - 0.5 : 0.3
                     return {
                         'width': this.currentImage.resolution.width * rate + 'px',
                         'height': this.currentImage.resolution.height * rate + 'px'

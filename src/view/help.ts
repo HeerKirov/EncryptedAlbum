@@ -1,4 +1,6 @@
+// @ts-ignore
 const Vue = require('vue/dist/vue')
+const $ = window['$']
 
 function helpModel(vueModel) {
     let db = vueModel.db

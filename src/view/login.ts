@@ -1,8 +1,8 @@
-const {ipcRenderer, remote} = require('electron')
+import {ipcRenderer, remote} from 'electron'
+import {AppStorage} from '../common/appStorage'
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
-const {AppStorage} = require('../target/common/appStorage')
 
 function loginModel(vueModel) {
     let db = vueModel.db
