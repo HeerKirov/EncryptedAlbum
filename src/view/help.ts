@@ -1,10 +1,10 @@
-// @ts-ignore
+import {CommonModel, CommonDB} from './model'
 const Vue = require('vue/dist/vue')
 const $ = window['$']
 
-function helpModel(vueModel) {
-    let db = vueModel.db
-    let vm = new Vue({
+function helpModel(vueModel: CommonModel) {
+    let db: CommonDB = vueModel.db
+    return new Vue({
         el: '#helpView',
         data: {
             visible: false,
@@ -42,7 +42,6 @@ function helpModel(vueModel) {
             }
         }
     })
-    return vm
 }
 
 module.exports = helpModel

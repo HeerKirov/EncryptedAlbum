@@ -70,6 +70,10 @@ class AppStorage {
         writeFileSync(`${APP_FOLDER()}/${STORAGE}`, buf)
     }
 
+    getMainFormula(): Formula {
+        return this.mainFormula
+    }
+
     loadMainEngine(): DataEngine {
         return this.mainFormula.buildEngine()
     }

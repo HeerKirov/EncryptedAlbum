@@ -16,7 +16,7 @@ function encryptIt(key: string, filename: string, content: Object): void {
 
 function updateV0_1_0toV0_2_0(key: string, filename: string): void {
     let data: Object = decryptIt(key, filename)
-
+    //TODO 完成结构升级
 }
 
 const argv = process.argv.slice(2)

@@ -1,11 +1,13 @@
 import {remote, ipcRenderer} from 'electron'
+import {CommonModel, CommonDB} from './model'
+import {LocalFormula} from "../common/localEngine";
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 const $ = window['$']
 
-function settingModel(vueModel) {
-    let db = vueModel.db
+function settingModel(vueModel: CommonModel) {
+    let db: CommonDB = vueModel.db
 
     let vm = new Vue({
         el: '#settingView',
@@ -44,10 +46,10 @@ function settingModel(vueModel) {
                 db.ui.theme = 'white'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
-                if(db.storage.mainFormula.type === 'local') {
+                if(db.storage.getMainFormula().type === 'local') {
                     this.storage.mainFormula = {
-                        type: db.storage.mainFormula.type,
-                        storage: db.storage.mainFormula.storage
+                        type: db.storage.getMainFormula().type,
+                        storage: (db.storage.getMainFormula() as LocalFormula).storage
                     }
                 }else{
                     this.storage.mainFormula = null

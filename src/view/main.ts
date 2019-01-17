@@ -1,14 +1,15 @@
 import {containsElement} from '../common/utils'
-import {ImageSpecification} from "../common/engine"
+import {ImageSpecification, ImageFindOption, Image} from "../common/engine"
 import {exportImage} from '../common/imageTool'
+import {CommonDB, CommonModel} from './model'
 import {remote, ipcRenderer} from 'electron'
 const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 const $ = window['$']
 
-function mainModel(vueModel) {
-    let db = vueModel.db
+function mainModel(vueModel: CommonModel) {
+    let db: CommonDB = vueModel.db
     let loadLock = false
     let vm = new Vue({
         el: '#mainView',
@@ -169,7 +170,7 @@ function mainModel(vueModel) {
                 this.loadListToPage()
             },
 
-            getTagType: function (tag, prefix) {
+            getTagType: function (tag: string, prefix: string) {
                 if(tag) {
                     let flag = tag.slice(0, 1)
                     let ret = {}
@@ -181,7 +182,7 @@ function mainModel(vueModel) {
                     return null
                 }
             },
-            getTagName: function (tag) {
+            getTagName: function (tag: string) {
                 if(tag) return tag.slice(1)
                 else return null
             },
@@ -199,12 +200,12 @@ function mainModel(vueModel) {
                     this.filterInput.existTags = this.filterInput.existTagsAll
                 }
             },
-            addFilterTag: function(tag) {
+            addFilterTag: function(tag: string) {
                 if(!containsElement(tag, this.filterInput.tags)) {
                     this.$set(this.filterInput.tags, this.filterInput.tags.length, tag)
                 }
             },
-            removeFilterTag: function(index) {
+            removeFilterTag: function(index: number) {
                 if(index >= 0 && index < this.filterInput.tags.length) {
                     this.filterInput.tags.splice(index, 1)
                 }
@@ -227,7 +228,7 @@ function mainModel(vueModel) {
 
             search: function () {
                 //提交一次查询操作。
-                let findOption = {}
+                let findOption: ImageFindOption = {}
                 if(this.searchText) findOption['search'] = this.searchText
                 if(this.sort.by) findOption['order'] = [this.sort.by]
                 findOption['desc'] = this.sort.desc
@@ -250,7 +251,7 @@ function mainModel(vueModel) {
                     let aggregations = []
                     let collectionFlag = {}
                     for(let i in this.showBackend) {
-                        let item = this.showBackend[i]
+                        let item: Image = this.showBackend[i]
                         if(item.collection && item.collection in collectionFlag) {
                             let idx = collectionFlag[item.collection]
                             let partition = aggregations[idx]
@@ -298,7 +299,7 @@ function mainModel(vueModel) {
                     loadLock = false
                 }
             },
-            selectOne: function(index, k) {
+            selectOne: function(index: number, k: string) {
                 //单击一张图片。
                 if(this.selected.mode) {
                     //单击选定|取消选定某一个index上的项。
@@ -423,7 +424,7 @@ function mainModel(vueModel) {
                 }
                 this.$set(this.temps, this.temps.length, newItem)
             },
-            removeFromTemp: function(removeIds) {
+            removeFromTemp: function(removeIds: number[]) {
                 for(let i = removeIds.length - 1; i >= 0; --i) {
                     for(let j = this.temps.length - 1; j >= 0; --j) {
                         if(this.temps[j].id === removeIds[i]) {
@@ -433,7 +434,7 @@ function mainModel(vueModel) {
                     }
                 }
             },
-            switchList: function (type) {
+            switchList: function (type: string) {
                 //选择要展示的列表。
                 if(type !== this.viewFolder) {
                     this.viewFolder = type
@@ -544,7 +545,7 @@ function mainModel(vueModel) {
                     this.selectToExportFunction(0)
                 }
             },
-            selectToExportFunction: function(index) {
+            selectToExportFunction: function(index: number) {
                 if(index >= this.exportPanel.items.length) {
                     alert('图片导出成功。')
                 }else{

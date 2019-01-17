@@ -1,14 +1,26 @@
 import {nativeImage, remote} from 'electron'
+import {Image} from '../common/engine'
 import {containsElement} from '../common/utils'
 import {downloadImageBuffer} from '../common/imageTool'
 import {PixivClient} from '../common/pixiv'
+import {CommonModel, CommonDB} from './model'
 import {readFile} from 'fs'
 const {dialog, TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 const $ = window['$']
 
-const defaultCurrent = {
+interface ItemTemplate {
+    title: string,
+    collection: string,
+    tags: string[],
+    links: {name: string}[],
+    favorite: boolean,
+    resolution: {width: number, height: number},
+    dataURL?: string
+}
+
+const defaultCurrent: ItemTemplate = {
     title: null,
     collection: null,
     tags: [],
@@ -18,7 +30,7 @@ const defaultCurrent = {
     dataURL: ''
 }
 
-function copyArray(from) {
+function copyArray<T>(from: T[]): T[]{
     if(from) {
         let ret = []
         for(let i in from) {
@@ -30,8 +42,8 @@ function copyArray(from) {
     }
 }
 
-function addModel(vueModel) {
-    let db = vueModel.db
+function addModel(vueModel: CommonModel) {
+    let db: CommonDB = vueModel.db
     let vm = new Vue({
         el: '#addView',
         data: {
@@ -126,12 +138,12 @@ function addModel(vueModel) {
                 vueModel.route('main')
             },
             save: function () {
-                let newImages = []
-                let dataURLs = []
+                let newImages: Image[] = []
+                let dataURLs: {id: number, dataURL: string}[] = []
                 let nextId = db.engine.getNextId()
                 let timestamp = new Date().getTime()
                 for(let i in this.items) {
-                    let item = this.items[i]
+                    let item: ItemTemplate = this.items[i]
 
                     let links = []
                     for(let j in item.links) links[j] = item.links[j].name
@@ -148,7 +160,7 @@ function addModel(vueModel) {
                     }
                     dataURLs[dataURLs.length] = {id: id, dataURL: item.dataURL}
                 }
-                function saveOne(i) {
+                function saveOne(i: number) {
                     if(i >= dataURLs.length) {
                         db.engine.save()
                         vm.clearItems()
@@ -180,28 +192,26 @@ function addModel(vueModel) {
                     ]
                 }, (paths) => {
                     if(paths) {
-                        let results = []
+                        let results: ItemTemplate[] = []
                         let cnt = paths.length
                         for(let i in paths) {
                             let path = paths[i];
-                            ((index) => {
-                                readFile(path, (e, buf) => {
-                                    let image = nativeImage.createFromBuffer(buf)
-                                    results[index] = {
-                                        title: '',
-                                        collection: '',
-                                        tags: [],
-                                        links: [],
-                                        favorite: false,
-                                        resolution: image.getSize(),
-                                        dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
-                                    }
-                                    cnt --
-                                    if(cnt <= 0) {
-                                        vm.appendToList(results)
-                                    }
-                                })
-                            })(i)
+                            readFile(path, (e, buf) => {
+                                let image = nativeImage.createFromBuffer(buf)
+                                results[i] = {
+                                    title: '',
+                                    collection: '',
+                                    tags: [],
+                                    links: [],
+                                    favorite: false,
+                                    resolution: image.getSize(),
+                                    dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
+                                }
+                                cnt --
+                                if(cnt <= 0) {
+                                    vm.appendToList(results)
+                                }
+                            })
                         }
                     }
                 })
@@ -220,64 +230,63 @@ function addModel(vueModel) {
                         if(!this.loadDialog.show) return;
                         if(b) {
                             console.log('[Pixiv] login success.')
-                            let results = []
+                            let results: ItemTemplate[] = []
                             let cnt = this.importPixiv.length
                             this.addLoadingStep(1)
                             this.loadDialog.description = '正在下载并分析illust……'
                             for(let i in this.importPixiv) {
-                                ((index, pid) => {
-                                    let info = null
-                                    let buffers = []
-                                    client.loadIllust(pid, (illust) => {
-                                        if(!this.loadDialog.show) return;
-                                        console.log(`[Pixiv][${pid}]illust download success.`)
-                                        if(illust) {
-                                            info = illust
-                                            this.loadDialog.description = '正在下载图片……'
-                                            this.addLoadingStep(1)
-                                        }else{
-                                            alert(`pixiv ID为${pid}的项目无法被正确识别。`)
-                                            this.addLoadingStep(2)
-                                        }
-                                    }, (id, buf) => {
-                                        if(!this.loadDialog.show) return;
-                                        if(id >= 0 && buf) {
-                                            console.log(`[${pid}]image ${id} download success.`)
-                                            buffers[id] = buf
-                                        }else if(id === -1){
-                                            addToResult()
-                                            this.addLoadingStep(1)
-                                        }else{
-                                            console.log(`[Pixiv][${pid}]image ${id} download failed.`)
-                                        }
-                                    })
-                                    let addToResult = () => {
-                                        if(!this.loadDialog.show) return;
-                                        console.log(`[Pixiv][${pid}]add to result.`)
-                                        for(let i in buffers) {
-                                            let buf = buffers[i]
-                                            if(!buf) continue
-                                            let native = nativeImage.createFromBuffer(buf)
-                                            let tags = []
-                                            for(let tag of info.tags) tags[tags.length] = `%${tag}`
-                                            tags[tags.length] = `@${info.member}`
-                                            results[results.length] = {
-                                                title: info.pageCount > 1 ? `${info.title}-${parseInt(i) + 1}` : info.title,
-                                                collection: info.pageCount > 1 ? info.title : null,
-                                                tags: tags,
-                                                links: [{name: info.webLink}],
-                                                favorite: false,
-                                                resolution: native.getSize(),
-                                                dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
-                                            }
-                                        }
-                                        cnt --
-                                        if(cnt <= 0) {
-                                            this.appendToList(results)
-                                            this.importPixiv = [{name: ''}]
+                                let pid = this.importPixiv[i].name
+                                let info = null
+                                let buffers = []
+                                client.loadIllust(pid, (illust) => {
+                                    if(!this.loadDialog.show) return;
+                                    console.log(`[Pixiv][${pid}]illust download success.`)
+                                    if(illust) {
+                                        info = illust
+                                        this.loadDialog.description = '正在下载图片……'
+                                        this.addLoadingStep(1)
+                                    }else{
+                                        alert(`pixiv ID为${pid}的项目无法被正确识别。`)
+                                        this.addLoadingStep(2)
+                                    }
+                                }, (id, buf) => {
+                                    if(!this.loadDialog.show) return;
+                                    if(id >= 0 && buf) {
+                                        console.log(`[${pid}]image ${id} download success.`)
+                                        buffers[id] = buf
+                                    }else if(id === -1){
+                                        addToResult()
+                                        this.addLoadingStep(1)
+                                    }else{
+                                        console.log(`[Pixiv][${pid}]image ${id} download failed.`)
+                                    }
+                                })
+                                let addToResult = () => {
+                                    if(!this.loadDialog.show) return;
+                                    console.log(`[Pixiv][${pid}]add to result.`)
+                                    for(let i in buffers) {
+                                        let buf = buffers[i]
+                                        if(!buf) continue
+                                        let native = nativeImage.createFromBuffer(buf)
+                                        let tags = []
+                                        for(let tag of info.tags) tags[tags.length] = `%${tag}`
+                                        tags[tags.length] = `@${info.member}`
+                                        results[results.length] = {
+                                            title: info.pageCount > 1 ? `${info.title}-${parseInt(i) + 1}` : info.title,
+                                            collection: info.pageCount > 1 ? info.title : null,
+                                            tags: tags,
+                                            links: [{name: info.webLink}],
+                                            favorite: false,
+                                            resolution: native.getSize(),
+                                            dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
                                         }
                                     }
-                                })(i, this.importPixiv[i].name)
+                                    cnt --
+                                    if(cnt <= 0) {
+                                        this.appendToList(results)
+                                        this.importPixiv = [{name: ''}]
+                                    }
+                                }
                             }
                         }else{
                             this.stopLoadingDialog()
@@ -289,40 +298,39 @@ function addModel(vueModel) {
             },
             addURL: function() {
                 if(this.importURL.length > 0) {
-                    let results = []
+                    let results: ItemTemplate[] = []
                     let cnt = this.importURL.length
                     this.showLoadingDialog('下载URL项目', this.importURL.length)
                     this.loadDialog.description = '下载中……'
                     for(let i in this.importURL) {
-                        ((index, path) => {
-                            downloadImageBuffer({url: path, proxy: this.networkConfig.proxy}, (buffer, status) => {
-                                if(!this.loadDialog.show) return
-                                if(buffer) {
-                                    let native = nativeImage.createFromBuffer(buffer)
-                                    results[index] = {
-                                        title: '',
-                                        collection: '',
-                                        tags: [],
-                                        links: [],
-                                        favorite: false,
-                                        resolution: native.getSize(),
-                                        dataURL: 'data:image/jpeg;base64,' + buffer.toString('base64')
-                                    }
-                                    cnt --
-                                    if(cnt <= 0) {
-                                        vm.appendToList(results)
-                                    }
-                                }else{
-                                    alert(`尝试下载${path}时发生错误。错误代码: ${status}`)
+                        let path = this.importURL[i].name
+                        downloadImageBuffer({url: path, proxy: this.networkConfig.proxy}, (buffer, status) => {
+                            if(!this.loadDialog.show) return
+                            if(buffer) {
+                                let native = nativeImage.createFromBuffer(buffer)
+                                results[i] = {
+                                    title: '',
+                                    collection: '',
+                                    tags: [],
+                                    links: [],
+                                    favorite: false,
+                                    resolution: native.getSize(),
+                                    dataURL: 'data:image/jpeg;base64,' + buffer.toString('base64')
                                 }
-                                this.addLoadingStep(1)
-                            })
-                        })(i, this.importURL[i].name)
+                                cnt --
+                                if(cnt <= 0) {
+                                    vm.appendToList(results)
+                                }
+                            }else{
+                                alert(`尝试下载${path}时发生错误。错误代码: ${status}`)
+                            }
+                            this.addLoadingStep(1)
+                        })
                     }
                     this.importURL = [{name: ''}]
                 }
             },
-            appendToList: function(items) {
+            appendToList: function(items: ItemTemplate[]) {
                 let nextPageIndex = this.count
                 for(let i in items) {
                     this.$set(this.items, this.count++, items[i])
@@ -350,14 +358,14 @@ function addModel(vueModel) {
                     this.currentIndex = 0
                 }
             },
-            toPage: function(index) {
+            toPage: function(index: number) {
                 if(index >= 0 && index < this.count) {
                     this.currentIndex = index
                     this.currentIndexInput = index + 1
                     this.current = this.items[index]
                 }
             },
-            getTagType: function (tag, prefix) {
+            getTagType: function (tag: string, prefix: string) {
                 if(tag) {
                     let flag = tag.slice(0, 1)
                     let ret = {}
@@ -369,7 +377,7 @@ function addModel(vueModel) {
                     return null
                 }
             },
-            getTagName: function (tag) {
+            getTagName: function (tag: string) {
                 if(tag) return tag.slice(1)
                 else return null
             },
@@ -386,12 +394,12 @@ function addModel(vueModel) {
                 }
                 this.newTagInput = ''
             },
-            addOldTag: function(tag) {
+            addOldTag: function(tag: string) {
                 if(!containsElement(tag, this.current.tags)) {
                     this.$set(this.current.tags, this.current.tags.length, tag)
                 }
             },
-            removeTag: function(tag) {
+            removeTag: function(tag: string) {
                 for(let i in this.current.tags) {
                     if(this.current.tags[i] === tag) {
                         this.current.tags.splice(i, 1)
@@ -399,7 +407,7 @@ function addModel(vueModel) {
                     }
                 }
             },
-            changeTagType: function(index) {
+            changeTagType: function(index: number) {
                 let type = this.current.tags[index].slice(0, 1)
                 if(type === '@') type = '%'
                 else if(type === '%') type = '#'
@@ -409,7 +417,7 @@ function addModel(vueModel) {
             addNewLink: function () {
                 this.$set(this.current.links, this.current.links.length, {name: ''})
             },
-            removeLink: function (index) {
+            removeLink: function (index: number) {
                 let links = this.current.links
                 if(index < links.length) {
                     links.splice(index, 1)
@@ -439,21 +447,21 @@ function addModel(vueModel) {
             addNewPID: function () {
                 this.$set(this.importPixiv, this.importPixiv.length, {name: ''})
             },
-            removePID: function (index) {
+            removePID: function (index: number) {
                 let pids = this.importPixiv
                 if(index < pids.length) {
                     pids.splice(index, 1)
                 }
             },
 
-            showLoadingDialog: function (title, max) {
+            showLoadingDialog: function (title: string, max: number) {
                 //打开加载框，并重置所有配置.
                 this.loadDialog.show = true
                 this.loadDialog.step = 0
                 this.loadDialog.title = title ? title : 'Loading'
                 this.loadDialog.max = max
             },
-            addLoadingStep: function(step) {
+            addLoadingStep: function(step: number) {
                 if(!this.loadDialog.show) return
                 this.loadDialog.step += step
                 if(this.loadDialog.step >= this.loadDialog.max) {

@@ -1,7 +1,6 @@
 import {ipcRenderer, TouchBar, BrowserWindow, remote} from 'electron'
 import {AppStorage} from '../common/appStorage'
 import {CommonDB, CommonModel} from './model'
-import {existsSync} from 'fs'
 const {getCurrentWindow} = remote
 const $ = window['$'] = window['jQuery'] = require('jquery')
 window['Bootstrap'] = require('bootstrap')
@@ -70,14 +69,7 @@ function registerVue(viewName: string, callback: (vm: any) => void): void {
         let container = $('<div></div>')
         $('#body').append(container)
         container.load(`${viewName}.html`, () => {
-            let vm
-            if(existsSync(`target/view/${viewName}.js`)) {
-                console.log(`[${viewName}]load typescript.`)
-                vm = require(`./${viewName}`)(vueModel)
-            }else{
-                console.log(`[${viewName}]load javascript.`)
-                vm = require(`../../view.js/${viewName}`)(vueModel)
-            }
+            let vm = require(`./${viewName}`)(vueModel)
             vms[viewName] = vm
             callback(vm)
         })

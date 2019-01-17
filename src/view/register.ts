@@ -2,12 +2,13 @@ import {remote, ipcRenderer} from 'electron'
 import {AppStorage} from '../common/appStorage'
 import {LocalFormula} from '../common/localEngine'
 import {uuid} from '../common/utils'
+import {CommonModel, CommonDB} from './model'
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 
-function registerModel(vueModel) {
-    let db = vueModel.db
+function registerModel(vueModel: CommonModel) {
+    let db: CommonDB = vueModel.db
     return new Vue({
         el: '#registerView',
         data: {

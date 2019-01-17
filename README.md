@@ -9,7 +9,7 @@
 
 ## 技术
 * `Electron` 这个程序的基础框架。
-* `TypeScript` 核心功能代码使用TS。
+* `TypeScript` 编码语言。
 * `Vue` 前端脚手架。
 * `Bootstrap` 前端CSS框架。
 
@@ -25,7 +25,7 @@ npm install
 tsc
 ```
 运行：`npm start`  
-带开发者工具的调试运行：`npm debug`
+带开发者工具，且将存储路径定位在测试目录的调试运行：`npm debug`
 
 ### 打包可执行程序
 #### macOS

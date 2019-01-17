@@ -3,4 +3,5 @@
 /build/darwin/target
 /build/windows/target
 /.idea
+/.vscode
 /data
