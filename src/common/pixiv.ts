@@ -6,9 +6,6 @@ class URL {
     static loginPage(): string {return 'https://accounts.pixiv.net/login?lang=zh'}
     static login(): string {return 'https://accounts.pixiv.net/api/login?lang=zh'}
     static illust(illustId: string): string {return `https://www.pixiv.net/member_illust.php?mode=medium&illust_id=${illustId}`}
-    static pximage(year: string, month: string, day: string, hour: string, minute: string, second: string, pid: string, p: string, ext: string): string {
-        return `https://i.pximg.net/img-original/img/${year}/${month}/${day}/${hour}/${minute}/${second}/${pid}_p${p}.${ext}`
-    }
     static member(uid: string, page: number): string {
         return `https://www.pixiv.net/member_illust.php?id=${uid}&type=all&p=${page}`
     }

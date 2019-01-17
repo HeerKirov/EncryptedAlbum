@@ -10,12 +10,9 @@ import {
 import {Formula} from './appStorage'
 import {BufferCache} from './bufferCache'
 import {decrypt, encrypt, encryptBuffer, decryptBuffer, containsElement} from './utils'
-import {translateDataURL} from './imageTool'
+import {translateDataURL, PREFIX_LENGTH, PREFIX} from './imageTool'
 
-const PREFIX = 'data:image/jpeg;base64,'
-const PREFIX_LENGTH = PREFIX.length
 const STORAGE = 'data.db'
-
 const BLOCK_SIZE = 1024 * 64 //64KB
 const BLOCK_IN_FILE = 1024 //1024 blocks(64MB) in max case
 function FILE_NAME(index: number): string {

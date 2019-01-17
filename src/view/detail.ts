@@ -1,7 +1,9 @@
-import {ImageSpecification} from "../common/engine"
-import {containsElement} from '../common/utils'
+import {Image, ImageSpecification} from "../common/engine"
+import {containsElement, copyArray, equalArray} from '../common/utils'
 import {exportImage} from '../common/imageTool'
+import {calcDateTime, CommonDB, CommonModel, getTagName, getTagType} from './model'
 import {remote, shell} from 'electron'
+import Timer = NodeJS.Timer
 const {TouchBar, dialog} = remote
 const {TouchBarSpacer, TouchBarPopover, TouchBarSlider, TouchBarSegmentedControl} = TouchBar
 const Vue = require('vue/dist/vue')
@@ -111,28 +113,7 @@ function buildTouchBar(vm) {
     }
 }
 
-function copyArray(from) {
-    if(from) {
-        let ret = []
-        for(let i in from) {
-            ret[i] = from[i]
-        }
-        return ret
-    }else{
-        return []
-    }
-}
-function equalArray(a, b) {
-    if(a && b) {
-        if(a.length !== b.length) return false
-        for(let i = 0; i < a.length; ++i) {
-            if(a[i] !== b[i]) return false
-        }
-        return true
-    }
-    return false
-}
-function copyImage(from) {
+function copyImage(from: Image): Image {
     if(from) {
         return {
             id: from.id | 0,
@@ -151,7 +132,7 @@ function copyImage(from) {
         return emptyImage()
     }
 }
-function equalImage(a, b) {
+function equalImage(a: Image, b: Image): boolean {
     if(!a || !b) return false
     else if(a.title !== b.title) return false
     else if(a.collection !== b.collection) return false
@@ -168,7 +149,7 @@ function equalImage(a, b) {
         return true
     }
 }
-function emptyImage() {
+function emptyImage(): Image {
     return {
         id: 0,
         title: null,
@@ -181,11 +162,14 @@ function emptyImage() {
     }
 }
 
-function detailModel(vueModel) {
-    let db = vueModel.db
+function detailModel(vueModel: CommonModel) {
+    let db: CommonDB = vueModel.db
 
-    let timer = null
-    let touchBar = null
+    let timer: Timer = null
+    let touchBar: {touchBar,
+        showInfoControl,
+        zoomAbsoluteControl, zoomValueControl,
+        playItemControl, playRandControl} = null
     let vm = new Vue({
         el: '#detailView',
         data: {
@@ -282,7 +266,7 @@ function detailModel(vueModel) {
             }
         },
         methods: {
-            load: function (arg) {
+            load: function (arg?: any) {
                 db.ui.theme = 'dark'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
@@ -322,7 +306,7 @@ function detailModel(vueModel) {
                 db.currentWindow.setFullScreen(!db.ui.fullscreen)
             },
             exportImage: function() {
-                let image = this.currentImage
+                let image: Image = this.currentImage
                 let filename = image.title ? image.title : image.collection
                 dialog.showSaveDialog(db.currentWindow, {
                     title: '导出图片',
@@ -517,7 +501,7 @@ function detailModel(vueModel) {
                 }
             },
 
-            removeLink: function(index) {
+            removeLink: function(index: number) {
                 let links = this.editImage.links
                 if(index < links.length) {
                     links.splice(index, 1)
@@ -539,12 +523,12 @@ function detailModel(vueModel) {
                 }
                 this.editImage.newTag = ''
             },
-            addOldTag: function(tag) {
+            addOldTag: function(tag: string) {
                 if(!containsElement(tag, this.editImage.tags)) {
                     this.$set(this.editImage.tags, this.editImage.tags.length, tag)
                 }
             },
-            removeTag: function(tag) {
+            removeTag: function(tag: string) {
                 for(let i in this.editImage.tags) {
                     if(this.editImage.tags[i] === tag) {
                         this.editImage.tags.splice(i, 1)
@@ -552,7 +536,7 @@ function detailModel(vueModel) {
                     }
                 }
             },
-            changeTagType: function(index) {
+            changeTagType: function(index: number) {
                 let type = this.editImage.tags[index].slice(0, 1)
                 if(type === '@') type = '%'
                 else if(type === '%') type = '#'
@@ -560,52 +544,19 @@ function detailModel(vueModel) {
                 this.$set(this.editImage.tags, index, type + this.editImage.tags[index].slice(1))
             },
 
-            getTagType: function (tag, prefix) {
-                if(tag) {
-                    let flag = tag.slice(0, 1)
-                    let ret = {}
-                    ret[prefix + '-warning'] = flag === '@'
-                    ret[prefix + '-info'] = flag === '%'
-                    ret[prefix + '-success'] = flag === '#'
-                    return ret
-                }else{
-                    return null
-                }
-            },
-            getTagName: function (tag) {
-                if(tag) return tag.slice(1)
-                else return null
-            },
-            calcResolution: function (resolution) {
+            getTagType: getTagType,
+            getTagName: getTagName,
+            calcResolution: function (resolution: {width: number, height: number}) {
                 if(resolution != null) {
                     return resolution.width + '×' + resolution.height
                 }else{
                     return ''
                 }
             },
-            openLink: function(link) {
+            openLink: function(link: string) {
                 shell.openExternal(link)
             },
-            calcDateTime: function(date, fmt) {
-                let o = {
-                    "M+" : date.getMonth() + 1,
-                    "d+" : date.getDate(),
-                    "h+" : date.getHours(),
-                    "m+" : date.getMinutes(),
-                    "s+" : date.getSeconds(),
-                    "q+" : Math.floor((date.getMonth() + 3) / 3),
-                    "S"  : date.getMilliseconds()
-                }
-                if(/(y+)/.test(fmt)) {
-                    fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length))
-                }
-                for(let k in o) {
-                    if(new RegExp("("+ k +")").test(fmt)){
-                        fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)))
-                    }
-                }
-                return fmt
-            },
+            calcDateTime: calcDateTime,
 
             setTouchBar: function () {
                 if(db.platform.platform !== 'darwin') return;

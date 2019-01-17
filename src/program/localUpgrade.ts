@@ -1,7 +1,7 @@
 /**将v0.1.0-Beta的localEngine存储结构升级到v0.2.0-Beta。
  * node target/localUpgrade.js <password> <save_path>
  */
-import {decrypt, encrypt} from './common/utils'
+import {decrypt, encrypt} from '../common/utils'
 import {readFileSync, writeFileSync} from 'fs'
 
 function decryptIt(key: string, filename: string): Object {

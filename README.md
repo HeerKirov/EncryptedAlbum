@@ -25,18 +25,14 @@ npm install
 tsc
 ```
 运行：`npm start`  
-带开发者工具，且将存储路径定位在测试目录的调试运行：`npm debug`
+调试运行：`npm run debug`
+_(调试运行允许打开Chromium开发工具，并将storage目录设定在当前项目目录，而非AppData目录。)_
 
 ### 打包可执行程序
 #### macOS
 相关工具存放在`build/darwin`目录下。  
-运行`build.sh`，以自动执行打包工作。    
-打包后得到：
-```
-build/darwin/target/
-    Encrypted Album.app
-    Encrypted Album.dmg
-```
+运行`build.sh`，以自动执行打包工作。打包后得到`build/darwin/target/Encrypted Album.app`。  
+运行`build-dmg.sh`，以执行将应用程序打包为镜像的工作。打包后得到`build.darwin/target/Encrypted Album.dmg`。
 
 #### Windows
 还没有做。自行构建参考[application-distribution](https://electronjs.org/docs/tutorial/application-distribution)。  

@@ -78,11 +78,11 @@ class AppStorage {
         return this.mainFormula.buildEngine()
     }
     loadSecondaryEngine(id: string): DataEngine {
-        this.secondaryFormula.forEach(element => {
-            if(element.id == id) {
-                return element.buildEngine()
+        for(let formula of this.secondaryFormula) {
+            if(formula.id === id) {
+                return formula.buildEngine()
             }
-        })
+        }
         return null
     }
     loadAllSecondaryEngine(): DataEngine[] {

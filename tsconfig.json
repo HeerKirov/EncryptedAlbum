@@ -1,10 +1,11 @@
 {
     "compilerOptions": {
         "outDir": "target",
-        "removeComments": true,
-        "target": "es5",
+        "target": "es6",
         "module": "commonjs",
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "noImplicitReturns": true,
+        "removeComments": true
     },
     "include": [
         "src/**/*.ts"

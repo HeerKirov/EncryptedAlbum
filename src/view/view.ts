@@ -28,7 +28,7 @@ const db: CommonDB = {
 }
 //传递给vue模块进行初始化的通讯类。用于当前存储与vue模块交换存储。
 const vueModel: CommonModel = {
-    route,
+    route, routeBack,
     setTouchBar,
     setTitle,
     db
@@ -78,10 +78,11 @@ function registerVue(viewName: string, callback: (vm: any) => void): void {
     }
 }
 
-function route(viewName: string, options?: any): void {
+function route(viewName: string, options?: any, refresh?: boolean): void {
+    if(refresh == undefined) refresh = true
     if(!(viewName in vms)) {
         registerVue(viewName, () => {
-            route(viewName, options)
+            route(viewName, options, refresh)
         })
     }else{
         if(currentViewName !== null) {
@@ -90,12 +91,15 @@ function route(viewName: string, options?: any): void {
         }
         setTitle(null)
         currentViewName = viewName
-        vms[viewName].load(options)
+        vms[viewName].load(options, refresh)
         updateTheme()
         updateTitleBarStatus()
     }
 }
-
+function routeBack(viewName: string, refresh?: boolean): void {
+    if(refresh == undefined) refresh = false
+    //TODO 完成back函数
+}
 function updateTitleBarStatus(): void {
     if(db.platform.platform !== 'darwin' || db.ui.fullscreen) {
         $('#titleBar').hide()

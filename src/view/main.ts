@@ -1,7 +1,7 @@
 import {containsElement} from '../common/utils'
 import {ImageSpecification, ImageFindOption, Image} from "../common/engine"
 import {exportImage} from '../common/imageTool'
-import {CommonDB, CommonModel} from './model'
+import {CommonDB, CommonModel, getTagName, getTagType} from './model'
 import {remote, ipcRenderer} from 'electron'
 const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
@@ -83,7 +83,7 @@ function mainModel(vueModel: CommonModel) {
             }
         },
         methods: {
-            load: function() {
+            load: function(options?: any, refresh?: boolean) {
                 db.ui.theme = 'gray'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
@@ -96,10 +96,12 @@ function mainModel(vueModel: CommonModel) {
                     this.loadOptionToSearch()
                 }
                 this.setTouchBar()
-                if(this.viewFolder === 'list') this.search()
-                this.loadTempsFromMain()
-                this.loadListToPage()
                 this.filterInput.existTags = this.filterInput.existTagsAll = db.engine.findTag({order: ['type', 'title']})
+                if(refresh) {
+                    if(this.viewFolder === 'list') this.search()
+                    this.loadTempsFromMain()
+                    this.loadListToPage()
+                }
             },
             leave: function() {
                 this.visible = false
@@ -170,22 +172,8 @@ function mainModel(vueModel: CommonModel) {
                 this.loadListToPage()
             },
 
-            getTagType: function (tag: string, prefix: string) {
-                if(tag) {
-                    let flag = tag.slice(0, 1)
-                    let ret = {}
-                    ret[prefix + '-warning'] = flag === '@'
-                    ret[prefix + '-info'] = flag === '%'
-                    ret[prefix + '-success'] = flag === '#'
-                    return ret
-                }else{
-                    return null
-                }
-            },
-            getTagName: function (tag: string) {
-                if(tag) return tag.slice(1)
-                else return null
-            },
+            getTagType: getTagType,
+            getTagName: getTagName,
             searchFilterTags: function() {
                 let text = this.filterInput.tagSearchText.trim()
                 if(text !== '') {

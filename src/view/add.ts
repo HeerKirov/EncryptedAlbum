@@ -1,10 +1,10 @@
 import {nativeImage, remote} from 'electron'
-import {Image} from '../common/engine'
-import {containsElement} from '../common/utils'
-import {downloadImageBuffer} from '../common/imageTool'
-import {PixivClient} from '../common/pixiv'
-import {CommonModel, CommonDB} from './model'
 import {readFile} from 'fs'
+import {Image} from '../common/engine'
+import {containsElement, copyArray} from '../common/utils'
+import {downloadImageBuffer, PREFIX} from '../common/imageTool'
+import {PixivClient} from '../common/pixiv'
+import {CommonModel, CommonDB, getTagType, getTagName} from './model'
 const {dialog, TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
@@ -28,18 +28,6 @@ const defaultCurrent: ItemTemplate = {
     favorite: false,
     resolution: { width: 0, height: 0 },
     dataURL: ''
-}
-
-function copyArray<T>(from: T[]): T[]{
-    if(from) {
-        let ret = []
-        for(let i in from) {
-            ret[i] = from[i]
-        }
-        return ret
-    }else{
-        return []
-    }
 }
 
 function addModel(vueModel: CommonModel) {
@@ -205,7 +193,7 @@ function addModel(vueModel: CommonModel) {
                                     links: [],
                                     favorite: false,
                                     resolution: image.getSize(),
-                                    dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
+                                    dataURL: PREFIX + buf.toString('base64')
                                 }
                                 cnt --
                                 if(cnt <= 0) {
@@ -278,7 +266,7 @@ function addModel(vueModel: CommonModel) {
                                             links: [{name: info.webLink}],
                                             favorite: false,
                                             resolution: native.getSize(),
-                                            dataURL: 'data:image/jpeg;base64,' + buf.toString('base64')
+                                            dataURL: PREFIX + buf.toString('base64')
                                         }
                                     }
                                     cnt --
@@ -315,7 +303,7 @@ function addModel(vueModel: CommonModel) {
                                     links: [],
                                     favorite: false,
                                     resolution: native.getSize(),
-                                    dataURL: 'data:image/jpeg;base64,' + buffer.toString('base64')
+                                    dataURL: PREFIX + buffer.toString('base64')
                                 }
                                 cnt --
                                 if(cnt <= 0) {
@@ -365,22 +353,8 @@ function addModel(vueModel: CommonModel) {
                     this.current = this.items[index]
                 }
             },
-            getTagType: function (tag: string, prefix: string) {
-                if(tag) {
-                    let flag = tag.slice(0, 1)
-                    let ret = {}
-                    ret[prefix + '-warning'] = flag === '@'
-                    ret[prefix + '-info'] = flag === '%'
-                    ret[prefix + '-success'] = flag === '#'
-                    return ret
-                }else{
-                    return null
-                }
-            },
-            getTagName: function (tag: string) {
-                if(tag) return tag.slice(1)
-                else return null
-            },
+            getTagType: getTagType,
+            getTagName: getTagName,
             addNewTag: function () {
                 if(!this.newTagInput) {
                     return

@@ -90,4 +90,4 @@ function downloadImageBuffer(url: {url: string, proxy?: any}, callback?: (buffer
     })
 }
 
-export {translateNativeImage, translateDataURL, exportImage, downloadImageBuffer}
+export {translateNativeImage, translateDataURL, exportImage, downloadImageBuffer, PREFIX_LENGTH, PREFIX}

@@ -212,6 +212,37 @@ function containsElement<T>(ele: T, contains: T[]): boolean {
     return false
 }
 /**
+ * 复制一个数组。采用浅复制策略。
+ * @param from
+ */
+function copyArray<T>(from: T[]): T[] {
+    if(from) {
+        let ret = []
+        for(let i in from) {
+            ret[i] = from[i]
+        }
+        return ret
+    }else{
+        return []
+    }
+}
+/**
+ * 判断两个数组的内容是否等价。
+ * @param a
+ * @param b
+ */
+function equalArray<T>(a: T[], b: T[]): boolean {
+    if(a && b) {
+        if(a.length !== b.length) return false
+        for(let i = 0; i < a.length; ++i) {
+            if(a[i] !== b[i]) return false
+        }
+        return true
+    }
+    return false
+}
+
+/**
  * 检查search的串在keys中是否存在至少一个匹配。
  * 匹配模式：不区分大小写，search中的空格分隔会导致查询词拆分。
  * @param search
@@ -235,7 +266,6 @@ function findLikeIn(search: string, keys: string[]): boolean {
     }
     return false
 }
-
 /**
  * 检查目标字符串是否仅具有字母、数字、空格。
  * @param str
@@ -252,4 +282,4 @@ function containsOnlyWord(str: string): boolean {
 
 export {turnToBinary, turnToString, loopChange, xor,
     encrypt, decrypt, encryptBuffer, decryptBuffer,
-    uuid, containsAll, containsElement, findLikeIn, calculateNumeric, containsOnlyWord}
+    uuid, containsAll, containsElement, copyArray, equalArray, findLikeIn, calculateNumeric, containsOnlyWord}
