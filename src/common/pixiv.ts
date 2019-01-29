@@ -1,5 +1,5 @@
 const request = require('request')
-import {containsOnlyWord} from './utils'
+import {Strings} from '../util/string'
 
 class URL {
     static homePage(): string {return 'https://www.pixiv.net/'}
@@ -37,7 +37,7 @@ function takeTag(tag: Object): string {
         let titleJP = ('tag' in tag) ? tag['tag'] : null
         let titleEn = getFieldPath(tag, 'translation', 'en')    //愚蠢的p站，中文翻译也在这个值上……
         let titleRM = ('romaji' in tag) ? tag['romaji'] : null
-        return titleEn && !containsOnlyWord(titleEn) ? titleEn : titleJP ? titleJP : titleRM ? titleRM : null
+        return titleEn && !Strings.containsOnlyWord(titleEn) ? titleEn : titleJP ? titleJP : titleRM ? titleRM : null
     }else{
         return null
     }

@@ -1,5 +1,6 @@
 /node_modules
 /target
+/backup
 /build/darwin/target
 /build/windows/target
 /.idea

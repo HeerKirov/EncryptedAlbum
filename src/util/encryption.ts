@@ -1,10 +1,5 @@
 import {sha256, sha224} from "js-sha256"
 
-const cLowerA = 'a'.charCodeAt(0), cLowerZ = 'z'.charCodeAt(0)
-const cUpperA = 'A'.charCodeAt(0), cUpperZ = 'Z'.charCodeAt(0)
-const cNum0 = '0'.charCodeAt(0), cNum9 = '9'.charCodeAt(0)
-const cSpace = ' '.charCodeAt(0)
-
 /**
  * 将image的二进制信息加密到buffer。
  * 加密步骤为：
@@ -93,7 +88,7 @@ function turnToFlagSequence(key: string): string {
 }
 /**
  * 将字符串转换为buffer。
- * @param key 
+ * @param key
  */
 function turnToBinary(key: string): Buffer {
     return Buffer.from(key)
@@ -156,130 +151,7 @@ function calculateNumeric(key: string, limit: number=256): number {
     return n
 }
 
-/**
- * 生成uuid。
- * @param len
- * @param radix
- */
-function uuid(len, radix) {
-    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
-    let uuid = []
-    radix = radix || chars.length
-
-    if (len) {
-      for (let i = 0; i < len; i++) {
-          uuid[i] = chars[0 | Math.random() * radix]
-      }
-    } else {
-      uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-'
-      uuid[14] = '4'
-      for (let i = 0; i < 36; i++) {
-        if (!uuid[i]) {
-          let r = 0 | Math.random() * 16
-          uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r]
-        }
-      }
-    }
-    return uuid.join('')
-}
-/**
- * 检查是否存在完全包含。
- * @param main 要被检查的数组。
- * @param contains 检查上述数组是否完全包含本数组的所有内容。
- */
-function containsAll<T>(main: T[], contains: T[]): boolean {
-    for(let c of contains) {
-        let flag = true
-        for(let m of main) {
-            if(m === c) {
-                flag = false
-                break
-            }
-        }
-        if(flag) return false
-    }
-    return true
-}
-/**
- * 检查数组是否包含指定元素。
- * @param ele
- * @param contains
- */
-function containsElement<T>(ele: T, contains: T[]): boolean {
-    for(let i of contains) {
-        if(i === ele) return true
-    }
-    return false
-}
-/**
- * 复制一个数组。采用浅复制策略。
- * @param from
- */
-function copyArray<T>(from: T[]): T[] {
-    if(from) {
-        let ret = []
-        for(let i in from) {
-            ret[i] = from[i]
-        }
-        return ret
-    }else{
-        return []
-    }
-}
-/**
- * 判断两个数组的内容是否等价。
- * @param a
- * @param b
- */
-function equalArray<T>(a: T[], b: T[]): boolean {
-    if(a && b) {
-        if(a.length !== b.length) return false
-        for(let i = 0; i < a.length; ++i) {
-            if(a[i] !== b[i]) return false
-        }
-        return true
-    }
-    return false
-}
-
-/**
- * 检查search的串在keys中是否存在至少一个匹配。
- * 匹配模式：不区分大小写，search中的空格分隔会导致查询词拆分。
- * @param search
- * @param keys
- */
-function findLikeIn(search: string, keys: string[]): boolean {
-    let ss = search.split(' ')
-    for(let key of keys) {
-        if(key) {
-            let flag = false
-            for(let s of ss) {
-                if(key.indexOf(s) >= 0) {
-                    flag = true
-                    break
-                }
-            }
-            if(flag) {
-                return true
-            }
-        }
-    }
-    return false
-}
-/**
- * 检查目标字符串是否仅具有字母、数字、空格。
- * @param str
- */
-function containsOnlyWord(str: string): boolean {
-    for(let i = 0; i < str.length; ++i) {
-        let c = str.charCodeAt(i)
-        if((c < cLowerA || c > cLowerZ)&&(c < cUpperA || c > cUpperZ)&&(c < cNum0 || c > cNum9)&& c !== cSpace) {
-            return false
-        }
-    }
-    return true
-}
 
 export {turnToBinary, turnToString, loopChange, xor,
     encrypt, decrypt, encryptBuffer, decryptBuffer,
-    uuid, containsAll, containsElement, copyArray, equalArray, findLikeIn, calculateNumeric, containsOnlyWord}
+    calculateNumeric}

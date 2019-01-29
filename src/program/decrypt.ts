@@ -3,7 +3,7 @@
  * node target/decrypt.js <password> <filepath>
  */
 
-import {decrypt} from '../common/utils'
+import {decrypt} from '../util/encryption'
 import {readFileSync} from 'fs'
 
 function decryptIt(key: string, filename: string): void {

@@ -1,7 +1,7 @@
 import {remote, ipcRenderer} from 'electron'
 import {AppStorage} from '../common/appStorage'
 import {LocalFormula} from '../common/localEngine'
-import {uuid} from '../common/utils'
+import {uuid} from '../util/string'
 import {CommonModel, CommonDB} from './model'
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar

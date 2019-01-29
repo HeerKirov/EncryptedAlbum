@@ -32,7 +32,7 @@ function helpModel(vueModel: CommonModel) {
             },
 
             goBack: function() {
-                vueModel.route('main')
+                vueModel.routeBack()
             },
             setTab: function (tab) {
                 $('.nav-link').removeClass('active')

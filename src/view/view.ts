@@ -1,5 +1,6 @@
 import {ipcRenderer, TouchBar, BrowserWindow, remote} from 'electron'
 import {AppStorage} from '../common/appStorage'
+import {Arrays} from "../util/collection"
 import {CommonDB, CommonModel} from './model'
 const {getCurrentWindow} = remote
 const $ = window['$'] = window['jQuery'] = require('jquery')
@@ -10,6 +11,7 @@ const win: BrowserWindow = getCurrentWindow()
 //与vue模型相关的存储。
 let vms = {}
 let currentViewName: string = null
+let viewHistory: string[] = []
 //本页面的公共数据库。
 const db: CommonDB = {
     platform: {
@@ -94,11 +96,17 @@ function route(viewName: string, options?: any, refresh?: boolean): void {
         vms[viewName].load(options, refresh)
         updateTheme()
         updateTitleBarStatus()
+        if(Arrays.contains(viewHistory, viewName)) {
+            Arrays.remove(viewHistory, viewName)
+        }
+        Arrays.append(viewHistory, viewName)
     }
 }
-function routeBack(viewName: string, refresh?: boolean): void {
+function routeBack(refresh?: boolean): void {
     if(refresh == undefined) refresh = false
-    //TODO 完成back函数
+    if(Arrays.isNotEmpty(viewHistory)) {
+        route(Arrays.last(viewHistory), null, refresh)
+    }
 }
 function updateTitleBarStatus(): void {
     if(db.platform.platform !== 'darwin' || db.ui.fullscreen) {

@@ -1,6 +1,6 @@
 import {DataEngine} from "./engine"
 import {readFileSync, existsSync, writeFileSync, mkdirSync} from "fs"
-import {encrypt, decrypt} from "./utils"
+import {encrypt, decrypt} from "../util/encryption"
 import {LocalFormula} from "./localEngine"
 
 const STORAGE = "data.dat"

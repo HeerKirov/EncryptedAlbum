@@ -1,5 +1,5 @@
 import {NativeImage, nativeImage} from "electron"
-import {ImageSpecification} from "./engine"
+import {ImageSpecification} from "../common/engine"
 import {writeFile} from 'fs'
 const request = require('request')
 

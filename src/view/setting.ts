@@ -93,7 +93,7 @@ function settingModel(vueModel: CommonModel) {
             },
 
             goBack: function() {
-                vueModel.route('main')
+                vueModel.routeBack()
             },
             help: function() {
                 vueModel.route('help')
