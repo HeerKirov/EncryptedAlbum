@@ -1,7 +1,7 @@
 import { Size } from "electron"
-import {Strings} from "../util/string";
-import {Arrays} from "../util/collection";
-import {Illustrations, Images, Tags} from "../util/model";
+import {Strings} from "../util/string"
+import {Arrays} from "../util/collection"
+import {Illustrations, Images, Tags} from "../util/model"
 
 /**
  * 数据引擎的接口。
@@ -21,8 +21,7 @@ import {Illustrations, Images, Tags} from "../util/model";
  */
 interface DataEngine {
     findIllustration(options: IllustrationFindOption): Illustration[]
-    createIllustration(illustrations: Illustration[]): Illustration[]
-    updateIllustration(illustrations: Illustration[]): Illustration[]
+    createOrUpdateIllustration(illustrations: Illustration[], imageIdVirtualReflect?: Object): Illustration[]
     deleteIllustration(illustrations: (Illustration | number)[]): number
 
     saveImageURL(id: number, dataURL: string, callback?: () => void): void

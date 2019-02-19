@@ -1,6 +1,8 @@
 # Encrypted Album
 > version 0.2.0 Beta
 
+Coding...
+
 ## 简介
 一个普通的相册APP。功能上的主要特点：  
 * 加密存储数据，依赖口令进行访问。
@@ -23,10 +25,13 @@ npm install -g typescript
 ```
 npm install
 tsc
+
+# 运行
+npm start
+  
+# 调试运行(允许打开Chromium开发工具，并将storage目录设定在当前项目目录，而非AppData目录)
+npm run debug
 ```
-运行：`npm start`  
-调试运行：`npm run debug`
-_(调试运行允许打开Chromium开发工具，并将storage目录设定在当前项目目录，而非AppData目录。)_
 
 ### 打包可执行程序
 #### macOS
@@ -36,4 +41,4 @@ _(调试运行允许打开Chromium开发工具，并将storage目录设定在当
 
 #### Windows
 还没有做。自行构建参考[application-distribution](https://electronjs.org/docs/tutorial/application-distribution)。  
-当前版本在Windows平台下存在严重的bug，导致完全不可用。
+**在Windows平台下存在严重的bug，导致程序完全不可用。**

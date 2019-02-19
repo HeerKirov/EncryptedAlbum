@@ -1,0 +1,16 @@
+<div id="mainView" class="panel" v-if="visible">
+    <div style="overflow: auto; height: 100vh; width: 100%">
+        <div style="margin-top: 72px; margin-bottom: 55px;">
+        </div>
+    </div>
+    <nav id="navBar" class="navbar navbar-expand-sm fixed-top" style="height: 50px" :style="{'top': isNoTitleBar ? '0' : '22px'}">
+        <div class="ml-2" style="position: fixed; left: 0">
+            <button type="button" class="btn btn-sm btn-success" @click="gotoAdd"><i class="fa fa-plus"></i></button>
+        </div>
+
+        <div class="mr-2" style="position: absolute; right: 0">
+            <button type="button" class="btn btn-sm btn-outline-secondary" @click="gotoSetting"><i class="fa fa-cog"></i></button>
+        </div>
+    </nav>
+
+</div>

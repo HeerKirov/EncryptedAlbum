@@ -18,6 +18,17 @@ function matchExistTextPureImage(image: Image, str: string): boolean {
 }
 
 class Illustrations {
+    static empty(): Illustration {
+        return {
+            id: undefined,
+            title: '',
+            tags: [],
+            favorite: false,
+            links: [],
+            createTime: undefined,
+            images: []
+        }
+    }
     static cloneIllustration(illust: Illustration): Illustration {
         return {
             id: illust.id || undefined,
@@ -80,6 +91,17 @@ class Illustrations {
 }
 
 class Images {
+    static empty(): Image {
+        return {
+            id: undefined,
+            index: undefined,
+            subTitle: null,
+            subFavorite: null,
+            subTags: [],
+            createTime: undefined,
+            resolution: null
+        }
+    }
     static cloneImage(image: Image) : Image {
         return {
             id: image.id || undefined,
@@ -123,14 +145,14 @@ class Images {
 }
 
 class Tags {
+    static tag(type: string, name: string): string {
+        return type && name ? `${type}:${name}` : null
+    }
     static getTagName(tag: string): string {
         return tag ? tag.split(':', 2)[1] : null
     }
     static getTagType(tag: string): string {
         return tag ? tag.split(':', 2)[0] : null
-    }
-    static tag(type: string, name: string): string {
-        return type && name ? `${type}:${name}` : null
     }
 
     static matchSearchText(tag: string, search: string) {

@@ -36,6 +36,21 @@ class Arrays {
         }
         return arr
     }
+    static insert<T>(arr: T[], index: number, ele: T): void {
+        if(arr) {
+            if(index < 0) index = 0
+            else if(index >= arr.length) index = arr.length
+            arr.splice(index, 0, ele)
+        }
+    }
+    static join<T>(arr: T[], elements: T[]): T[] {
+        if(arr && elements) {
+            for(let i = 0, first = arr.length; i < elements.length; ++i) {
+                arr[first + i] = elements[i]
+            }
+        }
+        return arr
+    }
     static remove<T>(arr: T[], ele: T): boolean {
         if(arr) {
             let index = arr.indexOf(ele)
@@ -52,6 +67,12 @@ class Arrays {
             return true
         }
         return false
+    }
+    static popAt<T>(arr: T[], index: number): T {
+        if(arr && index < arr.length) {
+            return arr.splice(index, 1)[0]
+        }
+        return undefined
     }
     static equal<T>(a: T[], b: T[]): boolean {
         if(a && b) {
@@ -70,9 +91,9 @@ class Arrays {
         return arr && arr.length > 0
     }
 
-    static last<T>(arr: T[]): T {
-        if(arr && arr.length > 0) {
-            return arr[arr.length - 1]
+    static last<T>(arr: T[], lastIndex: number = 1): T {
+        if(arr && arr.length >= lastIndex) {
+            return arr[arr.length - lastIndex]
         }
         return null
     }

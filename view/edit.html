@@ -1,0 +1,290 @@
+<div id="editView" class="panel" v-if="visible">
+    <!-- 没有项目时，浮动在空面板上的指引文字和链接 -->
+    <div class="center-board" style="width: 200px; height: 225px;" v-if="isEmptyCurrent">
+        <div class="row pt-1 pb-2">
+            <div class="col">
+                <button type="button" class="btn btn-link" @click="newIllust('local')">导入本地文件…</button>
+            </div>
+        </div>
+        <div class="row pt-1 pb-2">
+            <div class="col">
+                <button type="button" class="btn btn-link" data-toggle="modal" data-target="#importURLModal">下载网络文件…</button>
+            </div>
+        </div>
+        <div class="row pt-1 pb-2">
+            <div class="col">
+                <button type="button" class="btn btn-link" data-toggle="modal" data-target="#importPixivModal">解析Pixiv项目…</button>
+            </div>
+        </div>
+        <div class="row pt-1 pb-2">
+            <div class="col">
+                <button type="button" class="btn btn-link" @click="newIllust()">新建空的项目…</button>
+            </div>
+        </div>
+    </div>
+    <!-- 项目面板 -->
+    <div style="position: absolute; width: 100%; overflow: auto; height: 100vh" v-if="!isEmptyCurrent">
+        <!-- 单image使用的样式 -->
+        <div class="container" style="margin-top: 100px" v-if="isSingleImageStyle">
+            <div class="row">
+                <div class="col-12 col-md-6">
+                    <img alt="预览" style="width: 100%" :src="current.imageURLs[0]"/>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="form-group">
+                        <label>标题:</label>
+                        <input type="email" class="form-control" v-model="current.illust.title">
+                    </div>
+                    <div class="form-group">
+                        <label>标签:<button class="btn btn-sm btn-link" @click="editTag(current.illust.tags)"><i class="fa fa-edit"></i> 编辑</button></label>
+                        <div>
+                            <span v-for="(tag, index) in current.illust.tags" class="badge badge-secondary mr-1"
+                                  @click="changeTagTypeInEditor(index)"
+                                  @mousedown.right="removeTagFromEditor(index)">
+                                {{getTagName(tag)}}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>相关链接:</label>
+                        <div class="btn-group" style="width:100%" v-for="(link, index) in current.illust.links">
+                            <span class="input-group-text" style="width: 95%">{{link}}</span>
+                            <button type="button" class="btn btn-light rounded" @click="removeLink(index)">
+                                <i class="fa fa-close"></i>
+                            </button>
+                        </div>
+                        <div class="btn-group mt-1" style="width:100%">
+                            <input type="text" class="form-control" v-model="current.input.newLink" @keydown.enter="addNewLink">
+                            <button type="button" class="btn btn-success rounded" @click="addNewLink"><i class="fa fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <h6>为当前项目：</h6>
+                        <button class="btn btn-sm btn-link" @click="newImage('local')"><i class="fa fa-plus"></i> 添加本地文件</button>
+                        <button class="btn btn-sm btn-link" @click="newImage('url')"><i class="fa fa-plus"></i> 添加网络URL文件</button>
+                    </div>
+                    <div class="form-group">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-link dropdown-toggle" data-toggle="dropdown"><i class="fa fa-tasks"></i> 移动这个图像到别处</button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" @click="moveImage(0, 'prev')">移去前一个项目</a>
+                                <a class="dropdown-item" @click="moveImage(0, 'next')" href="#">移去后一个项目</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-sm btn-block btn-danger" @click="removeIllust"><i class="fa fa-trash"></i> 删除项目</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 零或多image使用的样式 -->
+        <div class="container" style="margin-top: 100px" v-if="!isSingleImageStyle">
+            <div class="row">
+                <div class="col-auto col-md-2"></div>
+                <div class="col-12 col-md-8">
+                    <div class="form-group">
+                        <label>标题:</label>
+                        <input type="email" class="form-control" v-model="current.illust.title">
+                    </div>
+                    <div class="form-group">
+                        <label>标签:<button class="btn btn-sm btn-link" @click="editTag(current.illust.tags)"><i class="fa fa-edit"></i> 编辑</button></label>
+                        <div>
+                            <span v-for="(tag, index) in current.illust.tags" class="badge badge-secondary mr-1"
+                                  @click="changeTagTypeInEditor(index)"
+                                  @mousedown.right="removeTagFromEditor(index)">
+                                {{getTagName(tag)}}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>相关链接:</label>
+                        <div class="btn-group" style="width:100%" v-for="(link, index) in current.illust.links">
+                            <span class="input-group-text" style="width: 95%">{{link}}</span>
+                            <button type="button" class="btn btn-light rounded" @click="removeLink(index)">
+                                <i class="fa fa-close"></i>
+                            </button>
+                        </div>
+                        <div class="btn-group mt-1" style="width:100%">
+                            <input type="text" class="form-control" v-model="current.input.newLink" @keydown.enter="addNewLink">
+                            <button type="button" class="btn btn-success rounded" @click="addNewLink"><i class="fa fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="card" v-for="(image, i) in current.illust.images">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12 col-md-7">
+                                    <img alt="预览" style="width: 100%" :src="current.imageURLs[i]"/>
+                                </div>
+                                <div class="col-12 col-md-5">
+                                    <div class="form-group">
+                                        <label>子标题:</label>
+                                        <input type="email" class="form-control" v-model="image.subTitle">
+                                    </div>
+                                    <div class="form-group mb-5">
+                                        <label>子标签:<button class="btn btn-sm btn-link" @click="editTag(image.subTags)"><i class="fa fa-edit"></i> 编辑</button></label>
+                                        <div>
+                                            <span v-for="(tag, index) in image.subTags" class="badge badge-secondary mr-1"
+                                                  @click="changeTagTypeInEditor(index)"
+                                                  @mousedown.right="removeTagFromEditor(index)">
+                                                {{getTagName(tag)}}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group btn-group-sm text-right" style="bottom: 0; right: 15px; position: absolute">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-toggle="dropdown"><i class="fa fa-sort-numeric-asc"></i></button>
+                                            <div class="dropdown-menu">
+                                                <a class="dropdown-item" @click="orderImage(i, 'first')">移到首位</a>
+                                                <a class="dropdown-item" @click="orderImage(i, 'prev')">前移一位</a>
+                                                <a class="dropdown-item" @click="orderImage(i, 'next')">后移一位</a>
+                                                <a class="dropdown-item" @click="orderImage(i, 'last')">移到末尾</a>
+                                            </div>
+                                        </div>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-toggle="dropdown"><i class="fa fa-tasks"></i></button>
+                                            <div class="dropdown-menu">
+                                                <a class="dropdown-item" @click="moveImage(i, 'prev')">移去前一个项目</a>
+                                                <a class="dropdown-item" @click="moveImage(i, 'next')">移去后一个项目</a>
+                                                <a class="dropdown-item" @click="moveImage(i, 'prev-new')">在前面新建项目并移去</a>
+                                                <a class="dropdown-item" @click="moveImage(i, 'next-new')">在后面新建项目并移去</a>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-sm btn-danger" @click="removeImage(i)"><i class="fa fa-trash"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mt-2 mb-2">
+                        <div class="card-body">
+                            <h6>为当前项目：</h6>
+                            <p>
+                                <button class="btn btn-link" @click="newImage('local')"><i class="fa fa-plus"></i> 添加本地文件</button>
+                                <button class="btn btn-link" @click="newImage('url')"><i class="fa fa-plus"></i> 添加网络URL文件</button>
+                            </p>
+                            <label v-if="current.illust.images.length > 0">当前项目拥有{{current.illust.images.length}}幅图像。</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-sm btn-block btn-danger" @click="removeIllust"><i class="fa fa-trash"></i> 删除项目</button>
+                    </div>
+                </div>
+                <div class="col-auto col-md-2"></div>
+            </div>
+        </div>
+
+    </div>
+    <!-- 顶部导航栏 -->
+    <nav id="navBar" class="navbar navbar-expand-sm" style="position: absolute; height: 50px; width: 100%;" :style="{'top': isNoTitleBar ? '0' : '22px'}">
+        <div class="row" style="width: 100%" v-if="isMultiplyIllust">
+            <div class="col"></div>
+            <div class="col-auto">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary" :class="{disabled: !canTurnToAccess('first')}" @click="turnToArrow('first')">
+                        <i class="fa fa-angle-double-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" :class="{disabled: !canTurnToAccess('prev')}" @click="turnToArrow('prev')">
+                        <i class="fa fa-angle-left"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group">
+                    <input type="text" class="form-control" style="width: 60px; height: 31px;"
+                           @keydown.enter="turnToInput"
+                           v-model="current.input.navigateIndex">
+                    <label class="pt-1">/</label>
+                    <span class="input-group-text" style="width: 60px; height: 31px;">{{illusts.length}}</span>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary" :class="{disabled: !canTurnToAccess('next')}" @click="turnToArrow('next')">
+                        <i class="fa fa-angle-right"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" :class="{disabled: !canTurnToAccess('last')}" @click="turnToArrow('last')">
+                        <i class="fa fa-angle-double-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col"></div>
+        </div>
+        <div class="ml-2" style="position: absolute; left: 0;">
+            <button type="button" class="btn btn-sm btn-link" @click="goBack"><i class="fa fa-close"></i></button>
+        </div>
+        <div class="mr-2" style="position: fixed; right: 100px;">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-success" @click="newIllust()"><i class="fa fa-plus"></i> 新建项目</button>
+                <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"></button>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a class="dropdown-item" @click="newIllust('local')">从本地导入文件</a>
+                    <a class="dropdown-item" data-toggle="modal" data-target="#importURLModal">从URL下载文件</a>
+                    <a class="dropdown-item" data-toggle="modal" data-target="#importPixivModal">从Pixiv解析项目</a>
+                </div>
+            </div>
+        </div>
+        <div class="mr-2" style="position: fixed; right: 0;">
+            <button type="button" class="btn btn-sm btn-primary" @click="submit" :class="{disabled: isEmptyList}"><i class="fa fa-check"></i> 全部保存</button>
+        </div>
+    </nav>
+    <!-- 标签编辑面板 -->
+    <div class="modal fade" id="editTagModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">编辑标签</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <span v-for="(tag, index) in tagEditor.tags" class="badge badge-secondary mr-1"
+                          @click="changeTagTypeInEditor(index)"
+                          @mousedown.right="removeTagFromEditor(index)">
+                        {{getTagName(tag)}}
+                    </span>
+
+                    <div class="btn-group btn-group-sm">
+                        <input type="text" class="form-control mr-1" v-model="tagEditor.tagName" @keydown.enter="addNewTagToEditor">
+                        <select class="form-control mr-1" v-model="tagEditor.tagType">
+                            <option v-for="k in tagTypeList" :value="k.key">{{k.name}}</option>
+                        </select>
+                        <button class="btn btn-sm btn-primary rounded" @click="addNewTagToEditor"><i class="fa fa-plus"></i></button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 加载对话框 -->
+    <div class="panel" id="processorDialog" v-if="processor.visible">
+        <div class="panel" style="background: #000000; opacity: 0.3"></div>
+        <div class="card" style="position: absolute; width: 360px; height: 160px; left: 50%; top: 50%; transform: translate(-50%, -50%)">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h6>{{processor.title}}</h6>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label>{{processor.text}}</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="progress">
+                            <div class="progress-bar" :style="{width: this.processor.percent + '%'}"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col pl-1">
+                        <button class="btn btn-link" @click="cancelProcessor">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

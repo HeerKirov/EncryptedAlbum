@@ -104,10 +104,12 @@ function route(viewName: string, options?: any, refresh?: boolean): void {
 }
 function routeBack(refresh?: boolean): void {
     if(refresh == undefined) refresh = false
-    if(Arrays.isNotEmpty(viewHistory)) {
+    if(viewHistory.length >= 2) {
+        Arrays.removeAt(viewHistory, viewHistory.length - 1)
         route(Arrays.last(viewHistory), null, refresh)
     }
 }
+
 function updateTitleBarStatus(): void {
     if(db.platform.platform !== 'darwin' || db.ui.fullscreen) {
         $('#titleBar').hide()
@@ -125,7 +127,6 @@ function updateTheme(): void {
     else if(db.ui.theme === 'gray') $('#body').css('background', '#F0F0F0')
     else $('#body').css('background', '#1A1A1A')
 }
-
 function setTouchBar(touchBar: TouchBar): void {
     if(db.platform.platform === 'darwin') {
         win.setTouchBar(touchBar)

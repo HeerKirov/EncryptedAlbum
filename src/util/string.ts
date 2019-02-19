@@ -68,6 +68,13 @@ class Strings {
         }
         return true
     }
+
+    static isBlank(str: string): boolean {
+        return !str || str.trim().length === 0
+    }
+    static isNotBlank(str: string): boolean {
+        return str && str.trim().length > 0
+    }
 }
 
 class DateTimes {
@@ -93,4 +100,12 @@ class DateTimes {
     }
 }
 
-export {uuid, Strings, DateTimes}
+class Paths {
+    static getFileTitle(str: string): string {
+        let lastSplit = str.lastIndexOf('/')
+        let lastPoint = str.lastIndexOf('.')
+        return str.substring(lastSplit >= 0 ? lastSplit + 1 : 0, lastPoint >= 0 ? lastPoint : str.length)
+    }
+}
+
+export {uuid, Strings, DateTimes, Paths}

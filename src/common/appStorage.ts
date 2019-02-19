@@ -4,20 +4,21 @@ import {encrypt, decrypt} from "../util/encryption"
 import {LocalFormula} from "./localEngine"
 
 const STORAGE = "data.dat"
-let base: string = ''
-function APP_FOLDER() {
-    return `${base}/data`
-}
 
 /**
  * app本地存储data的存储类。
  */
 class AppStorage {
+    private static base: string = ''
     static setBaseFolder(basePath: string) {
-        base = basePath
+        this.base = basePath
     }
+    static APP_FOLDER(): string {
+        return `${this.base}/data`
+    }
+
     static authenticate(loginPassword: string): AppStorage {
-        let buf = readFileSync(`${APP_FOLDER()}/${STORAGE}`)
+        let buf = readFileSync(`${this.APP_FOLDER()}/${STORAGE}`)
         let data = decrypt(loginPassword, buf)
         if(data != null) {
             return new AppStorage(data, loginPassword)
@@ -35,20 +36,13 @@ class AppStorage {
         return storage
     }
     static isInitialized(): boolean {
-        return existsSync(`${APP_FOLDER()}/${STORAGE}`)
+        return existsSync(`${this.APP_FOLDER()}/${STORAGE}`)
     }
 
-    private mainFormula: Formula = null
-    private secondaryFormula: Formula[] = []
+    private readonly mainFormula: Formula = null
 
     private constructor(json: Object, private password: string) {
         this.mainFormula = createFormula(json['mainFormula'])
-        this.secondaryFormula = []
-        if(json['secondFormulas']) {
-            for(let i in json['secondFormulas']) {
-                this.secondaryFormula[i] = createFormula(json['secondaryFormulas'][i])
-            }
-        }
     }
 
     getPassword(): string {
@@ -59,15 +53,14 @@ class AppStorage {
     }
     save() {
         let buf = encrypt(this.password, {
-            mainFormula: this.mainFormula,
-            secondFormulas: this.secondaryFormula
+            mainFormula: this.mainFormula
         })
         try {
-            mkdirSync(APP_FOLDER()) //该方法并不可以递归创建文件夹。
+            mkdirSync(AppStorage.APP_FOLDER()) //该方法并不可以递归创建文件夹。
         }catch (e) {
             //resume
         }
-        writeFileSync(`${APP_FOLDER()}/${STORAGE}`, buf)
+        writeFileSync(`${AppStorage.APP_FOLDER()}/${STORAGE}`, buf)
     }
 
     getMainFormula(): Formula {
@@ -76,21 +69,6 @@ class AppStorage {
 
     loadMainEngine(): DataEngine {
         return this.mainFormula.buildEngine()
-    }
-    loadSecondaryEngine(id: string): DataEngine {
-        for(let formula of this.secondaryFormula) {
-            if(formula.id === id) {
-                return formula.buildEngine()
-            }
-        }
-        return null
-    }
-    loadAllSecondaryEngine(): DataEngine[] {
-        let ret = []
-        for(let i in this.secondaryFormula) {
-            ret[i] = this.secondaryFormula[i].buildEngine()
-        }
-        return ret
     }
 }
 

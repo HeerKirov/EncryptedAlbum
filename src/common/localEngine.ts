@@ -8,7 +8,7 @@ import {
 import {Formula} from './appStorage'
 import {decrypt, encrypt, encryptBuffer, decryptBuffer} from '../util/encryption'
 import {translateDataURL, PREFIX_LENGTH, PREFIX} from '../util/nativeImage'
-import {Arrays, Maps, Sets} from "../util/collection";
+import {Arrays, Maps, Sets} from "../util/collection"
 
 const STORAGE = 'data.db'
 const BLOCK_SIZE = 1024 * 64 //64KB
@@ -30,17 +30,21 @@ class LocalDataEngine implements DataEngine {
         }
         return illustrations
     }
-    createIllustration(illustrations: Illustration[]): Illustration[] {
+    createOrUpdateIllustration(illustrations: Illustration[], imageIdVirtualReflect?: Object): Illustration[] {
+        let success = []
         for(let illust of illustrations) {
             if(!illust.id) {
                 illust.id = this.memory.stepToNextIllustrationId()
-            }
-            for(let image of illust.images) {
-                if(!image.id) {
-                    image.id = this.memory.stepToNextImageId()
+                Arrays.append(this.memory.illustrations, illust)
+                Arrays.append(success, illust)
+            }else{
+                let index = Arrays.indexOf(this.memory.illustrations, (t) => t.id === illust.id)
+                if(index >= 0) {
+                    this.memory.illustrations[index] = illust
+                    Arrays.append(success, illust)
                 }
             }
-            Arrays.append(this.memory.illustrations, illust)
+
             for(let tag of illust.tags) {
                 Sets.put(this.memory.tags, tag)
             }
@@ -48,26 +52,13 @@ class LocalDataEngine implements DataEngine {
                 for(let tag of image.subTags) {
                     Sets.put(this.memory.tags, tag)
                 }
-            }
-        }
-        return illustrations
-    }
-    updateIllustration(illustrations: Illustration[]): Illustration[] {
-        let success = []
-        for(let illust of illustrations) {
-            let index = Arrays.indexOf(this.memory.illustrations, (t) => t.id === illust.id)
-            if(index >= 0) {
-                this.memory.illustrations[index] = illust
-                Arrays.append(success, illust)
-                for(let tag of illust.tags) {
-                    Sets.put(this.memory.tags, tag)
-                }
-                for(let image of illust.images) {
-                    for(let tag of image.subTags) {
-                        Sets.put(this.memory.tags, tag)
-                    }
-                    if(!image.id) {
-                        image.id = this.memory.stepToNextImageId()
+                if(image.id == null) {
+                    image.id = this.memory.stepToNextImageId()
+                }else if(image.id < 0) {
+                    let origin = image.id
+                    image.id = this.memory.stepToNextImageId()
+                    if(imageIdVirtualReflect) {
+                        imageIdVirtualReflect[origin] = image.id
                     }
                 }
             }
