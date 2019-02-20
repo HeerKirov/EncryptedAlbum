@@ -119,6 +119,7 @@ function editModel(vueModel: CommonModel) {
                 this.deletedIllusts = []
             },
             submit() {
+                //TODO 提交时，干掉single image的sub信息。
                 processor.submitTask({title: '保存中'}, function (
                     isRunning: () => boolean,
                     setText: (text: string) => void,
@@ -162,7 +163,14 @@ function editModel(vueModel: CommonModel) {
                     function finish() {
                         db.engine.save()
                         finishTask()
-                        vm.goBack()
+
+                        newImageData = {}
+                        vm.illusts = []
+                        vm.current.index = null
+                        vm.current.illust = null
+                        vm.current.imageURLs = []
+                        vm.deletedIllusts = []
+                        vueModel.routeBack(true)
                     }
                 })
             },

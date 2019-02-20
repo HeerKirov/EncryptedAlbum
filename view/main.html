@@ -1,16 +1,194 @@
 <div id="mainView" class="panel" v-if="visible">
     <div style="overflow: auto; height: 100vh; width: 100%">
-        <div style="margin-top: 72px; margin-bottom: 55px;">
+        <div style="margin-bottom: 55px; margin-top: 72px">
+            <ul style="margin: 0; padding: 0">
+                <li v-for="(item, index) in data.frontend" style="display: inline-block;" :style="{width: 60 + view.zoom * 40 + 'px'}">
+                    <div class="card" style="margin: 2px">
+                        <img class="card-img-top" :src="item.dataURL" style="width:100%"
+                            @click="clickOne(index)" @mousedown.right="clickOne(index, 'right')">
+                        <div class="" v-if="view.showTitle">
+                            <h6 class="m-2">{{item.title}}</h6>
+                        </div>
+                        <i v-if="item.selected" style="position: absolute; right: 5px; bottom: 5px;" class="fa fa-check-circle fa-2x text-primary"></i>
+                        <i v-if="item.multiImage" style="position: absolute; right: 5px; top: 5px;" class="fa fa-th-list fa-lg text-white"></i>
+                    </div>
+                </li>
+            </ul>
+            <button class="btn btn-block btn-link" v-if="data.haveNextPage" @click="uploadData">加载更多…</button>
         </div>
     </div>
+    <!-- 导航栏 -->
     <nav id="navBar" class="navbar navbar-expand-sm fixed-top" style="height: 50px" :style="{'top': isNoTitleBar ? '0' : '22px'}">
         <div class="ml-2" style="position: fixed; left: 0">
             <button type="button" class="btn btn-sm btn-success" @click="gotoAdd"><i class="fa fa-plus"></i></button>
         </div>
-
+        <div class="mr-2" style="position: absolute; left: 42px">
+            <button type="button" class="btn btn-sm" :class="{'btn-outline-secondary': !selected.mode, 'btn-secondary': selected.mode}" @click="switchSelectMode">
+                <i class="fa fa-check-square-o"></i>
+            </button>
+        </div>
+        <!-- 过滤器图示 -->
+        <div class="ml-1 mr-1" style="position: absolute; left: 78px">
+            <button class="btn btn-sm btn-outline-secondary" @click="loadFilterOption"  data-toggle="modal" data-target="#filterModal">
+                <i class="fa fa-filter mr-1" v-if="isAnyFilter"></i><i class="fa fa-star mr-1" v-if="option.filter.favorite"></i><i class="fa fa-picture-o mr-1" v-if="option.viewByImage"></i>
+                <span class="ml-4 mr-4">{{ ui.filter.noteText ? ui.filter.noteText : '选择过滤选项…' }}</span>
+            </button>
+        </div>
+        <!-- 文件夹选单 -->
+        <div class="mr-2" style="position: absolute; right: 71px;">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-secondary">
+                    <i class="fa fa-list"></i> 阅览列表
+                </button>
+            </div>
+        </div>
+        <!-- 视图按钮 -->
+        <div class="mr-2" style="position: absolute; right: 35px">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#viewModal"><i class="fa fa-eye"></i></button>
+        </div>
+        <!-- 选项按钮 -->
         <div class="mr-2" style="position: absolute; right: 0">
             <button type="button" class="btn btn-sm btn-outline-secondary" @click="gotoSetting"><i class="fa fa-cog"></i></button>
         </div>
     </nav>
+    <!-- 选择栏 -->
+    <div v-if="selected.mode" style="margin: auto; position: absolute; left: 0; right: 0; bottom: 0">
+        <div class="card m-1 p-1">
+            <div class="row">
+                <div class="col ml-1">
+                    已选择<span class="badge badge-light">{{selected.count}}</span>项
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">全选</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary">反选</button>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-sm btn-primary"
+                                :class="{disabled: !false}">
+                            <i class="fa fa-picture-o"></i> 详情
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary"
+                                :class="{disabled: !false}">
+                            添加到临时文件夹
+                        </button>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" :class="{disabled: !false}" data-toggle="dropdown">更多</button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item">批量导出</a>
+                                <a class="dropdown-item" data-toggle="modal" data-target="#deleteAllCheck">批量删除</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- 视图对话框 -->
+    <div class="modal fade" id="viewModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">视图</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-check mb-1">
+                        <div class="input-group">
+                            <label class="input-group-text mr-1">显示标题</label>
+                            <span class="input-group-text">
+                                <input type="checkbox" v-model="view.showTitle">
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-check mb-1">
+                        <div class="input-group">
+                            <label class="input-group-text mr-1">图像缩放</label>
+                            <span class="input-group-text">
+                                <input v-model="view.zoom" type="range" class="custom-range" min="1" max="10" step="1" value="5" style="height: 25px">
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        <div class="input-group">
+                            <label class="input-group-text mr-1">加载数量</label>
+                            <span class="input-group-text">
+                                <select class="form-control" v-model="view.loadNum" style="height: 25px">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="40">40</option>
+                                    <option value="80">80</option>
+                                    <option value="*">全部</option>
+                                </select>
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer"></div>
+            </div>
+        </div>
+    </div>
+    <!-- 过滤器对话框 -->
+    <div class="modal fade" id="filterModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">过滤选项</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col">
+                            <input type="text" class="form-control mb-2" v-model="ui.filter.search" placeholder="输入文字搜索…">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-md">
+                            <div class="input-group">
+                                <span class="input-group-text"><input type="checkbox" v-model="ui.filter.favorite"></span>
+                                <label class="input-group-text mr-1">收藏夹</label>
+                            </div>
+                            <span class="input-group-text mt-2 mb-2">
+                                <label>标签组</label>
+                                <!-- TODO 完成标签筛选功能 -->
+                            </span>
+                        </div>
+                        <div class="col-12 col-md">
+                            <div class="input-group">
+                                <span class="input-group-text"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="title"></span>
+                                <label class="input-group-text">{{ui.sort.desc ? '名称从后到前': '名称从前到后'}}</label>
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="id"></span>
+                                <label class="input-group-text">{{ui.sort.desc ? '索引编号从大到小' : '索引编号从小到大'}}</label>
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="createTime"></span>
+                                <label class="input-group-text">{{ui.sort.desc ? '创建时间从早到新' : '创建时间从新到早'}}</label>
+                            </div>
+                            <div class="input-group mt-2">
+                                <span class="input-group-text"><input type="checkbox" v-model="ui.sort.desc"></span>
+                                <label class="input-group-text">降序</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="input-group mt-2">
+                                <span class="input-group-text"><input type="checkbox" v-model="ui.viewByImage"></span>
+                                <label class="input-group-text">拆分到图像层级浏览和过滤</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" @click="saveFilterOption">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

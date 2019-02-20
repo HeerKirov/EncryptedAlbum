@@ -143,6 +143,20 @@ class Arrays {
         }
         return -1
     }
+
+    static concatString(arr: string[], mid: string = ''): string {
+        if(arr) {
+            let ret = ''
+            let first = true
+            for(let s of arr) {
+                if(first) first = false
+                else ret += mid
+                ret += s
+            }
+            return ret
+        }
+        return null
+    }
 }
 
 class Sets {
