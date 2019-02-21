@@ -28,18 +28,42 @@
             </button>
         </div>
         <!-- 过滤器图示 -->
-        <div class="ml-1 mr-1" style="position: absolute; left: 78px">
-            <button class="btn btn-sm btn-outline-secondary" @click="loadFilterOption"  data-toggle="modal" data-target="#filterModal">
+        <div class="ml-1 mr-1" style="position: absolute; left: 74px">
+            <button class="btn btn-sm btn-outline-secondary" v-if="folder.type === 'list' || folder.type === 'virtual-folder'"
+                    @click="loadFilterOption"  data-toggle="modal" data-target="#filterModal">
                 <i class="fa fa-filter mr-1" v-if="isAnyFilter"></i><i class="fa fa-star mr-1" v-if="option.filter.favorite"></i><i class="fa fa-picture-o mr-1" v-if="option.viewByImage"></i>
-                <span class="ml-4 mr-4">{{ ui.filter.noteText ? ui.filter.noteText : '选择过滤选项…' }}</span>
+                <span class="ml-4 mr-4">{{ ui.filter.noteText ? ui.filter.noteText : folder.type === 'list' ? '选择过滤选项…' : '虚拟文件夹的视图配置…' }}</span>
+            </button>
+            <button class="btn btn-sm" v-if="folder.type === 'temp' || folder.type === 'folder'"
+                    :class="option.viewByImage ? 'btn-secondary' : 'btn-outline-secondary'"
+                    @click="switchViewByImage">
+                <i class="fa fa-picture-o mr-1"></i> 图像层级浏览
             </button>
         </div>
         <!-- 文件夹选单 -->
         <div class="mr-2" style="position: absolute; right: 71px;">
-            <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-secondary">
-                    <i class="fa fa-list"></i> 阅览列表
+            <div class="dropdown">
+                <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" data-toggle="dropdown">
+                    <i class="fa" :class="
+                        folder.type === 'list' ? 'fa-list' :
+                        folder.type === 'temp' ? 'fa-empire' :
+                        folder.type === 'virtual-folder' ? 'fa-address-card-o' : 'fa-folder-open-o'
+                    "></i> {{
+                        folder.current === 'list' ? '阅览列表' :
+                        folder.current === 'temp' ? '临时文件夹' :
+                        folder.customs[folder.current].name
+                    }}
                 </button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" @click="switchFolder('list')"><i class="fa fa-list"></i> 阅览列表</a>
+                    <a class="dropdown-item" @click="switchFolder('temp')"><i class="fa fa-empire"></i> 临时文件夹</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" v-for="(folder, index) in folder.customs" @click="switchFolder(index)">
+                        <i class="fa" :class="folder.virtual ? 'fa-address-card-o' : 'fa-folder-open-o'"></i> {{folder.name}}
+                    </a>
+                    <div class="dropdown-divider" v-if="folder.customs.length > 0"></div>
+                    <a class="dropdown-item"><i class="fa fa-plus"></i> 新建文件夹…</a>
+                </div>
             </div>
         </div>
         <!-- 视图按钮 -->
@@ -55,27 +79,47 @@
     <div v-if="selected.mode" style="margin: auto; position: absolute; left: 0; right: 0; bottom: 0">
         <div class="card m-1 p-1">
             <div class="row">
+
                 <div class="col ml-1">
+                    <button type="button" class="btn btn-sm btn-link" @click="switchSelectMode"><i class="fa fa-close"></i></button>
                     已选择<span class="badge badge-light">{{selected.count}}</span>项
                 </div>
                 <div class="col-auto">
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-outline-secondary">全选</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary">反选</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="selectAll">全选</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="selectReverse">反选</button>
                     </div>
                 </div>
                 <div class="col-auto">
                     <div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-sm btn-primary"
-                                :class="{disabled: !false}">
+                                :class="{disabled: !isAnySelected}">
                             <i class="fa fa-picture-o"></i> 详情
                         </button>
                         <button type="button" class="btn btn-sm btn-primary"
-                                :class="{disabled: !false}">
-                            添加到临时文件夹
+                                :class="{disabled: !isAnySelected}">
+                            <i class="fa fa-edit"></i> 编辑
                         </button>
+                        <button type="button" class="btn btn-sm btn-primary" v-if="!inFolderType('temp')"
+                                :class="{disabled: !isAnySelected}" @click="addToFolder('temp')">
+                            <i class="fa fa-empire"></i> 添加到临时文件夹
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" v-if="inFolderType('temp') || inFolderType('folder')"
+                                :class="{disabled: !isAnySelected}" @click="removeFromFolder">
+                            <i class="fa fa-trash"></i> 从文件夹移除
+                        </button>
+                        <div class="dropdown" v-if="realFolders.length > 0">
+                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle rounded-0" data-toggle="dropdown">
+                                <i class="fa fa-folder-open-o"></i> 添加到…
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" v-for="folder in realFolders">
+                                    {{folder.name}}
+                                </a>
+                            </div>
+                        </div>
                         <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" :class="{disabled: !false}" data-toggle="dropdown">更多</button>
+                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" :class="{disabled: !isAnySelected}" data-toggle="dropdown">更多</button>
                             <div class="dropdown-menu">
                                 <a class="dropdown-item">批量导出</a>
                                 <a class="dropdown-item" data-toggle="modal" data-target="#deleteAllCheck">批量删除</a>
@@ -137,7 +181,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">过滤选项</h5>
+                    <h5 class="modal-title">{{folder.type === 'list' ? '过滤选项' : '虚拟文件夹视图配置'}}</h5>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
@@ -186,7 +230,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal" @click="saveFilterOption">确定</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" @click="saveFilterOption">{{folder.type === 'list' ? '确定' : '保存'}}</button>
                 </div>
             </div>
         </div>

@@ -143,6 +143,16 @@ class Arrays {
         }
         return -1
     }
+    static find<T>(arr: T[], condition: (t: T) => boolean): T {
+        if(arr && condition) {
+            for(let i = 0; i < arr.length; ++i) {
+                if(condition(arr[i])) {
+                    return arr[i]
+                }
+            }
+        }
+        return undefined
+    }
 
     static concatString(arr: string[], mid: string = ''): string {
         if(arr) {
@@ -156,6 +166,26 @@ class Arrays {
             return ret
         }
         return null
+    }
+    static zip<T, R>(arr: T[], method: (last: T | R, next: T | R) => R): R[] {
+        let ret = []
+        let last = undefined
+        for(let i of arr) {
+            if(last == undefined) last = i
+            else{
+                let result = method(last, i)
+                if(result != undefined) {
+                    last = result
+                }else{
+                    ret[ret.length] = last
+                    last = i
+                }
+            }
+        }
+        if(last != undefined) {
+            ret[ret.length] = last
+        }
+        return ret
     }
 }
 

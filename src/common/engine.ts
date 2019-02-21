@@ -29,6 +29,18 @@ interface DataEngine {
 
     findTag(options: TagFindOption): Array<string>
 
+    createOrUpdateRealFolder(name: string, folder: Scale[], type: 'update' | 'add' | 'delete'): void
+    createOrUpdateVirtualFolder(name: string, folder: IllustrationFindOption): void
+    getVirtualFolderInformation(name: string): IllustrationFindOption
+    findFolder(name: string): Illustration[]
+
+    updateTempFolder(folder: Scale[], type: 'update' | 'add' | 'delete'): void
+    findTempFolder(): Illustration[]
+
+    updateQuery(query: IllustrationFindOption): void
+    getQueryInformation(): IllustrationFindOption
+    findQuery(): Illustration[]
+
     getConfig(key: string): any
     putConfig(key: string, value: any): void
     existConfig(key: string): boolean
@@ -115,6 +127,11 @@ interface Image {
     subFavorite: boolean
     resolution: Size,
     createTime: number
+}
+
+interface Scale {
+    illustId: number,
+    imageIndex: number[]
 }
 
 function caseIllustration(illustration: Illustration, option: IllustrationFindOption): Illustration {
@@ -204,4 +221,4 @@ function sortTag(tags: string[], order: string[], desc: boolean): string[] {
     })
     return tags
 }
-export {DataEngine, ImageSpecification, IllustrationFindOption, TagFindOption, Illustration, Image, caseIllustration, sortIllustration, caseTag, sortTag}
+export {DataEngine, ImageSpecification, IllustrationFindOption, TagFindOption, Illustration, Image, Scale, caseIllustration, sortIllustration, caseTag, sortTag}

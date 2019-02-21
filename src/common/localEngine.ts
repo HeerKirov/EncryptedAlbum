@@ -3,12 +3,13 @@ import {
     DataEngine, Illustration,
     IllustrationFindOption, TagFindOption, ImageSpecification,
     caseIllustration, caseTag,
-    sortIllustration, sortTag,
+    sortIllustration, sortTag, Scale,
 } from './engine'
 import {Formula} from './appStorage'
 import {decrypt, encrypt, encryptBuffer, decryptBuffer} from '../util/encryption'
 import {translateDataURL, PREFIX_LENGTH, PREFIX} from '../util/nativeImage'
 import {Arrays, Maps, Sets} from "../util/collection"
+import {Illustrations, Images} from "../util/model";
 
 const STORAGE = 'data.db'
 const BLOCK_SIZE = 1024 * 64 //64KB
@@ -141,6 +142,68 @@ class LocalDataEngine implements DataEngine {
         }
     }
 
+    createOrUpdateRealFolder(name: string, folder: Scale[], type: 'update' | 'add' | 'delete'): void {
+        let folders = this.getConfig('folder')
+        if(!folders) {
+            folders = {}
+            this.putConfig('folder', folders)
+        }
+        folders[name] = this.updateRealScales(folders[name], folder, type)
+    }
+    createOrUpdateVirtualFolder(name: string, folder: IllustrationFindOption): void {
+        let folders = this.getConfig('folder')
+        if(!folders) {
+            folders = {}
+            this.putConfig('folder', folders)
+        }
+        folders[name] = {
+            virtual: true,
+            option: folder
+        }
+    }
+    getVirtualFolderInformation(name: string): IllustrationFindOption {
+        let folders = this.getConfig('folder')
+        if(folders) {
+            let folder = folders[name]
+            if(folder && folder.virtual) {
+                return folder.option
+            }
+        }
+        return null
+    }
+    findFolder(name: string): Illustration[] {
+        let folders = this.getConfig('folder')
+        if(folders) {
+            let folder = folders[name]
+            if(folder) {
+                if(folder.virtual) {
+                    return this.findIllustration(folder.option)
+                }else{
+                    return this.findFromRealScales(folder.items)
+                }
+            }
+        }
+        return null
+    }
+
+    updateTempFolder(folder: Scale[], type: 'update' | 'add' | 'delete'): void {
+        //实体的运作逻辑仍然以illust为轴心。实际表示时，同一个illust下的image仍然会被归属到一组。
+        this.tempCache = this.updateRealScales(this.tempCache, folder, type)
+    }
+    findTempFolder(): Illustration[] {
+        return this.findFromRealScales(this.tempCache)
+    }
+
+    updateQuery(query: IllustrationFindOption): void {
+        this.queryCache = query
+    }
+    getQueryInformation(): IllustrationFindOption {
+        return this.queryCache
+    }
+    findQuery(): Illustration[] {
+        return this.findIllustration(this.queryCache)
+    }
+
     getConfig(key: string): any {
         return this.memory.config[key]
     }
@@ -228,9 +291,64 @@ class LocalDataEngine implements DataEngine {
         writeFileSync(`${this.storageFolder}/${STORAGE}`, buf)
     }
 
+    private updateRealScales(goal: Scale[], folder: Scale[], type: 'update' | 'add' | 'delete'): Scale[] {
+        if(type === 'delete') {
+            for(let scale of folder) {
+                let i = Arrays.indexOf(goal, (t) => t.illustId === scale.illustId)
+                if(i >= 0) {
+                    let item = goal[i]
+                    for(let index of scale.imageIndex) {
+                        Sets.remove(item.imageIndex, index)
+                    }
+                    if(Arrays.isEmpty(item.imageIndex)) {
+                        Arrays.removeAt(goal, i)
+                    }
+                }
+            }
+            return goal
+        }else if(type === 'add'){
+            for(let scale of folder) {
+                let item = Arrays.find(goal, (t) => t.illustId === scale.illustId)
+                if(item != null) {
+                    for(let index of scale.imageIndex) {
+                        Sets.put(item.imageIndex, index)
+                    }
+                }else{
+                    Arrays.append(goal, scale)
+                }
+            }
+            return goal
+        }else{
+            return folder
+        }
+    }
+    private findFromRealScales(scales: Scale[]): Illustration[] {
+        let illusts: Illustration[] = []
+        for(let item of scales) {
+            let illust = Arrays.find(this.memory.illustrations, (illust) => illust.id === item.illustId)
+            if(illust) {
+                if(item.imageIndex == undefined) {
+                    Arrays.append(illusts, Illustrations.cloneIllustration(illust))
+                }else{
+                    let cloneIllust = Illustrations.cloneIllustrationExcludeImage(illust)
+                    for(let index of item.imageIndex) {
+                        if(index >= 0 && index < illust.images.length) {
+                            Arrays.append(cloneIllust.images, Images.cloneImage(illust.images[index]))
+                        }
+                    }
+                    Arrays.append(illusts, cloneIllust)
+                }
+            }
+        }
+        return illusts
+    }
+
     private memory: SaveModel = new SaveModel()                     //缓存所有与数据库内容有关的内容
 
     private imageURLCache: BufferCache<string> = new BufferCache()  //缓存已经提取的dataURL的缓存器
+
+    private tempCache: Scale[] = []
+    private queryCache: IllustrationFindOption = {}
 }
 
 class SaveModel {

@@ -1,6 +1,6 @@
 import {remote} from 'electron'
 import {CommonModel} from "./model"
-import {Illustration, IllustrationFindOption, Image, ImageSpecification} from "../common/engine"
+import {Illustration, IllustrationFindOption, Image, ImageSpecification, Scale} from "../common/engine"
 import {Arrays, Sets} from "../util/collection"
 
 const {TouchBar, dialog} = remote
@@ -17,23 +17,33 @@ interface Frontend {
     backendImageIndex?: number
 }
 
-function mainModel(vueModel: CommonModel) {
-    let db = vueModel.db
-
-    let temps = []
-    let listOptions = {
+function getIllustrationFindOption(option): IllustrationFindOption {
+    return {
+        findByImage: option.viewByImage,
+        order: [option.sort.by],
+        desc: option.sort.desc,
+        search: option.filter.search ? option.filter.search : undefined,
+        favorite__eq: option.filter.favorite ? true : undefined,
+        tag__containsAll: Arrays.isNotEmpty(option.filter.tags) ? Arrays.clone(option.filter.tags) : undefined
+    }
+}
+function getUIOption(option: IllustrationFindOption): Object {
+    return {
         filter: {
-            search: '',
-            favorite: false,
-            tags: []
+            search: option.search ? option.search : null,
+            favorite: option.favorite__eq || false,
+            tags: Arrays.isNotEmpty(option.tag__containsAll) ? Arrays.clone(option.tag__containsAll) : []
         },
         sort: {
-            by: 'createTime',
-            desc: true
+            by: option.order && option.order.length > 0 ? option.order[0] : '',
+            desc: option.desc || false
         },
-        viewByImage: false
+        viewByImage: option.findByImage || false
     }
+}
 
+function mainModel(vueModel: CommonModel) {
+    let db = vueModel.db
     let vm = new Vue({
         el: '#mainView',
         data: {
@@ -74,8 +84,9 @@ function mainModel(vueModel: CommonModel) {
             },
 
             folder: {
-                current: 'all',
-                customs: []
+                current: 'list',
+                type: 'list',
+                customs: []     //保存所有自定义文件夹。{name: string, virtual: boolean}
             },
             data: {
                 backend: [],    //保存Illustration的数据
@@ -99,6 +110,9 @@ function mainModel(vueModel: CommonModel) {
             },
             isAnySelected() {
                 return this.selected.count > 0
+            },
+            realFolders() {
+                return Arrays.filter(this.folder.customs, (t: any) => !t.virtual)
             }
         },
         methods: {
@@ -157,16 +171,15 @@ function mainModel(vueModel: CommonModel) {
                     changed = true
                 }
                 if(changed) {
+                    if(this.folder.type === 'list') {
+                        db.engine.updateQuery(getIllustrationFindOption(this.option))
+                    }else if(this.folder.type === 'virtual-folder') {
+                        db.engine.createOrUpdateVirtualFolder(this.folder.customs[this.folder.current].name, getIllustrationFindOption(this.option))
+                    }
                     this.loadData()
                     this.clearUploadData()
                     this.uploadData()
-                    if(this.isAnyFilter) {
-                        this.ui.filter.noteText = `${this.option.filter.tags.length > 0 ? '[' : ''}
-                            ${Arrays.concatString(this.option.filter.tags, '][')}
-                            ${this.option.filter.tags.length > 0 ? ']' : ''} ${this.option.filter.search}`
-                    }else{
-                        this.ui.filter.noteText = null
-                    }
+                    this.updateNoteText()
                 }
             },
             loadFilterOption() {
@@ -178,18 +191,54 @@ function mainModel(vueModel: CommonModel) {
                 this.ui.filter.tags = Arrays.clone(this.option.filter.tags)
                 this.ui.filter.tagSearchText = ''
             },
+            switchViewByImage() {
+                this.option.viewByImage = !this.option.viewByImage
+                this.loadData()
+                this.clearUploadData()
+                this.uploadData()
+            },
+            updateNoteText() {
+                if(this.isAnyFilter) {
+                    this.ui.filter.noteText = `${this.option.filter.tags.length > 0 ? '[' : ''}
+                            ${Arrays.concatString(this.option.filter.tags, '][')}
+                            ${this.option.filter.tags.length > 0 ? ']' : ''} ${this.option.filter.search}`
+                }else{
+                    this.ui.filter.noteText = null
+                }
+            },
+            //文件夹切换和控制
+            switchFolder(folder: 'list' | 'temp' | number) {
+                if(this.folder.current != folder) {
+                    this.folder.current = folder
+                    if(folder === 'list' || folder === 'temp') this.folder.type = folder
+                    else this.folder.type = this.folder.customs[this.folder.current].virtual ? 'virtual-folder' : 'folder'
+
+                    if(this.folder.type === 'list') {
+                        this.option = getUIOption(db.engine.getQueryInformation())
+                        this.updateNoteText()
+                    }else if(this.folder.type === 'virtual-folder') {
+                        this.option = getUIOption(db.engine.getVirtualFolderInformation(this.folder.customs[this.folder.current].name))
+                        this.updateNoteText()
+                    }
+                    if(this.selected.mode) this.switchSelectMode()
+                    this.loadData()
+                    this.clearUploadData()
+                    this.uploadData()
+                }
+            },
             //显示控制
             loadData() {
-                let option: IllustrationFindOption = {
-                    findByImage: this.option.viewByImage,
-                    order: [this.option.sort.by],
-                    desc: this.option.sort.desc,
-                    search: this.option.filter.search ? this.option.filter.search : undefined,
-                    favorite__eq: this.option.filter.favorite ? true : undefined,
-                    tag__containsAll: Arrays.isNotEmpty(this.option.filter.tags) ? this.option.filter.tags : undefined
-                }
-                this.data.backend = db.engine.findIllustration(option)
                 //将数据加载到backend。
+                if(this.folder.current === 'list') {
+                    this.data.backend = db.engine.findQuery()
+                }else if(this.folder.current === 'temp') {
+                    this.data.backend = db.engine.findTempFolder()
+                }else if(this.folder.current >= 0 && this.folder.current < this.folder.customs.length) {
+                    this.data.backend = db.engine.findFolder(this.folder.customs[this.folder.current].name)
+                }else{
+                    this.data.backend = []
+                    console.warn(`folder "${this.folder.current}" is not exist.`)
+                }
             },
             clearUploadData() {
                 this.data.frontend = []
@@ -272,13 +321,6 @@ function mainModel(vueModel: CommonModel) {
                 }
             },
             //选取和选取功能
-            switchSelectMode() {
-                this.selected.mode = !this.selected.mode
-                if(!this.selected.mode) {
-                    this.selected.count = 0
-                    this.selected.frontendIndexList = []
-                }
-            },
             clickOne(frontendIndex: number, mouse: 'left' | 'right' = 'left') {
                 if(frontendIndex >= 0 && frontendIndex < this.data.frontend.length) {
                     if(mouse === 'left') {
@@ -309,6 +351,101 @@ function mainModel(vueModel: CommonModel) {
                     }
                     return frontend.selected
                 }
+            },
+            switchSelectMode() {
+                this.selected.mode = !this.selected.mode
+                if(!this.selected.mode) {
+                    this.selectClear()
+                }
+            },
+            selectClear() {
+                this.selected.count = 0
+                this.selected.frontendIndexList = []
+                for(let frontend of this.data.frontend) {
+                    frontend.selected = false
+                }
+            },
+            selectAll() {
+                for(let frontend of this.data.frontend) {
+                    vm.$set(frontend, 'selected', true)
+                }
+                this.selected.frontendIndexList = []
+                for(let i = 0; i < this.data.frontend.length; ++i) this.selected.frontendIndexList[i] = i
+                this.selected.count = this.data.frontend.length
+            },
+            selectReverse() {
+                this.selected.count = this.data.frontend.length - this.selected.count
+                let oldList = this.selected.frontendIndexList
+                this.selected.frontendIndexList = []
+                for(let i = 0; i < this.data.frontend.length; ++i) {
+                    if(!Arrays.contains(oldList, i)) {
+                        Arrays.append(this.selected.frontendIndexList, i)
+                    }
+                    vm.$set(this.data.frontend[i], 'selected', !this.data.frontend[i].selected)
+                }
+            },
+            addToFolder(folder: 'temp' | number) {
+                //将当前选定项添加到指定的临时文件夹|实体文件夹。
+                let items = this.getSelectedItems()
+                if(folder === 'temp') {
+                    db.engine.updateTempFolder(items, 'add')
+                }else{
+                    let folder = this.folder.customs[this.folder.current]
+                    if(!folder.virtual) {
+                        db.engine.createOrUpdateRealFolder(folder.name, items, 'add')
+                    }
+                }
+                this.selectClear()
+            },
+            removeFromFolder() {
+                //将当前选定项从文件夹移出，只能在临时文件夹|实体文件夹操作。
+                let items = this.getSelectedItems()
+                if(this.folder.current === 'temp') {
+                    db.engine.updateTempFolder(items, 'delete')
+                }else{
+                    let folder = this.folder.customs[this.folder.current]
+                    if(!folder.virtual) {
+                        db.engine.createOrUpdateRealFolder(folder.name, items, 'delete')
+                    }
+                }
+                //为了避免过多刷新查询，删除操作将不会执行刷新，而是自行移除frontend. backend则不会移除，它不碍事，下次刷新也会自动修正。
+                let list: number[] = Arrays.map(this.selected.frontendIndexList, (t: any) => parseInt(t))
+                list.sort((a, b) => a === b ? 0 : a > b ? -1 : 1)
+                for(let i of list) {
+                    Arrays.removeAt(this.data.frontend, i)
+                }
+                this.selectClear()
+            },
+            getSelectedItems(): Scale[] {
+                let items: Scale[] = []
+                for(let frontendIndex of this.selected.frontendIndexList) {
+                    let backendIllustIndex = this.data.frontend[frontendIndex].backendIllustIndex
+                    let backendImageIndex = this.data.frontend[frontendIndex].backendImageIndex
+                    let illust: Illustration = this.data.backend[backendIllustIndex]
+                    if(backendImageIndex != null) {
+                        Arrays.append(items, {
+                            illustId: illust.id,
+                            imageIndex: [backendImageIndex]
+                        })
+                    }else{
+                        Arrays.append(items, {
+                            illustId: illust.id,
+                            imageIndex: Arrays.map(illust.images, (t) => t.index)
+                        })
+                    }
+                }
+                items = Arrays.zip<Scale, Scale>(items, (last, next) => {
+                    if(last.illustId != next.illustId) return undefined
+                    else return {
+                        illustId: last.illustId,
+                        imageIndex: Arrays.join(last.imageIndex, next.imageIndex)
+                    }
+                })
+                return items
+            },
+            //工具函数
+            inFolderType(type: 'list' | 'temp' | 'folder' | 'virtual-folder') {
+                return this.folder.type === type
             }
         }
     })
