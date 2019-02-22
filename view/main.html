@@ -97,7 +97,7 @@
                             <i class="fa fa-picture-o"></i> 详情
                         </button>
                         <button type="button" class="btn btn-sm btn-primary"
-                                :class="{disabled: !isAnySelected}">
+                                :class="{disabled: !isAnySelected}" @click="selectAction('edit')">
                             <i class="fa fa-edit"></i> 编辑
                         </button>
                         <button type="button" class="btn btn-sm btn-primary" v-if="!inFolderType('temp')"

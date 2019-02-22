@@ -31,6 +31,7 @@ function editModel(vueModel: CommonModel) {
     let db = vueModel.db
     let newImageCount = 0
     let newImageData = {}
+    let deletedIllusts = []
 
     let vm = new Vue({
         el: '#editView',
@@ -48,14 +49,18 @@ function editModel(vueModel: CommonModel) {
                     navigateIndex: null
                 }
             },
-            deletedIllusts: [],
 
             tagEditor: {
-                tags: null,
+                tags: null,     //正在编辑的标签列
 
-                tagName: '',
-                tagType: 'a',
-                allTagList: []
+                tagName: '',    //添加器中填写的标签名
+                tagTypeIndex: 0,    //添加器选择的标签类型的索引值
+                tagType: '',   //添加器选择的标签类型
+                tagTypeBackground: '',  //选择的标签类型的背景色
+                tagTypeFontColor: '',   //选择的标签类型的前景色
+
+                allTagList: [], //全部标签的列表
+                typeList: []    //所有标签类型的列表
             },
             processor: {
                 title: null,
@@ -79,14 +84,15 @@ function editModel(vueModel: CommonModel) {
             },
             isSingleImageStyle() {
                 return this.current.illust && this.current.illust.images && this.current.illust.images.length === 1
-            },
-            tagTypeList() {
-                //TODO 完成tag type列表。该列表要从config中取得。
-                return [
-                    {name: '内容', key: 'a'},
-                    {name: '题材', key: 'b'},
-                    {name: '作者', key: 'c'}
-                ]
+            }
+        },
+        watch: {
+            'tagEditor.tagTypeIndex': function (val: number) {
+                if(val >= 0 && val < this.tagEditor.typeList.length) {
+                    this.tagEditor.tagType = this.tagEditor.typeList[val].key
+                    this.tagEditor.tagTypeBackground = this.tagEditor.typeList[val].background
+                    this.tagEditor.tagTypeFontColor = this.tagEditor.typeList[val].fontcolor
+                }
             }
         },
         methods: {
@@ -95,7 +101,22 @@ function editModel(vueModel: CommonModel) {
                 db.ui.theme = 'gray'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
-                //TODO 添加编辑已存在项目的功能。
+                if(refresh) {
+                    this.tagEditor.typeList = db.engine.getConfig('tag-type')
+                    if(this.tagEditor.typeList.length > 0) {
+                        this.tagEditor.tagTypeIndex = 0
+                        this.tagEditor.tagType = this.tagEditor.typeList[0].key
+                        this.tagEditor.tagTypeBackground = this.tagEditor.typeList[0].background
+                        this.tagEditor.tagTypeFontColor = this.tagEditor.typeList[0].fontcolor
+                    }
+                }
+                if(option && typeof option === 'object') {
+                    let illustIds: number[] = option
+                    if(illustIds.length > 0) {
+                        Arrays.join(this.illusts, db.engine.findIllustration({id__in: illustIds}))
+                        this.turnTo(0)
+                    }
+                }
             },
             leave() {
                 this.visible = false
@@ -109,70 +130,76 @@ function editModel(vueModel: CommonModel) {
             },
             //导航控制
             goBack() {
-                vueModel.routeBack()
                 //后退会撤销所有的改动。
                 this.illusts = []
                 this.current.index = null
                 this.current.illust = null
                 this.current.imageURLs = []
                 newImageData = {}
-                this.deletedIllusts = []
+                deletedIllusts = []
+
+                vueModel.routeBack()
             },
             submit() {
-                //TODO 提交时，干掉single image的sub信息。
-                processor.submitTask({title: '保存中'}, function (
-                    isRunning: () => boolean,
-                    setText: (text: string) => void,
-                    setMaxProgress: (max: number) => void,
-                    getMaxProgress: () => number,
-                    addCurrentProgress: (current: number) => void,
-                    finishTask: () => void) {
+                if(this.illusts.length > 0 || deletedIllusts.length > 0) {
+                    //TODO 提交时，干掉single image的sub信息。
+                    processor.submitTask({title: '保存中'}, function (
+                        isRunning: () => boolean,
+                        setText: (text: string) => void,
+                        setMaxProgress: (max: number) => void,
+                        getMaxProgress: () => number,
+                        addCurrentProgress: (current: number) => void,
+                        finishTask: () => void) {
 
-                    let timestamp = new Date().getTime()
-                    let idReflect = {}
+                        let timestamp = new Date().getTime()
+                        let idReflect = {}
 
-                    setText('正在保存数据')
-                    for(let illust of vm.illusts) {
-                        if(illust.createTime == null) illust.createTime = timestamp
-                        for(let image of illust.images) {
-                            if(image.createTime == null) image.createTime = timestamp
-                        }
-                    }
-                    setMaxProgress(1 + newImageCount)
-                    db.engine.createOrUpdateIllustration(vm.illusts, idReflect)
-
-                    addCurrentProgress(1)
-
-                    if(newImageCount > 0) {
-                        let leave = newImageCount
-                        setText('正在保存新图像')
-                        for(let virtualId in newImageData) {
-                            let realId = idReflect[virtualId]
-                            if(realId != undefined) {
-                                db.engine.saveImageURL(realId, newImageData[virtualId], () => {
-                                    addCurrentProgress(1)
-                                    if(--leave <= 0) {
-                                        finish()
-                                    }
-                                })
+                        setText('正在保存数据')
+                        for(let illust of vm.illusts) {
+                            if(illust.createTime == null) illust.createTime = timestamp
+                            for(let image of illust.images) {
+                                if(image.createTime == null) image.createTime = timestamp
                             }
                         }
-                    }else{
-                        finish()
-                    }
-                    function finish() {
-                        db.engine.save()
-                        finishTask()
+                        setMaxProgress(1 + newImageCount)
+                        db.engine.createOrUpdateIllustration(vm.illusts, idReflect)
+                        if(deletedIllusts.length > 0) {
+                            db.engine.deleteIllustration(deletedIllusts)
+                        }
 
-                        newImageData = {}
-                        vm.illusts = []
-                        vm.current.index = null
-                        vm.current.illust = null
-                        vm.current.imageURLs = []
-                        vm.deletedIllusts = []
-                        vueModel.routeBack(true)
-                    }
-                })
+                        addCurrentProgress(1)
+
+                        if(newImageCount > 0) {
+                            let leave = newImageCount
+                            setText('正在保存新图像')
+                            for(let virtualId in newImageData) {
+                                let realId = idReflect[virtualId]
+                                if(realId != undefined) {
+                                    db.engine.saveImageURL(realId, newImageData[virtualId], () => {
+                                        addCurrentProgress(1)
+                                        if(--leave <= 0) {
+                                            finish()
+                                        }
+                                    })
+                                }
+                            }
+                        }else{
+                            finish()
+                        }
+                        function finish() {
+                            db.engine.save()
+                            finishTask()
+
+                            newImageData = {}
+                            vm.illusts = []
+                            vm.current.index = null
+                            vm.current.illust = null
+                            vm.current.imageURLs = []
+                            deletedIllusts = []
+                            vueModel.routeBack(true)
+                        }
+                    })
+                }
             },
             //Illust切换
             turnToInput() {
@@ -240,6 +267,7 @@ function editModel(vueModel: CommonModel) {
                         let image = this.current.illust.images[i]
                         if(image) {
                             if(image.id > 0) {
+                                //TODO 加载现有的dataURL时逻辑有问题。第一次执行会触发加载但加载不进去，第二次则会因为已加载立刻加载上去。
                                 db.engine.loadImageURL(image.id, ImageSpecification.Origin, (dataURL) => {
                                     this.current.imageURLs[i] = dataURL
                                 })
@@ -302,10 +330,12 @@ function editModel(vueModel: CommonModel) {
             removeIllust() {
                 if(this.current.index >= 0 && this.current.index < this.illusts.length) {
                     if(this.current.illust.id > 0) {
-                        Arrays.append(this.deletedIllusts, this.current.illust.id)
+                        Arrays.append(deletedIllusts, this.current.illust.id)
                     }
                     Arrays.removeAt(this.illusts, this.current.index)
-                    if(this.current.index >= this.illusts.length) {
+                    if(this.illusts.length === 0) {
+                        this.turnTo(null)
+                    }else if(this.current.index >= this.illusts.length) {
                         this.turnTo(this.illusts.length - 1)
                     }else{
                         this.turnTo(this.current.index)
@@ -406,7 +436,7 @@ function editModel(vueModel: CommonModel) {
                 if(this.tagEditor.tags && index >= 0 && index < this.tagEditor.tags.length) {
                     let tag = this.tagEditor.tags[index]
                     let tagType = Tags.getTagType(tag), tagName = Tags.getTagName(tag);
-                    let tagTypeList = this.tagTypeList
+                    let tagTypeList = this.tagEditor.typeList
                     let goal = null
                     for(let i = 0; i < tagTypeList.length; ++i) {
                         let {key} = tagTypeList[i]
@@ -431,6 +461,19 @@ function editModel(vueModel: CommonModel) {
             //工具函数
             getTagName(tag: string): string {
                 return Tags.getTagName(tag)
+            },
+            getTagColor(tag: string): {background: string, color: string} {
+                let tagType = Tags.getTagType(tag)
+                //TODO 更改存储结构，优化查询效率
+                for(let type of this.tagEditor.typeList) {
+                    if(type.key === tagType) {
+                        return {
+                            background: type.background,
+                            color: type.fontcolor
+                        }
+                    }
+                }
+                return {background: '', color: ''}
             },
             canTurnToAccess(position: 'first' | 'prev' | 'next' | 'last') {
                 switch (position) {

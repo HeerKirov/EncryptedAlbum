@@ -17,13 +17,19 @@
                             <a class="nav-link active" data-toggle="pill" href="#storage" id="storage-btn">存储</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" data-toggle="pill" href="#security" id="security-btn">安全</a>
+                            <a class="nav-link" data-toggle="pill" href="#tag" id="tag-btn">标签</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" href="#folder" id="folder-btn">文件夹</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" data-toggle="pill" href="#pixiv" id="pixiv-btn">Pixiv功能</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" data-toggle="pill" href="#proxy" id="proxy-btn">网络代理</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="pill" href="#security" id="security-btn">安全管理</a>
                         </li>
                     </ul>
                 </div>
@@ -39,25 +45,33 @@
                                 <h6>未能读取您的主存储方案。</h6>
                             </div>
                         </div>
-                        <div class="tab-pane container" id="security">
-                            <h6>更改登入密码</h6>
-                            <label>修改进入软件时，进行验证的口令。如果将口令留空，则不会进行此登录验证。</label>
-                            <input type="password" class="form-control m-1" placeholder="请输入旧密码" v-model="security.oldPassword"/>
-                            <input type="password" class="form-control m-1" placeholder="请输入新密码" v-model="security.newPassword"/>
-                            <input type="password" class="form-control m-1" placeholder="请再次输入新密码" v-model="security.checkPassword"/>
-                            <div class="alert alert-success" v-if="security.msg === 'success'">
-                                密码修改成功。
+                        <div class="tab-pane container" id="tag">
+                            <h6>标签类型</h6>
+                            <div class="row">
+                                <div class="col">
+                                    <div style="overflow: auto; max-height: 150px">
+                                        <table class="table table-hover table-sm">
+                                            <thead><tr><th>关键字</th><th>类型名</th><th>背景色</th><th>前景色</th></tr></thead>
+                                            <tbody>
+                                                <tr v-for="(type, index) in tag.typeList">
+                                                    <td><button class="btn btn-link btn-sm" @click="editTagType(index)">{{type.key}}</button></td>
+                                                    <td><button class="btn btn-link btn-sm" @click="editTagType(index)">{{type.name}}</button></td>
+                                                    <td><div style="height: 30px; width: 30px" :style="{background: type.background}"></div></td>
+                                                    <td><div style="height: 30px; width: 30px" :style="{background: type.fontcolor}"></div></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <button class="btn btn-sm btn-success" @click="editTagType('new')"><i class="fa fa-plus"></i> 添加类型</button>
+                                </div>
                             </div>
-                            <div class="alert alert-success" v-if="security.msg === 'success-empty'">
-                                密码修改成功。已经将口令设置为空，登录不再需要验证。
-                            </div>
-                            <div class="alert alert-danger" v-if="security.msg === 'wrong-password'">
-                                旧密码错误。
-                            </div>
-                            <div class="alert alert-danger" v-if="security.msg === 'wrong-check'">
-                                两次输入的新密码不一致。
-                            </div>
-                            <button class="btn btn-primary btn-sm m-1" @click="setPassword">确认更改</button>
+                            <h6>标签库</h6>
+
+                        </div>
+                        <div class="tab-pane container" id="folder">
+                            <h6>文件夹管理</h6>
                         </div>
                         <div class="tab-pane container" id="pixiv">
                             <h6>Pixiv解析配置</h6>
@@ -89,8 +103,62 @@
                                 <button class="btn btn-warning btn-sm" @click="clearProxy">清除</button>
                             </div>
                         </div>
+                        <div class="tab-pane container" id="security">
+                            <h6>更改登入密码</h6>
+                            <label>修改进入软件时，进行验证的口令。如果将口令留空，则不会进行此登录验证。</label>
+                            <input type="password" class="form-control m-1" placeholder="请输入旧密码" v-model="security.oldPassword"/>
+                            <input type="password" class="form-control m-1" placeholder="请输入新密码" v-model="security.newPassword"/>
+                            <input type="password" class="form-control m-1" placeholder="请再次输入新密码" v-model="security.checkPassword"/>
+                            <div class="alert alert-success" v-if="security.msg === 'success'">
+                                密码修改成功。
+                            </div>
+                            <div class="alert alert-success" v-if="security.msg === 'success-empty'">
+                                密码修改成功。已经将口令设置为空，登录不再需要验证。
+                            </div>
+                            <div class="alert alert-danger" v-if="security.msg === 'wrong-password'">
+                                旧密码错误。
+                            </div>
+                            <div class="alert alert-danger" v-if="security.msg === 'wrong-check'">
+                                两次输入的新密码不一致。
+                            </div>
+                            <button class="btn btn-primary btn-sm m-1" @click="setPassword">确认更改</button>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    <!-- 标签类型编辑器 -->
+    <div class="modal fade" id="tagTypeEditModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">标签类型</h6>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>关键字</label>
+                        <h6 v-if="tag.tagEditor.goal !== 'new'">{{tag.tagEditor.key}}</h6>
+                        <input v-if="tag.tagEditor.goal === 'new'" class="form-control" type="text" v-model="tag.tagEditor.key">
+                    </div>
+                    <div class="form-group">
+                        <label>类型名</label>
+                        <input class="form-control" type="text" v-model="tag.tagEditor.name">
+                    </div>
+                    <div class="form-group">
+                        <label>标签背景色</label>
+                        <input class="form-control" type="color" v-model="tag.tagEditor.background">
+                    </div>
+                    <div class="form-group">
+                        <label>标签前景色</label>
+                        <input class="form-control" type="color" v-model="tag.tagEditor.fontcolor">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" @click="saveTagType">保存</button>
+                </div>
+
             </div>
         </div>
     </div>

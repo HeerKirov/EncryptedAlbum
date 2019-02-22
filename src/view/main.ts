@@ -2,6 +2,7 @@ import {remote} from 'electron'
 import {CommonModel} from "./model"
 import {Illustration, IllustrationFindOption, Image, ImageSpecification, Scale} from "../common/engine"
 import {Arrays, Sets} from "../util/collection"
+import {Tags} from "../util/model";
 
 const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
@@ -56,7 +57,6 @@ function mainModel(vueModel: CommonModel) {
                     favorite: false,
                     tags: [],
                     tagSearchText: '',
-                    existTags: [],
                     noteText: null
                 },
                 sort: {
@@ -76,6 +76,10 @@ function mainModel(vueModel: CommonModel) {
                     desc: true
                 },
                 viewByImage: false,
+            },
+            tag: {
+                tags: [],
+                typeList: []
             },
             view: {
                 showTitle: false,
@@ -121,10 +125,10 @@ function mainModel(vueModel: CommonModel) {
                 db.ui.theme = 'gray'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
+                this.tag.tags = db.engine.findTag({})
+                this.tag.typeList = db.engine.getConfig('tag-type')
                 if(refresh) {
-                    this.loadData()
-                    this.clearUploadData()
-                    this.uploadData()
+                    this.switchFolder(this.folder.current, true)
                 }
             },
             leave() {
@@ -207,8 +211,8 @@ function mainModel(vueModel: CommonModel) {
                 }
             },
             //文件夹切换和控制
-            switchFolder(folder: 'list' | 'temp' | number) {
-                if(this.folder.current != folder) {
+            switchFolder(folder: 'list' | 'temp' | number, force: boolean = false) {
+                if(force || this.folder.current != folder) {
                     this.folder.current = folder
                     if(folder === 'list' || folder === 'temp') this.folder.type = folder
                     else this.folder.type = this.folder.customs[this.folder.current].virtual ? 'virtual-folder' : 'folder'
@@ -384,6 +388,21 @@ function mainModel(vueModel: CommonModel) {
                     vm.$set(this.data.frontend[i], 'selected', !this.data.frontend[i].selected)
                 }
             },
+            selectAction(action: 'detail' | 'edit' | 'export') {
+                if(action === 'detail') {
+                    //TODO 详情页
+                }else if(action === 'edit') {
+                    let illustIds = []
+                    for(let frontendIndex of this.selected.frontendIndexList) {
+                        let backendIllustIndex = this.data.frontend[frontendIndex].backendIllustIndex
+                        let illust: Illustration = this.data.backend[backendIllustIndex]
+                        Sets.put(illustIds, illust.id)
+                    }
+                    vueModel.route('edit', illustIds)
+                }else if(action === 'export') {
+                    //TODO 导出功能
+                }
+            },
             addToFolder(folder: 'temp' | number) {
                 //将当前选定项添加到指定的临时文件夹|实体文件夹。
                 let items = this.getSelectedItems()
@@ -446,7 +465,23 @@ function mainModel(vueModel: CommonModel) {
             //工具函数
             inFolderType(type: 'list' | 'temp' | 'folder' | 'virtual-folder') {
                 return this.folder.type === type
-            }
+            },
+            getTagName(tag: string): string {
+                return Tags.getTagName(tag)
+            },
+            getTagColor(tag: string): {background: string, color: string} {
+                let tagType = Tags.getTagType(tag)
+                //TODO 更改存储结构，优化查询效率
+                for(let type of this.tag.typeList) {
+                    if(type.key === tagType) {
+                        return {
+                            background: type.background,
+                            color: type.fontcolor
+                        }
+                    }
+                }
+                return {background: '', color: ''}
+            },
         }
     })
     return vm

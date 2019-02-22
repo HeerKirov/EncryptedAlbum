@@ -1,6 +1,8 @@
 import {remote, ipcRenderer} from 'electron'
 import {CommonModel, CommonDB} from './model'
-import {LocalFormula} from "../common/localEngine";
+import {LocalFormula} from "../common/localEngine"
+import {Arrays} from "../util/collection"
+import {Strings} from "../util/string";
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
@@ -18,11 +20,16 @@ function settingModel(vueModel: CommonModel) {
             storage: {
                 mainFormula: null
             },
-            security: {
-                oldPassword: '',
-                newPassword: '',
-                checkPassword: '',
-                msg: ''
+            tag: {
+                typeList: [],    //{name: string, key: string, background: string, fontcolor: string}
+
+                tagEditor: {
+                    goal: null,  //new | number
+                    key: '',
+                    name: '',
+                    background: '',
+                    fontcolor: ''
+                }
             },
             pixiv: {
                 username: '',
@@ -33,6 +40,12 @@ function settingModel(vueModel: CommonModel) {
                 protocol: 'http:',
                 host: '',
                 port: '',
+                msg: ''
+            },
+            security: {
+                oldPassword: '',
+                newPassword: '',
+                checkPassword: '',
                 msg: ''
             }
         },
@@ -55,17 +68,19 @@ function settingModel(vueModel: CommonModel) {
                     this.storage.mainFormula = null
                 }
                 //初始化各个面板
+                //初始化【安全】面板
                 this.security.oldPassword = ''
                 this.security.newPassword = ''
                 this.security.checkPassword = ''
                 this.security.msg = ''
-
+                //初始化【pixiv】面板
                 let pixiv = db.engine.getConfig('pixiv')
                 if(pixiv) {
                     this.pixiv.username = pixiv.username
                     this.pixiv.password = pixiv.password
                 }
                 this.pixiv.msg = ''
+                //初始化【代理】面板
                 let proxy = db.engine.getConfig('proxy')
                 if(proxy) {
                     this.proxy.host = proxy.host
@@ -75,6 +90,14 @@ function settingModel(vueModel: CommonModel) {
                     this.proxy.protocol = 'http:'
                 }
                 this.proxy.msg = ''
+                //初始化【标签】面板
+                let tagTypes = db.engine.getConfig('tag-type')
+                if(tagTypes) {
+                    this.tag.typeList = tagTypes
+                }else{
+                    this.tag.typeList = []
+                }
+
                 this.setTouchBar()
                 if(option) {
                     $(document).ready(() => {
@@ -153,6 +176,62 @@ function settingModel(vueModel: CommonModel) {
             clearProxy: function() {
                 this.proxy.host = ''
                 this.proxy.port = ''
+            },
+
+            editTagType: function(position: 'new' | number) {
+                if(position === 'new') {
+                    this.tag.tagEditor.name = ''
+                    this.tag.tagEditor.key = ''
+                    this.tag.tagEditor.background = '#007bff'
+                    this.tag.tagEditor.fontcolor = '#ffffff'
+                    this.tag.tagEditor.goal = 'new'
+                }else{
+                    this.tag.tagEditor.name = this.tag.typeList[position].name
+                    this.tag.tagEditor.key = this.tag.typeList[position].key
+                    this.tag.tagEditor.background = this.tag.typeList[position].background
+                    this.tag.tagEditor.fontcolor = this.tag.typeList[position].fontcolor
+                    this.tag.tagEditor.goal = position
+                }
+                $('#tagTypeEditModal')['modal']()
+            },
+            saveTagType: function() {
+                let success = true
+                if(Strings.isBlank(this.tag.tagEditor.name)) {
+                    success = false
+                    alert('名称不能为空。')
+                }else if(Strings.isBlank(this.tag.tagEditor.key)) {
+                    success = false
+                    alert('关键字不能为空。')
+                }
+                if(success) {
+                    if(this.tag.tagEditor.goal === 'new') {
+                        for(let type of this.tag.typeList) {
+                            if(type.key === this.tag.tagEditor.key) {
+                                success = false
+                                break
+                            }
+                        }
+                        if(success) {
+                            vm.$set(this.tag.typeList, this.tag.typeList.length, {
+                                name: this.tag.tagEditor.name,
+                                key: this.tag.tagEditor.key,
+                                background: this.tag.tagEditor.background,
+                                fontcolor: this.tag.tagEditor.fontcolor
+                            })
+                        }else{
+                            alert('该关键字已经存在。')
+                        }
+                    }else{
+                        this.tag.typeList[this.tag.tagEditor.goal].name = this.tag.tagEditor.name
+                        this.tag.typeList[this.tag.tagEditor.goal].key = this.tag.tagEditor.key
+                        this.tag.typeList[this.tag.tagEditor.goal].background = this.tag.tagEditor.background
+                        this.tag.typeList[this.tag.tagEditor.goal].fontcolor = this.tag.tagEditor.fontcolor
+                    }
+                }
+                if(success) {
+                    db.engine.putConfig('tag-type', Arrays.clone(this.tag.typeList))
+                    db.engine.save()
+                }
             },
 
             setTab: function(tab) {

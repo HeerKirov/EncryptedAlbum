@@ -72,10 +72,13 @@ class LocalDataEngine implements DataEngine {
             let id = typeof ii === "number" ? ii : ii.id
             let index = Arrays.indexOf(this.memory.illustrations, (t) => t.id === id)
             if(index >= 0) {
+                let illust: Illustration = this.memory.illustrations[index]
+                for(let image of illust.images) {
+                    this.imageURLCache.remove(image.id)
+                    this.memory.blocks[image.id] = undefined
+                }
                 Arrays.removeAt(this.memory.illustrations, index)
                 delNumber++
-                this.imageURLCache.remove(id)
-                this.memory.blocks[id] = undefined
                 //TODO 在删除时，需要删除block表，并将空出来的block记入unused。
             }
         }
@@ -267,6 +270,13 @@ class LocalDataEngine implements DataEngine {
             this.memory.tags = []
             this.memory.illustrations = []
             this.memory.config = {}
+            //下面是初始化的配置。
+            this.memory.config['tag-type'] = [
+                {key: 'author', name: '作者', background: '#FFFF00', fontcolor: '#000000'},
+                {key: 'theme', name: '题材', background: '#17A2B8', fontcolor: '#FFFFFF'},
+                {key: 'content', name: '内容', background: '#28A745', fontcolor: '#FFFFFF'}
+            ]
+
             return true
         }
     }
