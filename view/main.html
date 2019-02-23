@@ -191,28 +191,49 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-12 col-md">
-                            <div class="input-group">
+                        <div class="col-12 col-md-7">
+                            <div class="input-group mb-1">
                                 <span class="input-group-text"><input type="checkbox" v-model="ui.filter.favorite"></span>
                                 <label class="input-group-text mr-1">收藏夹</label>
                             </div>
-                            <span class="input-group-text mt-2 mb-2">
-                                <label>标签组</label>
-                                <!-- TODO 完成标签筛选功能 -->
-                            </span>
+                            <div class="card mb-1">
+                                <div class="card-body p-2" style="background: #E9ECEF; color: #495057">
+                                    <label>标签组</label>
+                                    <div class="card">
+                                        <div class="card-body p-2">
+                                            <span v-if="ui.filter.tags.length === 0" class="text-secondary">没有选择任何标签</span>
+                                            <span v-for="(tag, index) in ui.filter.tags" class="badge m-1" :style="getTagColor(tag)">
+                                                <a class="text-white" @click="removeFilterTag(index)">{{getTagName(tag)}}</a>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group btn-group-sm mt-2 ml-1" v-if="tag.tags.length > 0">
+                                        <input type="text" placeholder="在标签库中搜索…" class="form-control rounded-0" v-model="ui.filter.tagSearchText" @keydown.enter="searchFilterTag"/>
+                                        <button type="button" class="btn btn-sm btn-secondary" @click="searchFilterTag">
+                                            <i class="fa fa-search"></i>
+                                        </button>
+                                    </div>
+                                    <div class="m-1 text-left" style="overflow: auto; max-height: 360px" v-if="tag.tags.length > 0">
+                                        <span v-for="tag in tag.tags" class="badge m-1" :style="getTagColor(tag)">
+                                            <a class="text-white" @click="addFilterTag(tag)">{{getTagName(tag)}}</a>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
-                        <div class="col-12 col-md">
+                        <div class="col-12 col-md-5">
                             <div class="input-group">
                                 <span class="input-group-text"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="title"></span>
-                                <label class="input-group-text">{{ui.sort.desc ? '名称从后到前': '名称从前到后'}}</label>
+                                <label class="input-group-text">{{ui.sort.desc ? '反向字序': '正向字序'}}</label>
                             </div>
                             <div class="input-group">
                                 <span class="input-group-text"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="id"></span>
-                                <label class="input-group-text">{{ui.sort.desc ? '索引编号从大到小' : '索引编号从小到大'}}</label>
+                                <label class="input-group-text">{{ui.sort.desc ? '较大索引' : '较小索引'}}</label>
                             </div>
                             <div class="input-group">
                                 <span class="input-group-text"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="createTime"></span>
-                                <label class="input-group-text">{{ui.sort.desc ? '创建时间从早到新' : '创建时间从新到早'}}</label>
+                                <label class="input-group-text">{{ui.sort.desc ? '较新创建' : '较早创建'}}</label>
                             </div>
                             <div class="input-group mt-2">
                                 <span class="input-group-text"><input type="checkbox" v-model="ui.sort.desc"></span>

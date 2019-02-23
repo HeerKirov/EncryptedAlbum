@@ -7,6 +7,7 @@ import {ProcessManager} from '../util/processor'
 import {PREFIX} from "../util/nativeImage"
 import {readFile} from 'fs'
 import {nativeImage, remote} from 'electron'
+import {removeAllListeners} from "cluster";
 
 const {dialog, TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
@@ -62,6 +63,11 @@ function editModel(vueModel: CommonModel) {
                 allTagList: [], //全部标签的列表
                 typeList: []    //所有标签类型的列表
             },
+            urlEditor: {
+                urls: [],
+                input: '',
+                type: null
+            },
             processor: {
                 title: null,
                 text: null,
@@ -109,6 +115,7 @@ function editModel(vueModel: CommonModel) {
                         this.tagEditor.tagTypeBackground = this.tagEditor.typeList[0].background
                         this.tagEditor.tagTypeFontColor = this.tagEditor.typeList[0].fontcolor
                     }
+                    this.tagEditor.allTagList = db.engine.findTag({order: ['type', 'title']})
                 }
                 if(option && typeof option === 'object') {
                     let illustIds: number[] = option
@@ -308,7 +315,7 @@ function editModel(vueModel: CommonModel) {
                                         let imageModel: Image = {
                                             id: imageFlagId,    //使用负数标记暂存的image data
                                             index: vm.current.illust.images.length, //实际相当于next index
-                                            subTitle: Paths.getFileTitle(path),
+                                            subTitle: null,
                                             subFavorite: null,
                                             subTags: [],
                                             createTime: undefined,
@@ -418,11 +425,14 @@ function editModel(vueModel: CommonModel) {
                 this.addTagToEditor(this.tagEditor.tagType, this.tagEditor.tagName)
                 this.tagEditor.tagName = ''
             },
+            addExistTagToEditor(tag: string) {
+                this.addTagToEditor(Tags.getTagType(tag), Tags.getTagName(tag))
+            },
             addTagToEditor(tagType: string, tagName: string) {
                 if(Strings.isNotBlank(tagName) && tagType) {
                     let tag = Tags.tag(tagType, tagName.trim())
                     if(this.tagEditor.tags && !Arrays.contains(this.tagEditor.tags, tag)) {
-                        Arrays.append(this.tagEditor.tags, tag)
+                        vm.$set(this.tagEditor.tags, this.tagEditor.tags.length, tag)
                         if(!Sets.contains(this.tagEditor.allTagList, tag)) {
                             Sets.put(this.tagEditor.allTagList, tag)
                         }
@@ -448,6 +458,23 @@ function editModel(vueModel: CommonModel) {
                     if(goal != null) {
                         this.$set(this.tagEditor.tags, index, Tags.tag(tagTypeList[goal].key, tagName))
                     }
+                }
+            },
+            //URL编辑面板
+            openURLPanel(type: 'illust' | 'image') {
+                this.urlEditor.type = type
+                this.urlEditor.input = ''
+                $('#urlModal')['modal']()
+            },
+            addURL() {
+                if(this.urlEditor.input) {
+                    vm.$set(this.urlEditor.urls, this.urlEditor.urls.length, this.urlEditor.input)
+                    this.urlEditor.input = ''
+                }
+            },
+            removeURL(index: number) {
+                if(index >= 0 && index < this.urlEditor.urls.length) {
+                    Arrays.removeAt(this.urlEditor.urls, index)
                 }
             },
 

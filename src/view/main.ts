@@ -3,6 +3,7 @@ import {CommonModel} from "./model"
 import {Illustration, IllustrationFindOption, Image, ImageSpecification, Scale} from "../common/engine"
 import {Arrays, Sets} from "../util/collection"
 import {Tags} from "../util/model";
+import {Strings} from "../util/string";
 
 const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
@@ -56,7 +57,7 @@ function mainModel(vueModel: CommonModel) {
                     search: '',
                     favorite: false,
                     tags: [],
-                    tagSearchText: '',
+                    tagSearchText: '',  //绑定过滤面板上的标签搜索框
                     noteText: null
                 },
                 sort: {
@@ -125,7 +126,6 @@ function mainModel(vueModel: CommonModel) {
                 db.ui.theme = 'gray'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
-                this.tag.tags = db.engine.findTag({})
                 this.tag.typeList = db.engine.getConfig('tag-type')
                 if(refresh) {
                     this.switchFolder(this.folder.current, true)
@@ -171,7 +171,7 @@ function mainModel(vueModel: CommonModel) {
                     changed = true
                 }
                 if(!Arrays.equal(this.ui.filter.tags, this.option.filter.tags)) {
-                    this.option.filter.search = Arrays.clone(this.ui.filter.search)
+                    this.option.filter.tags = Arrays.clone(this.ui.filter.tags)
                     changed = true
                 }
                 if(changed) {
@@ -194,6 +194,7 @@ function mainModel(vueModel: CommonModel) {
                 this.ui.filter.favorite = this.option.filter.favorite
                 this.ui.filter.tags = Arrays.clone(this.option.filter.tags)
                 this.ui.filter.tagSearchText = ''
+                this.tag.tags = db.engine.findTag({order: ['type', 'title']})
             },
             switchViewByImage() {
                 this.option.viewByImage = !this.option.viewByImage
@@ -204,10 +205,25 @@ function mainModel(vueModel: CommonModel) {
             updateNoteText() {
                 if(this.isAnyFilter) {
                     this.ui.filter.noteText = `${this.option.filter.tags.length > 0 ? '[' : ''}
-                            ${Arrays.concatString(this.option.filter.tags, '][')}
-                            ${this.option.filter.tags.length > 0 ? ']' : ''} ${this.option.filter.search}`
+                            ${Arrays.concatString(Arrays.map(this.option.filter.tags, (tag: string) => Tags.getTagName(tag)), '][')}
+                            ${this.option.filter.tags.length > 0 ? ']' : ''} ${this.option.filter.search ? this.option.filter.search : ''}`
                 }else{
                     this.ui.filter.noteText = null
+                }
+            },
+            addFilterTag(tag: string) {
+                if(!Arrays.contains(this.ui.filter.tags, tag)) {
+                    vm.$set(this.ui.filter.tags, this.ui.filter.tags.length, tag)
+                }
+            },
+            removeFilterTag(index: number) {
+                Arrays.removeAt(this.ui.filter.tags, index)
+            },
+            searchFilterTag() {
+                if(this.ui.filter.tagSearchText) {
+                    this.tag.tags = db.engine.findTag({order: ['type', 'title'], search: Strings.isNotBlank(this.ui.filter.tagSearchText) ? this.ui.filter.tagSearchText : undefined})
+                }else{
+                    this.tag.tags = db.engine.findTag({order: ['type', 'title']})
                 }
             },
             //文件夹切换和控制
@@ -218,10 +234,16 @@ function mainModel(vueModel: CommonModel) {
                     else this.folder.type = this.folder.customs[this.folder.current].virtual ? 'virtual-folder' : 'folder'
 
                     if(this.folder.type === 'list') {
-                        this.option = getUIOption(db.engine.getQueryInformation())
+                        let queryInfo = db.engine.getQueryInformation()
+                        if(queryInfo) {
+                            this.option = getUIOption(queryInfo)
+                        }
                         this.updateNoteText()
                     }else if(this.folder.type === 'virtual-folder') {
-                        this.option = getUIOption(db.engine.getVirtualFolderInformation(this.folder.customs[this.folder.current].name))
+                        let queryInfo = db.engine.getVirtualFolderInformation(this.folder.customs[this.folder.current].name)
+                        if(queryInfo) {
+                            this.option = getUIOption(queryInfo)
+                        }
                         this.updateNoteText()
                     }
                     if(this.selected.mode) this.switchSelectMode()

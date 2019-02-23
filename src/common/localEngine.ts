@@ -358,7 +358,10 @@ class LocalDataEngine implements DataEngine {
     private imageURLCache: BufferCache<string> = new BufferCache()  //缓存已经提取的dataURL的缓存器
 
     private tempCache: Scale[] = []
-    private queryCache: IllustrationFindOption = {}
+    private queryCache: IllustrationFindOption = {
+        order: ['createTime'],
+        desc: true
+    }
 }
 
 class SaveModel {
