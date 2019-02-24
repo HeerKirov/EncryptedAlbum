@@ -3,7 +3,7 @@
     <div class="center-board" style="width: 200px; height: 225px;" v-if="isEmptyCurrent">
         <div class="row pt-1 pb-2">
             <div class="col">
-                <button type="button" class="btn btn-link" @click="newIllust('local')">导入本地文件…</button>
+                <button type="button" class="btn btn-link" @click="openLocalPanel">导入本地文件…</button>
             </div>
         </div>
         <div class="row pt-1 pb-2">
@@ -13,7 +13,7 @@
         </div>
         <div class="row pt-1 pb-2">
             <div class="col">
-                <button type="button" class="btn btn-link">解析Pixiv项目…</button>
+                <button type="button" class="btn btn-link" @click="openPixivPanel">解析Pixiv项目…</button>
             </div>
         </div>
         <div class="row pt-1 pb-2">
@@ -219,9 +219,9 @@
                 <button type="button" class="btn btn-sm btn-success" @click="newIllust()"><i class="fa fa-plus"></i> 新建项目</button>
                 <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split" data-toggle="dropdown"></button>
                 <div class="dropdown-menu dropdown-menu-right">
-                    <a class="dropdown-item" @click="newIllust('local')">从本地导入文件</a>
+                    <a class="dropdown-item" @click="openLocalPanel">从本地导入文件</a>
                     <a class="dropdown-item" @click="openURLPanel('illust')">从URL下载文件</a>
-                    <a class="dropdown-item">从Pixiv解析项目</a>
+                    <a class="dropdown-item" @click="openPixivPanel">从Pixiv解析项目</a>
                 </div>
             </div>
         </div>
@@ -234,7 +234,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title">编辑标签</h4>
+                    <h6 class="modal-title">编辑标签</h6>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
@@ -277,14 +277,14 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title">添加URL</h4>
+                    <h6 class="modal-title">{{urlEditor.type === 'illust' ? '从网络下载文件生成项目': '添加URL图像'}}</h6>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group" style="overflow: auto; max-height: 460px">
                         <div><label>添加的URL:</label></div>
                         <div class="btn-group" style="width:100%" v-for="(item, index) in urlEditor.urls">
-                            <span type="text" style="width: 95%" class="input-group-text" v-model="item">{{item}}</span>
+                            <span type="text" style="width: 95%" class="input-group-text">{{item}}</span>
                             <button type="button" class="btn btn-danger" @click="removeURL(index)">
                                 <i class="fa fa-close"></i>
                             </button>
@@ -296,10 +296,111 @@
                             </button>
                         </div>
                     </div>
+                    <div class="form-check" v-if="urlEditor.type === 'illust'">
+                        <label class="form-check-label">
+                            <input type="checkbox" class="form-check-input" v-model="urlEditor.saveEachImage">将每个图像存储到单独的项目
+                        </label>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" @click="addURL"><i class="fa fa-download"></i> 下载并导入</button>
+                    <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" @click="submitURLPanel"><i class="fa fa-download"></i> 下载并导入</button>
                 </div>
+            </div>
+        </div>
+    </div>
+    <!-- 本地illust编辑面板 -->
+    <div class="modal fade" id="localModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">从本地导入文件生成项目</h6>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group" style="overflow: auto; max-height: 460px">
+                        <div><label>文件路径:</label></div>
+                        <span class="input-group-text" v-if="localEditor.paths.length === 0">没有项目</span>
+                        <div class="card mb-1" v-for="(group, i) in localEditor.paths">
+                            <div class="card-body p-2 pr-4" style="font-size: 12px" v-if="group.length === 1">
+                                {{group[0]}}
+                                <button type="button" style="position: absolute; right: 2px; top: 1px" class="close" @click="removeLocalPath(i)">&times;</button>
+                            </div>
+                            <div class="card-body p-1 pr-4" v-if="group.length > 1">
+                                <div class="card" v-for="(item, j) in group">
+                                    <div class="card-body p-2" style="font-size: 12px">
+                                        {{item}}
+                                    </div>
+                                    <button type="button" style="position: absolute; right: 2px; top: 1px" class="close" @click="removeLocalPath(i, j)">&times;</button>
+                                </div>
+                                <button type="button" style="position: absolute; right: 2px; top: 1px" class="close" @click="removeLocalPath(i)">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-success btn-sm" @click="addLocalPath"><i class="fa fa-folder-open-o"></i> 添加文件</button>
+                    </div>
+                    <div class="form-group">
+                        <label>新文件的处理方式:</label>
+                        <div class="radio">
+                            <label><input type="radio" name="LPTRadio" v-model="localEditor.type" value="group">添加为单独的新项目</label>
+                        </div>
+                        <div class="radio">
+                            <label><input type="radio" name="LPTRadio" v-model="localEditor.type" value="each">添加每个图像到单独的新项目</label>
+                        </div>
+                        <div class="radio disabled">
+                            <label><input type="radio" name="LPTRadio" v-model="localEditor.type" value="all">添加到已存在的项目</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" @click="submitLocalPanel"><i class="fa fa-check"></i> 导入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- pixiv编辑面板 -->
+    <div class="modal fade" id="pixivModal">
+        <div class="modal-dialog">
+            <div class="modal-content" v-if="pixivEditor.configure">
+                <div class="modal-header">
+                    <h6 class="modal-title">从pixiv解析并生成项目</h6>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group" style="overflow: auto; max-height: 460px">
+                        <div><label>添加的PID或有效链接:</label></div>
+                        <div class="btn-group" style="width:100%" v-for="(item, index) in pixivEditor.paths">
+                            <span type="text" style="width: 95%" class="input-group-text">{{item}}</span>
+                            <button type="button" class="btn btn-danger" @click="removePixivPath(index)">
+                                <i class="fa fa-close"></i>
+                            </button>
+                        </div>
+                        <div class="btn-group mt-1" style="width:100%">
+                            <input type="text" class="form-control" placeholder="Pixiv ID" v-model="pixivEditor.input" @keydown.enter="addPixivPath">
+                            <button type="button" class="btn btn-success" @click="addPixivPath">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- TODO 添加配置单，可以指定tag使用的type以及其他tag偏好 -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" @click="submitPixivPanel"><i class="fa fa-download"></i> 解析并导入</button>
+                </div>
+            </div>
+            <div class="modal-content" v-if="!pixivEditor.configure">
+                <div class="modal-header">
+                    <h6 class="modal-title">从pixiv解析并生成项目</h6>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group" style="overflow: auto; max-height: 460px">
+                        <label>【从pixiv解析并生成项目】可以自动解析来自Pixiv的作品，下载图像文件，构造项目，并分析标题、标签等信息。</label>
+                        <label>要使用此功能，首先需要配置一组Pixiv账户。</label>
+                        <button class="btn btn-link" @click="gotoSettingPixiv" data-dismiss="modal"><i class="fa fa-cog"></i> 前往偏好设置配置Pixiv选项</button>
+                    </div>
+                </div>
+                <div class="modal-footer"></div>
             </div>
         </div>
     </div>

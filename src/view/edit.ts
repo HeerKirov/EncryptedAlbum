@@ -1,13 +1,13 @@
 import {CommonModel} from "./model"
 import {Illustration, Image, ImageSpecification} from "../common/engine"
+import {PixivClient, PixivIllust} from "../common/pixiv"
 import {Illustrations, Images, Tags} from "../util/model"
 import {Arrays, Sets} from "../util/collection"
 import {Paths, Strings} from "../util/string"
 import {ProcessManager} from '../util/processor'
-import {PREFIX} from "../util/nativeImage"
+import {downloadImageBuffer, PREFIX} from "../util/nativeImage"
 import {readFile} from 'fs'
 import {nativeImage, remote} from 'electron'
-import {removeAllListeners} from "cluster";
 
 const {dialog, TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
@@ -66,7 +66,17 @@ function editModel(vueModel: CommonModel) {
             urlEditor: {
                 urls: [],
                 input: '',
+                saveEachImage: false,
                 type: null
+            },
+            localEditor: {
+                paths: [],  //二级结构
+                type: 'group'   //添加新path时的分组模式[group: 每次一组, each: 每个path一组, all: 所有path放进一个组]
+            },
+            pixivEditor: {
+                paths: [],
+                input: '',
+                configure: false
             },
             processor: {
                 title: null,
@@ -107,6 +117,7 @@ function editModel(vueModel: CommonModel) {
                 db.ui.theme = 'gray'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
+                this.pixivEditor.configure = db.engine.getConfig('pixiv')
                 if(refresh) {
                     this.tagEditor.typeList = db.engine.getConfig('tag-type')
                     if(this.tagEditor.typeList.length > 0) {
@@ -146,6 +157,9 @@ function editModel(vueModel: CommonModel) {
                 deletedIllusts = []
 
                 vueModel.routeBack()
+            },
+            gotoSettingPixiv() {
+                vueModel.route('setting', 'pixiv')
             },
             submit() {
                 if(this.illusts.length > 0 || deletedIllusts.length > 0) {
@@ -245,11 +259,251 @@ function editModel(vueModel: CommonModel) {
                 if(location === 'empty') {
                     Arrays.append(illusts, Illustrations.empty())
                 }else if(location === 'local') {
-
+                    if(Arrays.isNotEmpty(this.localEditor.paths)) {
+                        processor.submitTask({title: '读取本地文件'}, function (isRunning: () => boolean,
+                              setText: (text: string) => void,
+                              setMaxProgress: (max: number) => void,
+                              getMaxProgress: () => number,
+                              addCurrentProgress: (current: number) => void,
+                              toFinish: () => void) {
+                            let cnt = 0
+                            for(let group of vm.localEditor.paths) {
+                                cnt += group.length
+                            }
+                            setMaxProgress(cnt)
+                            let lastIllustMax = vm.illusts.length
+                            for(let group of vm.localEditor.paths) {
+                                if(!isRunning()) break
+                                if(group.length <= 0) continue
+                                let illust: Illustration = {
+                                    id: undefined,
+                                    title: '',
+                                    tags: [],
+                                    favorite: false,
+                                    links: [],
+                                    createTime: undefined,
+                                    images: []
+                                }
+                                let index = 0
+                                for(let path of group) {
+                                    readFile(path, function(e, buf) {
+                                        let imageFlagId = -(++newImageCount)
+                                        let image = nativeImage.createFromBuffer(buf)
+                                        let imageModel: Image = {
+                                            id: imageFlagId,    //使用负数标记暂存的image data
+                                            index: index++, //实际相当于next index
+                                            subTitle: null,
+                                            subFavorite: null,
+                                            subTags: [],
+                                            createTime: undefined,
+                                            resolution: image.getSize()
+                                        }
+                                        Arrays.append(illust.images, imageModel)
+                                        newImageData[imageFlagId] = PREFIX + buf.toString('base64')
+                                        addCurrentProgress(1)
+                                        if(--cnt <= 0) {
+                                            toFinish()
+                                            finish()
+                                        }
+                                    })
+                                }
+                                vm.$set(vm.illusts, vm.illusts.length, illust)
+                            }
+                            function finish() {
+                                vm.localEditor.paths = []
+                                vm.turnTo(lastIllustMax)
+                            }
+                        })
+                    }
                 }else if(location === 'url') {
-
+                    if(Arrays.isNotEmpty(this.urlEditor.urls)) {
+                        processor.submitTask({title: '下载网络文件'}, function (isRunning: () => boolean,
+                              setText: (text: string) => void,
+                              setMaxProgress: (max: number) => void,
+                              getMaxProgress: () => number,
+                              addCurrentProgress: (current: number) => void,
+                              toFinish: () => void) {
+                            let lastIllustMax = vm.illusts.length
+                            let cnt = vm.urlEditor.urls.length
+                            setMaxProgress(cnt)
+                            if(vm.urlEditor.saveEachImage) {
+                                for(let url of vm.urlEditor.urls) {
+                                    downloadImageBuffer({url: url, proxy: db.engine.getConfig('proxy')}, (buffer, status) => {
+                                        if(isRunning() && buffer) {
+                                            let imageFlagId = -(++newImageCount)
+                                            let image = nativeImage.createFromBuffer(buffer)
+                                            let imageModel: Image = {
+                                                id: imageFlagId,
+                                                index: 0,
+                                                subTitle: null,
+                                                subFavorite: null,
+                                                subTags: [],
+                                                createTime: undefined,
+                                                resolution: image.getSize()
+                                            }
+                                            newImageData[imageFlagId] = PREFIX + buffer.toString('base64')
+                                            let eachIllust: Illustration = {
+                                                id: undefined,
+                                                title: '',
+                                                favorite: false,
+                                                tags: [],
+                                                links: [],
+                                                createTime: undefined,
+                                                images: [imageModel]
+                                            }
+                                            vm.$set(vm.illusts, vm.illusts.length, eachIllust)
+                                            addCurrentProgress(1)
+                                            if(--cnt <= 0) {
+                                                toFinish()
+                                                finish()
+                                            }
+                                        }
+                                    })
+                                }
+                            }else{
+                                let index = 0
+                                let illust: Illustration = {
+                                    id: undefined,
+                                    title: '',
+                                    favorite: false,
+                                    tags: [],
+                                    links: [],
+                                    createTime: undefined,
+                                    images: []
+                                }
+                                vm.$set(vm.illusts, vm.illusts.length, illust)
+                                for(let url of vm.urlEditor.urls) {
+                                    downloadImageBuffer({url: url, proxy: db.engine.getConfig('proxy')}, (buffer, status) => {
+                                        if(isRunning() && buffer) {
+                                            let imageFlagId = -(++newImageCount)
+                                            let image = nativeImage.createFromBuffer(buffer)
+                                            let imageModel: Image = {
+                                                id: imageFlagId,
+                                                index: index++,
+                                                subTitle: null,
+                                                subFavorite: null,
+                                                subTags: [],
+                                                createTime: undefined,
+                                                resolution: image.getSize()
+                                            }
+                                            newImageData[imageFlagId] = PREFIX + buffer.toString('base64')
+                                            Arrays.append(illust.images, imageModel)
+                                            addCurrentProgress(1)
+                                            if(--cnt <= 0) {
+                                                toFinish()
+                                                finish()
+                                            }
+                                        }
+                                    })
+                                }
+                            }
+                            function finish() {
+                                vm.urlEditor.urls = []
+                                vm.turnTo(lastIllustMax)
+                            }
+                        })
+                    }
                 }else if(location === 'pixiv') {
-
+                    if(Arrays.isNotEmpty(this.pixivEditor.paths)) {
+                        if(!this.pixivEditor.configure) {
+                            alert('pixiv账户信息未配置。')
+                        }else{
+                            processor.submitTask({title: '解析pixiv项目', autoFinish: true}, function (isRunning: () => boolean,
+                                  setText: (text: string) => void,
+                                  setMaxProgress: (max: number) => void,
+                                  getMaxProgress: () => number,
+                                  addCurrentProgress: (current: number) => void,
+                                  toFinish: () => void) {
+                                let client = new PixivClient()
+                                let proxy = db.engine.getConfig('proxy')
+                                if(proxy) client.setProxy(proxy)
+                                setMaxProgress(2 + 2 * vm.pixivEditor.paths.length)
+                                addCurrentProgress(1)
+                                setText('尝试登录pixiv……')
+                                client.login(vm.pixivEditor.configure.username, vm.pixivEditor.configure.password, (b) => {
+                                    if(!isRunning()) return
+                                    else if(!b) {
+                                        toFinish()
+                                        alert('pixiv账户登录失败。请检查用户名、密码或网络连接。')
+                                    }else{
+                                        console.debug(`[pixiv]login success.`)
+                                        addCurrentProgress(1)
+                                        setText('正在下载并分析项目……')
+                                        let lastIllustMax = vm.illusts.length
+                                        for(let pid of vm.pixivEditor.paths) {
+                                            let info: PixivIllust = null
+                                            let buffers = []
+                                            client.loadIllust(pid, (illust) => {
+                                                if(!isRunning()) return
+                                                if(illust) {
+                                                    console.debug(`[pixiv][${illust.pid}]illust download success.`)
+                                                    info = illust
+                                                    setText(`[${illust.pid}]项目解析完成……`)
+                                                    addCurrentProgress(1)
+                                                }else{
+                                                    alert(`项目[${pid}]无法被正确识别或解析。`)
+                                                    addCurrentProgress(2)
+                                                }
+                                            }, (id, buffer) => {
+                                                if(!isRunning()) return
+                                                setText('图像下载中……')
+                                                if(id >= 0 && buffer) {
+                                                    console.debug(`[pixiv][${info ? info.pid : '?'}]image ${id} download success.`)
+                                                    buffers[id] = buffer
+                                                }else if(id == -1) {
+                                                    console.debug(`[pixiv][${info ? info.pid : '?'}]all images download success.`)
+                                                    if(createResults(info, buffers)) {
+                                                        addCurrentProgress(1)
+                                                        finish()
+                                                    }
+                                                }else{
+                                                    alert(`[Pixiv]有图像下载失败。`)
+                                                }
+                                            })
+                                        }
+                                        function createResults(info: PixivIllust, buffers: Buffer[]): boolean {
+                                            if(!isRunning()) return false
+                                            let tags: string[] = [] //TODO 处理tags
+                                            let illust: Illustration = {
+                                                id: undefined,
+                                                title: info.title,
+                                                tags: tags,
+                                                favorite: false,
+                                                links: [info.webLink],
+                                                createTime: undefined,
+                                                images: []
+                                            }
+                                            let index = 0
+                                            for(let buffer of buffers) {
+                                                if(!buffer) continue
+                                                let imageFlagId = -(++newImageCount)
+                                                let native = nativeImage.createFromBuffer(buffer)
+                                                let imageModel: Image = {
+                                                    id: imageFlagId,    //使用负数标记暂存的image data
+                                                    index: index++, //实际相当于next index
+                                                    subTitle: null,
+                                                    subFavorite: null,
+                                                    subTags: [],
+                                                    createTime: undefined,
+                                                    resolution: native.getSize()
+                                                }
+                                                Arrays.append(illust.images, imageModel)
+                                                newImageData[imageFlagId] = PREFIX + buffer.toString('base64')
+                                            }
+                                            vm.$set(vm.illusts, vm.illusts.length, illust)
+                                            return true
+                                        }
+                                        function finish() {
+                                            if(!isRunning()) {
+                                                vm.pixivEditor.paths = []
+                                                vm.turnTo(lastIllustMax)
+                                            }
+                                        }
+                                    }
+                                })
+                            })
+                        }
+                    }
                 }
                 if(Arrays.isNotEmpty(illusts)) {
                     let lastLength = this.illusts.length
@@ -307,6 +561,7 @@ function editModel(vueModel: CommonModel) {
                                          getMaxProgress: () => number,
                                          addCurrentProgress: (current: number) => void) {
                                 setMaxProgress(paths.length)
+                                let index = vm.current.illust.images.length
                                 for(let path of paths) {
                                     if(!isRunning()) break
                                     readFile(path, function(e, buf) {
@@ -314,7 +569,7 @@ function editModel(vueModel: CommonModel) {
                                         let image = nativeImage.createFromBuffer(buf)
                                         let imageModel: Image = {
                                             id: imageFlagId,    //使用负数标记暂存的image data
-                                            index: vm.current.illust.images.length, //实际相当于next index
+                                            index: index++, //实际相当于next index
                                             subTitle: null,
                                             subFavorite: null,
                                             subTags: [],
@@ -330,8 +585,48 @@ function editModel(vueModel: CommonModel) {
                             })
                         }
                     })
-                }else if(location === 'url') {
-
+                }
+                else if(location === 'url') {
+                    if(this.urlEditor.urls.length > 0) {
+                        processor.submitTask({title: '下载网络文件'}, function (isRunning: () => boolean,
+                                     setText: (text: string) => void,
+                                     setMaxProgress: (max: number) => void,
+                                     getMaxProgress: () => number,
+                                     addCurrentProgress: (current: number) => void,
+                                     toFinish: () => void) {
+                            let cnt = vm.urlEditor.urls.length
+                            setMaxProgress(vm.urlEditor.urls.length)
+                            let index = vm.current.illust.images.length
+                            for(let url of vm.urlEditor.urls) {
+                                downloadImageBuffer({url: url, proxy: db.engine.getConfig('proxy')}, (buffer, status) => {
+                                    if(isRunning() && buffer) {
+                                        let imageFlagId = -(++newImageCount)
+                                        let image = nativeImage.createFromBuffer(buffer)
+                                        let imageModel: Image = {
+                                            id: imageFlagId,
+                                            index: index++,
+                                            subTitle: null,
+                                            subFavorite: null,
+                                            subTags: [],
+                                            createTime: undefined,
+                                            resolution: image.getSize()
+                                        }
+                                        vm.$set(vm.current.illust.images, vm.current.illust.images.length, imageModel)
+                                        newImageData[imageFlagId] = PREFIX + buffer.toString('base64')
+                                        vm.$set(vm.current.imageURLs, vm.current.imageURLs.length, newImageData[imageFlagId])
+                                        addCurrentProgress(1)
+                                        if(--cnt <= 0) {
+                                            toFinish()
+                                            finish()
+                                        }
+                                    }
+                                })
+                            }
+                            function finish() {
+                                vm.urlEditor.urls = []
+                            }
+                        })
+                    }
                 }
             },
             removeIllust() {
@@ -466,6 +761,16 @@ function editModel(vueModel: CommonModel) {
                 this.urlEditor.input = ''
                 $('#urlModal')['modal']()
             },
+            submitURLPanel() {
+                if(Strings.isNotBlank(this.urlEditor.input)) {
+                    this.addURL()
+                }
+                if(this.urlEditor.type === 'illust') {
+                    this.newIllust('url')
+                }else{  //image
+                    this.newImage('url')
+                }
+            },
             addURL() {
                 if(this.urlEditor.input) {
                     vm.$set(this.urlEditor.urls, this.urlEditor.urls.length, this.urlEditor.input)
@@ -476,6 +781,72 @@ function editModel(vueModel: CommonModel) {
                 if(index >= 0 && index < this.urlEditor.urls.length) {
                     Arrays.removeAt(this.urlEditor.urls, index)
                 }
+            },
+            //local illust编辑面板
+            openLocalPanel() {
+                $('#localModal')['modal']()
+            },
+            submitLocalPanel() {
+                this.newIllust('local')
+            },
+            addLocalPath() {
+                dialog.showOpenDialog(db.currentWindow, {
+                        title: '选择本地文件',
+                        properties: ['openFile', 'multiSelections'],
+                        filters: [
+                            {name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'bmp']},
+                            {name: 'All', extensions: ['*']}
+                        ]
+                    }, (paths: string[]) => {
+                        if(Arrays.isNotEmpty(paths)) {
+                            if(this.localEditor.type === 'group') {
+                                vm.$set(this.localEditor.paths, this.localEditor.paths.length, paths)
+                            }else if(this.localEditor.type === 'each') {
+                                for(let path of paths) {
+                                    vm.$set(this.localEditor.paths, this.localEditor.paths.length, [path])
+                                }
+                            }else{//all
+                                if(this.localEditor.paths.length > 0) {
+                                    let last = this.localEditor.paths[this.localEditor.paths.length - 1]
+                                    for(let path of paths) {
+                                        vm.$set(last, last.length, path)
+                                    }
+                                }else{
+                                    vm.$set(this.localEditor.paths, 0, paths)
+                                }
+                            }
+                        }
+                    })
+            },
+            removeLocalPath(groupIndex: number, itemIndex?: number) {
+                if(itemIndex != undefined) {
+                    let group = this.localEditor.paths[groupIndex]
+                    Arrays.removeAt(group, itemIndex)
+                    if(Arrays.isEmpty(group)) {
+                        Arrays.removeAt(this.localEditor.paths, groupIndex)
+                    }
+                }else{
+                    Arrays.removeAt(this.localEditor.paths, groupIndex)
+                }
+            },
+            //pixiv编辑面板
+            openPixivPanel() {
+                $('#pixivModal')['modal']()
+            },
+            submitPixivPanel() {
+                if(Strings.isNotBlank(this.pixivEditor.input)) {
+                    this.addPixivPath()
+                }
+                this.newIllust('pixiv')
+            },
+            addPixivPath() {
+                if(this.pixivEditor.input) {
+                    vm.$set(this.pixivEditor.paths, this.pixivEditor.paths.length, this.pixivEditor.input)
+                    this.pixivEditor.input = ''
+                }
+            },
+            removePixivPath(index: number) {
+                Arrays.removeAt(this.pixivEditor.paths, index)
             },
 
             //Processor相关函数
