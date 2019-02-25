@@ -47,31 +47,84 @@
                         </div>
                         <div class="tab-pane container" id="tag">
                             <h6>标签类型</h6>
-                            <div class="row">
-                                <div class="col">
-                                    <div style="overflow: auto; max-height: 150px">
-                                        <table class="table table-hover table-sm">
-                                            <thead><tr><th>关键字</th><th>类型名</th><th>背景色</th><th>前景色</th></tr></thead>
-                                            <tbody>
-                                                <tr v-for="(type, index) in tag.typeList">
-                                                    <td><button class="btn btn-link btn-sm" @click="editTagType(index)">{{type.key}}</button></td>
-                                                    <td><button class="btn btn-link btn-sm" @click="editTagType(index)">{{type.name}}</button></td>
-                                                    <td><div style="height: 30px; width: 30px" :style="{background: type.background}"></div></td>
-                                                    <td><div style="height: 30px; width: 30px" :style="{background: type.fontcolor}"></div></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                            <div class="row mt-1">
+                                <div class="col-12 col-md" style="overflow: auto; max-height: 150px">
+                                    <table class="table table-hover table-sm">
+                                        <thead><tr><th>关键字</th><th>类型名</th><th>背景色</th><th>前景色</th></tr></thead>
+                                        <tbody>
+                                            <tr v-for="(type, index) in tag.typeList">
+                                                <td><button class="btn btn-link btn-sm" @click="editTagType(index)">{{type.key}}</button></td>
+                                                <td><button class="btn btn-link btn-sm" @click="editTagType(index)">{{type.name}}</button></td>
+                                                <td><div style="height: 30px; width: 30px" :style="{background: type.background}"></div></td>
+                                                <td><div style="height: 30px; width: 30px" :style="{background: type.fontcolor}"></div></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <div class="col-auto">
+                                <div class="col-12 col-md-auto">
                                     <button class="btn btn-sm btn-success" @click="editTagType('new')"><i class="fa fa-plus"></i> 添加类型</button>
                                 </div>
                             </div>
                             <h6>标签库</h6>
-
+                            <div v-if="tag.tags.length === 0">
+                                <label>现在没有标签。</label>
+                            </div>
+                            <div v-if="tag.tags.length > 0 && tag.tagSelect == null">
+                                <div><label>选择一个现有的标签执行操作：</label></div>
+                                <div class="btn-group btn-group-sm mt-2 ml-1" v-if="tag.tags.length > 0">
+                                    <input type="text" placeholder="在标签库中搜索…" class="form-control rounded-0" v-model="tag.tagSearchText" @keydown.enter="searchTag"/>
+                                    <button type="button" class="btn btn-sm btn-secondary" @click="searchTag">
+                                        <i class="fa fa-search"></i>
+                                    </button>
+                                </div>
+                                <div class="m-1 text-left" style="overflow: auto; max-height: 480px" v-if="tag.tags.length > 0">
+                                <span v-for="t in tag.tags" class="badge m-1" :style="getTagColor(t)">
+                                    <a class="text-white" @click="selectTag(t)">{{getTagName(t)}}</a>
+                                </span>
+                                </div>
+                            </div>
+                            <div class="form-group" v-if="tag.tags.length > 0 && tag.tagSelect != null">
+                                <div><label>选择对标签<span class="badge m-1" :style="getTagColor(tag.tagSelect)">{{getTagName(tag.tagSelect)}}</span>要采取的操作：</label></div>
+                                <div class="btn-group mb-1">
+                                    <span class="input-group-text mr-1">变更标签名称为</span>
+                                    <input class="form-control" type="text" v-model="tag.tagEditor.name">
+                                </div>
+                                <div class="btn-group">
+                                    <span class="input-group-text mr-1">变更标签类型为</span>
+                                    <select class="form-control" style="min-width: 150px" v-model="tag.tagEditor.type"><option v-for="type in tag.typeList" :value="type.key">{{type.name}}</option></select>
+                                </div>
+                                <div class="form-group mt-3">
+                                    <button class="btn btn-link btn-sm" @click="saveTag"><i class="fa fa-save"></i>保存所做的更改</button>
+                                    <button class="btn btn-link btn-sm" @click="deleteTag"><i class="fa fa-trash"></i>删除本标签</button>
+                                </div>
+                                <div class="form-group">
+                                    <button class="btn btn-link btn-sm" @click="tag.tagSelect = null"><i class="fa fa-close"></i> 取消操作</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="tab-pane container" id="folder">
                             <h6>文件夹管理</h6>
+                            <div class="row mt-3">
+                                <div class="col-12 col-md" style="overflow: auto; max-height: 300px; max-width: 300px">
+                                    <table class="table table-hover table-sm">
+                                        <thead><tr><th>文件夹名称</th><th>类型</th></tr></thead>
+                                        <tbody>
+                                            <tr v-for="(f, index) in folder.folders" :class="{'table-primary': index === folder.selectedIndex}" @click="folder.selectedIndex = index">
+                                                <td>{{f.name}}</td>
+                                                <td v-if="f.virtual"><i class="fa fa-address-card-o"></i> 虚拟文件夹</td>
+                                                <td v-if="!f.virtual"><i class="fa fa-folder-open-o"></i> 普通文件夹</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="col-12 col-md">
+                                    <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#createFolderModal"><i class="fa fa-plus"></i> 新建文件夹</button>
+                                    <button class="btn btn-danger btn-sm"
+                                            @click="removeFolder" :class="{disable: folder.selectedIndex < 0}">
+                                        <i class="fa fa-trash"></i> 删除选择项
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div class="tab-pane container" id="pixiv">
                             <h6>Pixiv解析配置</h6>
@@ -139,26 +192,56 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label>关键字</label>
-                        <h6 v-if="tag.tagEditor.goal !== 'new'">{{tag.tagEditor.key}}</h6>
-                        <input v-if="tag.tagEditor.goal === 'new'" class="form-control" type="text" v-model="tag.tagEditor.key">
+                        <h6 v-if="tag.typeEditor.goal !== 'new'">{{tag.typeEditor.key}}</h6>
+                        <input v-if="tag.typeEditor.goal === 'new'" class="form-control" type="text" v-model="tag.typeEditor.key">
                     </div>
                     <div class="form-group">
                         <label>类型名</label>
-                        <input class="form-control" type="text" v-model="tag.tagEditor.name">
+                        <input class="form-control" type="text" v-model="tag.typeEditor.name">
                     </div>
                     <div class="form-group">
                         <label>标签背景色</label>
-                        <input class="form-control" type="color" v-model="tag.tagEditor.background">
+                        <input class="form-control" type="color" v-model="tag.typeEditor.background">
                     </div>
                     <div class="form-group">
                         <label>标签前景色</label>
-                        <input class="form-control" type="color" v-model="tag.tagEditor.fontcolor">
+                        <input class="form-control" type="color" v-model="tag.typeEditor.fontcolor">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary" data-dismiss="modal" @click="saveTagType">保存</button>
                 </div>
 
+            </div>
+        </div>
+    </div>
+    <!-- 新建文件夹的对话框 -->
+    <div class="modal fade" id="createFolderModal">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新建文件夹</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text mr-1">名称</span>
+                        <input class="form-control rounded" type="text" v-model="folder.create.name" placeholder="请输入文件夹的名称">
+                    </div>
+                    <div class="input-group mb-1">
+                        <span class="input-group-text mr-1"><input type="radio" name="folderTypeRadio" v-model="folder.create.type" value="folder"></span>
+                        <label class="input-group-text">普通文件夹</label>
+                    </div>
+                    <div class="input-group mb-1">
+                        <span class="input-group-text mr-1"><input type="radio" name="folderTypeRadio" v-model="folder.create.type" value="virtual-folder"></span>
+                        <label class="input-group-text">虚拟文件夹</label>
+                    </div>
+                    <div v-if="folder.create.type === 'folder'" style="font-size: 14px">普通文件夹支持将项目或图像放入，并持久化存储和查询。</div>
+                    <div v-if="folder.create.type === 'virtual-folder'" style="font-size: 14px">虚拟文件夹支持按常规查询条件设置视图，并实时查询。</div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" data-dismiss="modal" @click="createFolder"><i class="fa fa-save"></i> 保存</button>
+                </div>
             </div>
         </div>
     </div>

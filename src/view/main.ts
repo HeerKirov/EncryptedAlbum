@@ -4,6 +4,7 @@ import {Illustration, IllustrationFindOption, Image, ImageSpecification, Scale} 
 import {Arrays, Sets} from "../util/collection"
 import {Tags} from "../util/model";
 import {Strings} from "../util/string";
+import {exportImage} from "../util/nativeImage"
 
 const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
@@ -41,6 +42,14 @@ function getUIOption(option: IllustrationFindOption): Object {
             desc: option.desc || false
         },
         viewByImage: option.findByImage || false
+    }
+}
+
+function generateExportTitle(illust: Illustration, image: Image): string {
+    if(illust.images.length > 1) {
+        return `${illust.title ? illust.title : illust.id}-${image.index}${image.subTitle ? ('-' + image.subTitle) : ''}`
+    }else{
+        return `${illust.title ? illust.title : illust.id}${image.subTitle ? ('-' + image.subTitle) : ''}`
     }
 }
 
@@ -91,7 +100,12 @@ function mainModel(vueModel: CommonModel) {
             folder: {
                 current: 'list',
                 type: 'list',
-                customs: []     //保存所有自定义文件夹。{name: string, virtual: boolean}
+                customs: [],     //保存所有自定义文件夹。{name: string, virtual: boolean}
+
+                create: {
+                    name: '',
+                    type: 'folder'
+                }
             },
             data: {
                 backend: [],    //保存Illustration的数据
@@ -104,6 +118,11 @@ function mainModel(vueModel: CommonModel) {
                 mode: false,
                 count: 0,
                 frontendIndexList: []
+            },
+
+            exportation: {
+                path: null,
+                items: []
             }
         },
         computed: {
@@ -117,7 +136,7 @@ function mainModel(vueModel: CommonModel) {
                 return this.selected.count > 0
             },
             realFolders() {
-                return Arrays.filter(this.folder.customs, (t: any) => !t.virtual)
+                return Arrays.filterMap(this.folder.customs, (t: any, i: number) => !t.virtual ? {name: t.name, index: i} : undefined)
             }
         },
         methods: {
@@ -127,9 +146,8 @@ function mainModel(vueModel: CommonModel) {
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
                 this.tag.typeList = db.engine.getConfig('tag-type')
-                if(refresh) {
-                    this.switchFolder(this.folder.current, true)
-                }
+                this.loadFolder()
+                this.switchFolder(this.folder.current, true)
             },
             leave() {
                 this.visible = false
@@ -179,6 +197,7 @@ function mainModel(vueModel: CommonModel) {
                         db.engine.updateQuery(getIllustrationFindOption(this.option))
                     }else if(this.folder.type === 'virtual-folder') {
                         db.engine.createOrUpdateVirtualFolder(this.folder.customs[this.folder.current].name, getIllustrationFindOption(this.option))
+                        db.engine.save()
                     }
                     this.loadData()
                     this.clearUploadData()
@@ -227,6 +246,9 @@ function mainModel(vueModel: CommonModel) {
                 }
             },
             //文件夹切换和控制
+            loadFolder() {
+                this.folder.customs = db.engine.getFolderList()
+            },
             switchFolder(folder: 'list' | 'temp' | number, force: boolean = false) {
                 if(force || this.folder.current != folder) {
                     this.folder.current = folder
@@ -251,6 +273,28 @@ function mainModel(vueModel: CommonModel) {
                     this.clearUploadData()
                     this.uploadData()
                 }
+            },
+            createFolder() {
+                if(Strings.isBlank(this.folder.create.name)) {
+                    alert('文件夹的名称不能为空。')
+                    return
+                }
+                let name = this.folder.create.name.trim()
+                let virtual = !(this.folder.create.type === 'folder')
+                if(db.engine.isFolderExist(name)) {
+                    alert('该名称的文件夹已经存在。')
+                    return
+                }
+                if(!virtual) {
+                    db.engine.createOrUpdateRealFolder(name, [], "update")
+                }else{
+                    db.engine.createOrUpdateVirtualFolder(name, {})
+                }
+                db.engine.save()
+                this.folder.create.name = ''
+                let index = this.folder.customs.length
+                vm.$set(this.folder.customs, index, {name: name, virtual: virtual})
+                this.switchFolder(index)
             },
             //显示控制
             loadData() {
@@ -410,7 +454,7 @@ function mainModel(vueModel: CommonModel) {
                     vm.$set(this.data.frontend[i], 'selected', !this.data.frontend[i].selected)
                 }
             },
-            selectAction(action: 'detail' | 'edit' | 'export') {
+            selectAction(action: 'detail' | 'edit' | 'export' | 'delete') {
                 if(action === 'detail') {
                     //TODO 详情页
                 }else if(action === 'edit') {
@@ -422,7 +466,38 @@ function mainModel(vueModel: CommonModel) {
                     }
                     vueModel.route('edit', illustIds)
                 }else if(action === 'export') {
-                    //TODO 导出功能
+                    dialog.showOpenDialog(db.currentWindow, {
+                        title: '导出位置',
+                        properties: ['openDirectory', 'createDirectory']
+                    }, (paths) => {
+                        if(paths) {
+                            this.exportation.path = paths[0]
+                            let items = []
+
+                            for(let frontendIndex of this.selected.frontendIndexList) {
+                                let backendIllustIndex = this.data.frontend[frontendIndex].backendIllustIndex
+                                let backendImageIndex = this.data.frontend[frontendIndex].backendImageIndex
+                                let illust: Illustration = this.data.backend[backendIllustIndex]
+                                if(backendImageIndex != null) {
+                                    let image: Image = illust.images[backendImageIndex]
+                                    Arrays.append(items, {
+                                        title: generateExportTitle(illust, image),
+                                        imageId: image.id
+                                    })
+                                }else{
+                                    for(let image of illust.images) {
+                                        Arrays.append(items, {
+                                            title: generateExportTitle(illust, image),
+                                            imageId: image.id
+                                        })
+                                    }
+                                }
+                            }
+
+                            this.exportation.items = items
+                            $('#exportModal')['modal']()
+                        }
+                    })
                 }
             },
             addToFolder(folder: 'temp' | number) {
@@ -431,9 +506,12 @@ function mainModel(vueModel: CommonModel) {
                 if(folder === 'temp') {
                     db.engine.updateTempFolder(items, 'add')
                 }else{
-                    let folder = this.folder.customs[this.folder.current]
-                    if(!folder.virtual) {
-                        db.engine.createOrUpdateRealFolder(folder.name, items, 'add')
+                    let f = this.folder.customs[folder]
+                    if(!f.virtual) {
+                        db.engine.createOrUpdateRealFolder(f.name, items, 'add')
+                        db.engine.save()
+                    }else{
+                        console.warn(`'${f.name}' is a virtual folder.`)
                     }
                 }
                 this.selectClear()
@@ -484,6 +562,29 @@ function mainModel(vueModel: CommonModel) {
                 })
                 return items
             },
+            exportDo() {
+                if(Arrays.isNotEmpty(this.exportation.items)) {
+                    let items = this.exportation.items, path = this.exportation.path
+                    let cnt = items.length
+                    for(let {title, imageId} of items) {
+                        db.engine.loadImageURL(imageId, ImageSpecification.Origin, (dataURL) => {
+                            if(dataURL) {
+                                let filename = `${path}/${title}.jpg`
+                                exportImage(dataURL, filename, (success) => {
+                                    if(!success) {
+                                        alert(`导出图像'${title}'时遇到了未知的错误。`)
+                                    }
+                                    if(-- cnt <= 0) {
+                                        alert('图像导出成功。')
+                                    }
+                                })
+                            }
+                        })
+                    }
+                    this.exportation.items = []
+                    this.exportation.path = null
+                }
+            },
             //工具函数
             inFolderType(type: 'list' | 'temp' | 'folder' | 'virtual-folder') {
                 return this.folder.type === type
@@ -493,7 +594,6 @@ function mainModel(vueModel: CommonModel) {
             },
             getTagColor(tag: string): {background: string, color: string} {
                 let tagType = Tags.getTagType(tag)
-                //TODO 更改存储结构，优化查询效率
                 for(let type of this.tag.typeList) {
                     if(type.key === tagType) {
                         return {

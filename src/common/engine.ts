@@ -28,11 +28,16 @@ interface DataEngine {
     loadImageURL(id: number, specification?: ImageSpecification, callback?: (string) => void): void
 
     findTag(options: TagFindOption): Array<string>
+    renameTag(tag: string, newName?: string, newType?: string): number
+    deleteTag(tag: string): number
 
     createOrUpdateRealFolder(name: string, folder: Scale[], type: 'update' | 'add' | 'delete'): void
     createOrUpdateVirtualFolder(name: string, folder: IllustrationFindOption): void
     getVirtualFolderInformation(name: string): IllustrationFindOption
     findFolder(name: string): Illustration[]
+    isFolderExist(name: string): boolean
+    getFolderList(): {name: string, virtual: boolean}[]
+    deleteFolder(name: string): boolean
 
     updateTempFolder(folder: Scale[], type: 'update' | 'add' | 'delete'): void
     findTempFolder(): Illustration[]

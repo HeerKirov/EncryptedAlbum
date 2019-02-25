@@ -62,7 +62,7 @@
                         <i class="fa" :class="folder.virtual ? 'fa-address-card-o' : 'fa-folder-open-o'"></i> {{folder.name}}
                     </a>
                     <div class="dropdown-divider" v-if="folder.customs.length > 0"></div>
-                    <a class="dropdown-item"><i class="fa fa-plus"></i> 新建文件夹…</a>
+                    <a class="dropdown-item" data-toggle="modal" data-target="#createFolderModal"><i class="fa fa-plus"></i> 新建文件夹…</a>
                 </div>
             </div>
         </div>
@@ -76,10 +76,9 @@
         </div>
     </nav>
     <!-- 选择栏 -->
-    <div v-if="selected.mode" style="margin: auto; position: absolute; left: 0; right: 0; bottom: 0">
+    <div v-if="selected.mode" style="margin: auto; position: fixed; left: 0; right: 0; bottom: 0">
         <div class="card m-1 p-1">
             <div class="row">
-
                 <div class="col ml-1">
                     <button type="button" class="btn btn-sm btn-link" @click="switchSelectMode"><i class="fa fa-close"></i></button>
                     已选择<span class="badge badge-light">{{selected.count}}</span>项
@@ -109,11 +108,11 @@
                             <i class="fa fa-trash"></i> 从文件夹移除
                         </button>
                         <div class="dropdown" v-if="realFolders.length > 0">
-                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle rounded-0" data-toggle="dropdown">
+                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle rounded-0" :class="{disabled: !isAnySelected}" data-toggle="dropdown">
                                 <i class="fa fa-folder-open-o"></i> 添加到…
                             </button>
                             <div class="dropdown-menu">
-                                <a class="dropdown-item" v-for="folder in realFolders">
+                                <a class="dropdown-item" v-for="folder in realFolders" @click="addToFolder(folder.index)">
                                     {{folder.name}}
                                 </a>
                             </div>
@@ -121,8 +120,7 @@
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-primary dropdown-toggle" :class="{disabled: !isAnySelected}" data-toggle="dropdown">更多</button>
                             <div class="dropdown-menu">
-                                <a class="dropdown-item">批量导出</a>
-                                <a class="dropdown-item" data-toggle="modal" data-target="#deleteAllCheck">批量删除</a>
+                                <a class="dropdown-item" @click="selectAction('export')">批量导出</a>
                             </div>
                         </div>
                     </div>
@@ -130,7 +128,6 @@
             </div>
         </div>
     </div>
-
     <!-- 视图对话框 -->
     <div class="modal fade" id="viewModal">
         <div class="modal-dialog">
@@ -170,7 +167,6 @@
                             </span>
                         </div>
                     </div>
-
                 </div>
                 <div class="modal-footer"></div>
             </div>
@@ -193,7 +189,7 @@
                     <div class="row">
                         <div class="col-12 col-md-7">
                             <div class="input-group mb-1">
-                                <span class="input-group-text"><input type="checkbox" v-model="ui.filter.favorite"></span>
+                                <span class="input-group-text mr-1"><input type="checkbox" v-model="ui.filter.favorite"></span>
                                 <label class="input-group-text mr-1">收藏夹</label>
                             </div>
                             <div class="card mb-1">
@@ -223,20 +219,20 @@
 
                         </div>
                         <div class="col-12 col-md-5">
-                            <div class="input-group">
-                                <span class="input-group-text"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="title"></span>
+                            <div class="input-group mb-1">
+                                <span class="input-group-text mr-1"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="title"></span>
                                 <label class="input-group-text">{{ui.sort.desc ? '反向字序': '正向字序'}}</label>
                             </div>
-                            <div class="input-group">
-                                <span class="input-group-text"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="id"></span>
+                            <div class="input-group mb-1">
+                                <span class="input-group-text mr-1"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="id"></span>
                                 <label class="input-group-text">{{ui.sort.desc ? '较大索引' : '较小索引'}}</label>
                             </div>
-                            <div class="input-group">
-                                <span class="input-group-text"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="createTime"></span>
+                            <div class="input-group mb-1">
+                                <span class="input-group-text mr-1"><input type="radio" name="sortRadio" v-model="ui.sort.by" value="createTime"></span>
                                 <label class="input-group-text">{{ui.sort.desc ? '较新创建' : '较早创建'}}</label>
                             </div>
                             <div class="input-group mt-2">
-                                <span class="input-group-text"><input type="checkbox" v-model="ui.sort.desc"></span>
+                                <span class="input-group-text mr-1"><input type="checkbox" v-model="ui.sort.desc"></span>
                                 <label class="input-group-text">降序</label>
                             </div>
                         </div>
@@ -244,7 +240,7 @@
                     <div class="row">
                         <div class="col">
                             <div class="input-group mt-2">
-                                <span class="input-group-text"><input type="checkbox" v-model="ui.viewByImage"></span>
+                                <span class="input-group-text mr-1"><input type="checkbox" v-model="ui.viewByImage"></span>
                                 <label class="input-group-text">拆分到图像层级浏览和过滤</label>
                             </div>
                         </div>
@@ -252,6 +248,66 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary" data-dismiss="modal" @click="saveFilterOption">{{folder.type === 'list' ? '确定' : '保存'}}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 新建文件夹的对话框 -->
+    <div class="modal fade" id="createFolderModal">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新建文件夹</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text mr-1">名称</span>
+                        <input class="form-control rounded" type="text" v-model="folder.create.name" placeholder="请输入文件夹的名称">
+                    </div>
+                    <div class="input-group mb-1">
+                        <span class="input-group-text mr-1"><input type="radio" name="folderTypeRadio" v-model="folder.create.type" value="folder"></span>
+                        <label class="input-group-text">普通文件夹</label>
+                    </div>
+                    <div class="input-group mb-1">
+                        <span class="input-group-text mr-1"><input type="radio" name="folderTypeRadio" v-model="folder.create.type" value="virtual-folder"></span>
+                        <label class="input-group-text">虚拟文件夹</label>
+                    </div>
+                    <div v-if="folder.create.type === 'folder'" style="font-size: 14px">普通文件夹支持将项目或图像放入，并持久化存储和查询。</div>
+                    <div v-if="folder.create.type === 'virtual-folder'" style="font-size: 14px">虚拟文件夹支持按常规查询条件设置视图，并实时查询。</div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" data-dismiss="modal" @click="createFolder"><i class="fa fa-save"></i> 保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 导出对话框 -->
+    <div class="modal fade" id="exportModal">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">导出</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="btn-group">
+                        <span class="input-group-text mr-1">导出位置</span>
+                        <span class="input-group-text">{{exportation.path}}</span>
+                    </div>
+                    <div class="btn-group mt-1">
+                        <span class="input-group-text mr-1">文件一览</span>
+                        <span class="input-group-text" style="overflow: auto; max-height: 360px; max-width: 180px">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr v-for="item in exportation.items"><td class="text-left">{{item.title}}.jpg</td></tr>
+                                </tbody>
+                            </table>
+                        </span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-success" data-dismiss="modal" @click="exportDo"><i class="fa fa-upload"></i> 确认导出</button>
                 </div>
             </div>
         </div>

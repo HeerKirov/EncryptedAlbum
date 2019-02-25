@@ -76,7 +76,10 @@ function editModel(vueModel: CommonModel) {
             pixivEditor: {
                 paths: [],
                 input: '',
-                configure: false
+                configure: false,
+                isSaveTag: true,
+                savePixivTagTo: '',
+                saveAuthorTagTo: ''
             },
             processor: {
                 title: null,
@@ -125,6 +128,17 @@ function editModel(vueModel: CommonModel) {
                         this.tagEditor.tagType = this.tagEditor.typeList[0].key
                         this.tagEditor.tagTypeBackground = this.tagEditor.typeList[0].background
                         this.tagEditor.tagTypeFontColor = this.tagEditor.typeList[0].fontcolor
+                        //刷新pixivEditor中，默认的标签类型选择。
+                        //默认，认为'content'是内容标签，'author'是作者标签
+                        let haveTagTypeContent = Arrays.find(this.tagEditor.typeList, (t: any) => t.key === 'content')
+                        let haveTagTypeAuthor = Arrays.find(this.tagEditor.typeList, (t: any) => t.key === 'author')
+                        if(haveTagTypeContent) this.pixivEditor.savePixivTagTo = 'content'
+                        if(haveTagTypeAuthor) this.pixivEditor.saveAuthorTagTo = 'author'
+                        this.pixivEditor.isSaveTag = haveTagTypeContent || haveTagTypeAuthor
+                    }else{
+                        this.pixivEditor.saveAuthorTagTo = ''
+                        this.pixivEditor.savePixivTagTo = ''
+                        this.pixivEditor.isSaveTag = false
                     }
                     this.tagEditor.allTagList = db.engine.findTag({order: ['type', 'title']})
                 }
@@ -163,7 +177,6 @@ function editModel(vueModel: CommonModel) {
             },
             submit() {
                 if(this.illusts.length > 0 || deletedIllusts.length > 0) {
-                    //TODO 提交时，干掉single image的sub信息。
                     processor.submitTask({title: '保存中'}, function (
                         isRunning: () => boolean,
                         setText: (text: string) => void,
@@ -267,22 +280,15 @@ function editModel(vueModel: CommonModel) {
                               addCurrentProgress: (current: number) => void,
                               toFinish: () => void) {
                             let cnt = 0
-                            for(let group of vm.localEditor.paths) {
-                                cnt += group.length
-                            }
+                            for(let group of vm.localEditor.paths) cnt += group.length
                             setMaxProgress(cnt)
                             let lastIllustMax = vm.illusts.length
                             for(let group of vm.localEditor.paths) {
                                 if(!isRunning()) break
                                 if(group.length <= 0) continue
                                 let illust: Illustration = {
-                                    id: undefined,
-                                    title: '',
-                                    tags: [],
-                                    favorite: false,
-                                    links: [],
-                                    createTime: undefined,
-                                    images: []
+                                    id: undefined, title: '', tags: [], favorite: false, links: [],
+                                    createTime: undefined, images: []
                                 }
                                 let index = 0
                                 for(let path of group) {
@@ -292,11 +298,8 @@ function editModel(vueModel: CommonModel) {
                                         let imageModel: Image = {
                                             id: imageFlagId,    //使用负数标记暂存的image data
                                             index: index++, //实际相当于next index
-                                            subTitle: null,
-                                            subFavorite: null,
-                                            subTags: [],
-                                            createTime: undefined,
-                                            resolution: image.getSize()
+                                            subTitle: null, subFavorite: null, subTags: [],
+                                            createTime: undefined, resolution: image.getSize()
                                         }
                                         Arrays.append(illust.images, imageModel)
                                         newImageData[imageFlagId] = PREFIX + buf.toString('base64')
@@ -333,23 +336,15 @@ function editModel(vueModel: CommonModel) {
                                             let imageFlagId = -(++newImageCount)
                                             let image = nativeImage.createFromBuffer(buffer)
                                             let imageModel: Image = {
-                                                id: imageFlagId,
-                                                index: 0,
-                                                subTitle: null,
-                                                subFavorite: null,
-                                                subTags: [],
-                                                createTime: undefined,
-                                                resolution: image.getSize()
+                                                id: imageFlagId, index: 0,
+                                                subTitle: null, subFavorite: null, subTags: [],
+                                                createTime: undefined, resolution: image.getSize()
                                             }
                                             newImageData[imageFlagId] = PREFIX + buffer.toString('base64')
                                             let eachIllust: Illustration = {
-                                                id: undefined,
-                                                title: '',
-                                                favorite: false,
-                                                tags: [],
-                                                links: [],
-                                                createTime: undefined,
-                                                images: [imageModel]
+                                                id: undefined, title: '', favorite: false,
+                                                tags: [], links: [],
+                                                createTime: undefined, images: [imageModel]
                                             }
                                             vm.$set(vm.illusts, vm.illusts.length, eachIllust)
                                             addCurrentProgress(1)
@@ -363,13 +358,8 @@ function editModel(vueModel: CommonModel) {
                             }else{
                                 let index = 0
                                 let illust: Illustration = {
-                                    id: undefined,
-                                    title: '',
-                                    favorite: false,
-                                    tags: [],
-                                    links: [],
-                                    createTime: undefined,
-                                    images: []
+                                    id: undefined, title: '', favorite: false,
+                                    tags: [], links: [], createTime: undefined, images: []
                                 }
                                 vm.$set(vm.illusts, vm.illusts.length, illust)
                                 for(let url of vm.urlEditor.urls) {
@@ -378,13 +368,9 @@ function editModel(vueModel: CommonModel) {
                                             let imageFlagId = -(++newImageCount)
                                             let image = nativeImage.createFromBuffer(buffer)
                                             let imageModel: Image = {
-                                                id: imageFlagId,
-                                                index: index++,
-                                                subTitle: null,
-                                                subFavorite: null,
-                                                subTags: [],
-                                                createTime: undefined,
-                                                resolution: image.getSize()
+                                                id: imageFlagId, index: index++,
+                                                subTitle: null, subFavorite: null, subTags: [],
+                                                createTime: undefined, resolution: image.getSize()
                                             }
                                             newImageData[imageFlagId] = PREFIX + buffer.toString('base64')
                                             Arrays.append(illust.images, imageModel)
@@ -463,15 +449,24 @@ function editModel(vueModel: CommonModel) {
                                         }
                                         function createResults(info: PixivIllust, buffers: Buffer[]): boolean {
                                             if(!isRunning()) return false
-                                            let tags: string[] = [] //TODO 处理tags
+                                            let tags: string[] = []
+                                            //处理tags
+                                            if(vm.pixivEditor.isSaveTag) {
+                                                if(Strings.isNotBlank(vm.pixivEditor.savePixivTagTo)) {
+                                                    for(let tag of info.tags) {
+                                                        Arrays.append(tags, `${vm.pixivEditor.savePixivTagTo}:${tag}`)
+                                                    }
+                                                }
+                                                if(Strings.isNotBlank(vm.pixivEditor.saveAuthorTagTo)) {
+                                                    if(Strings.isNotBlank(info.member)) {
+                                                        Arrays.append(tags, `${vm.pixivEditor.saveAuthorTagTo}:${info.member}`)
+                                                    }
+                                                }
+                                            }
                                             let illust: Illustration = {
-                                                id: undefined,
-                                                title: info.title,
-                                                tags: tags,
-                                                favorite: false,
-                                                links: [info.webLink],
-                                                createTime: undefined,
-                                                images: []
+                                                id: undefined, title: info.title,
+                                                tags: tags, favorite: false, links: [info.webLink],
+                                                createTime: undefined, images: []
                                             }
                                             let index = 0
                                             for(let buffer of buffers) {
@@ -481,11 +476,8 @@ function editModel(vueModel: CommonModel) {
                                                 let imageModel: Image = {
                                                     id: imageFlagId,    //使用负数标记暂存的image data
                                                     index: index++, //实际相当于next index
-                                                    subTitle: null,
-                                                    subFavorite: null,
-                                                    subTags: [],
-                                                    createTime: undefined,
-                                                    resolution: native.getSize()
+                                                    subTitle: null, subFavorite: null, subTags: [],
+                                                    createTime: undefined, resolution: native.getSize()
                                                 }
                                                 Arrays.append(illust.images, imageModel)
                                                 newImageData[imageFlagId] = PREFIX + buffer.toString('base64')
@@ -528,12 +520,11 @@ function editModel(vueModel: CommonModel) {
                         let image = this.current.illust.images[i]
                         if(image) {
                             if(image.id > 0) {
-                                //TODO 加载现有的dataURL时逻辑有问题。第一次执行会触发加载但加载不进去，第二次则会因为已加载立刻加载上去。
                                 db.engine.loadImageURL(image.id, ImageSpecification.Origin, (dataURL) => {
-                                    this.current.imageURLs[i] = dataURL
+                                    vm.$set(this.current.imageURLs, i, dataURL)
                                 })
                             }else if(image.id < 0) {
-                                this.current.imageURLs[i] = newImageData[image.id]
+                                vm.$set(this.current.imageURLs, i, newImageData[image.id])
                             }
                         }
                     }
@@ -862,7 +853,6 @@ function editModel(vueModel: CommonModel) {
             },
             getTagColor(tag: string): {background: string, color: string} {
                 let tagType = Tags.getTagType(tag)
-                //TODO 更改存储结构，优化查询效率
                 for(let type of this.tagEditor.typeList) {
                     if(type.key === tagType) {
                         return {

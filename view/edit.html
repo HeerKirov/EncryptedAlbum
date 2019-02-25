@@ -91,10 +91,8 @@
                     <div class="form-group">
                         <label>标签:<button class="btn btn-sm btn-link" @click="editTag(current.illust.tags)"><i class="fa fa-edit"></i> 编辑</button></label>
                         <div>
-                            <span v-for="(tag, index) in current.illust.tags" class="badge mr-1"
-                                  :style="getTagColor(tag)"
-                                  @click="changeTagTypeInEditor(index)"
-                                  @mousedown.right="removeTagFromEditor(index)">
+                            <span v-for="(tag, index) in current.illust.tags" class="badge mr-1" :style="getTagColor(tag)"
+                                  @click="changeTagTypeInEditor(index)" @mousedown.right="removeTagFromEditor(index)">
                                 {{getTagName(tag)}}
                             </span>
                         </div>
@@ -126,9 +124,8 @@
                                     <div class="form-group mb-5">
                                         <label>子标签:<button class="btn btn-sm btn-link" @click="editTag(image.subTags)"><i class="fa fa-edit"></i> 编辑</button></label>
                                         <div>
-                                            <span v-for="(tag, index) in image.subTags" class="badge badge-secondary mr-1"
-                                                  @click="changeTagTypeInEditor(index)"
-                                                  @mousedown.right="removeTagFromEditor(index)">
+                                            <span v-for="(tag, index) in image.subTags" class="badge mr-1" :style="getTagColor(tag)"
+                                                  @click="changeTagTypeInEditor(index)" @mousedown.right="removeTagFromEditor(index)">
                                                 {{getTagName(tag)}}
                                             </span>
                                         </div>
@@ -382,7 +379,31 @@
                             </button>
                         </div>
                     </div>
-                    <!-- TODO 添加配置单，可以指定tag使用的type以及其他tag偏好 -->
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="form-check">
+                                <label class="form-check-label">
+                                    <input type="checkbox" class="form-check-input" v-model="pixivEditor.isSaveTag">保存pixiv illust的标签信息
+                                </label>
+                            </div>
+                            <div v-if="pixivEditor.isSaveTag" class="mt-2">
+                                <div class="btn-group">
+                                    <span class="input-group-text mr-1">将普通的pixiv标签保存为类型</span>
+                                    <select class="form-control" v-model="pixivEditor.savePixivTagTo">
+                                        <option value="">(不保存)</option>
+                                        <option v-for="type in tagEditor.typeList" :value="type.key">{{type.name}}</option>
+                                    </select>
+                                </div>
+                                <div class="btn-group mt-1">
+                                    <span class="input-group-text mr-1">将作者名字作为标签保存为类型</span>
+                                    <select class="form-control" v-model="pixivEditor.saveAuthorTagTo">
+                                        <option value="">(不保存)</option>
+                                        <option v-for="type in tagEditor.typeList" :value="type.key">{{type.name}}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" @click="submitPixivPanel"><i class="fa fa-download"></i> 解析并导入</button>

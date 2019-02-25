@@ -120,11 +120,11 @@ class Arrays {
         }
         return null
     }
-    static filterMap<T, R>(from: T[], translate: (t: T) => R): R[] {
+    static filterMap<T, R>(from: T[], translate: (t: T, index: number) => R): R[] {
         if(from && translate) {
             let ret: R[] = []
-            for(let i in from) {
-                let result = translate(from[i])
+            for(let i = 0; i < from.length; ++i) {
+                let result = translate(from[i], i)
                 if(result !== undefined) {
                     Arrays.append(ret, result)
                 }
@@ -212,6 +212,17 @@ class Maps {
             return true
         }
         return false
+    }
+
+    static map<V, R>(from: Object, by: (k: string, v: V) => R): Object {
+        if(from && by) {
+            let ret: Object = {}
+            for(let k in from) {
+                ret[k] = by(k, from[k])
+            }
+            return ret
+        }
+        return null
     }
 }
 

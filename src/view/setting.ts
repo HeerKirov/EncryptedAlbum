@@ -2,7 +2,8 @@ import {remote, ipcRenderer} from 'electron'
 import {CommonModel, CommonDB} from './model'
 import {LocalFormula} from "../common/localEngine"
 import {Arrays} from "../util/collection"
-import {Strings} from "../util/string";
+import {Strings} from "../util/string"
+import {Tags} from "../util/model"
 const {TouchBar} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
@@ -22,13 +23,27 @@ function settingModel(vueModel: CommonModel) {
             },
             tag: {
                 typeList: [],    //{name: string, key: string, background: string, fontcolor: string}
-
-                tagEditor: {
+                typeEditor: {
                     goal: null,  //new | number
                     key: '',
                     name: '',
                     background: '',
                     fontcolor: ''
+                },
+                tags: [],
+                tagSearchText: '',
+                tagSelect: null ,    //被选择来操作的标签
+                tagEditor: {
+                    name: null,
+                    type: null
+                }
+            },
+            folder: {
+                folders: [],
+                selectedIndex: -1,
+                create: {
+                    name: '',
+                    type: 'folder'
                 }
             },
             pixiv: {
@@ -50,12 +65,12 @@ function settingModel(vueModel: CommonModel) {
             }
         },
         computed: {
-            noTitleBar: function() {
+            noTitleBar() {
                 return this.fullscreen || db.platform.platform !== 'darwin'
             },
         },
         methods: {
-            load: function (option) {
+            load(option) {
                 db.ui.theme = 'white'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
@@ -97,32 +112,36 @@ function settingModel(vueModel: CommonModel) {
                 }else{
                     this.tag.typeList = []
                 }
+                this.loadTagList()
+                //初始化【文件夹】面板
+                this.folder.folders = db.engine.getFolderList()
+                this.folder.folders.selectedIndex = -1
 
                 this.setTouchBar()
                 if(option) {
-                    $(document).ready(() => {
+                    $(document)['ready'](() => {
                         this.setTab(option)
                     })
                 }
             },
-            leave: function () {
+            leave() {
                 this.visible = false
             },
-            enterFullScreen: function() {
+            enterFullScreen() {
                 this.fullscreen = true
             },
-            leaveFullScreen: function() {
+            leaveFullScreen() {
                 this.fullscreen = false
             },
-
-            goBack: function() {
+            //导航函数
+            goBack() {
                 vueModel.routeBack()
             },
-            help: function() {
+            help() {
                 vueModel.route('help')
             },
-
-            setPassword: function() {
+            //安全&pixiv&代理
+            setPassword() {
                 if(db.storage.getPassword() === this.security.oldPassword) {
                     if(this.security.newPassword === this.security.checkPassword) {
                         db.storage.setPassword(this.security.newPassword)
@@ -144,7 +163,7 @@ function settingModel(vueModel: CommonModel) {
                     this.security.msg = 'wrong-password'
                 }
             },
-            savePixiv: function() {
+            savePixiv() {
                 if(!this.pixiv.username && !this.proxy.password) {
                     db.engine.putConfig('pixiv', null)
                 }else{
@@ -156,7 +175,7 @@ function settingModel(vueModel: CommonModel) {
                 db.engine.save()
                 this.pixiv.msg = 'success'
             },
-            saveProxy: function() {
+            saveProxy() {
                 if(!this.proxy.host && !this.proxy.port) {
                     db.engine.putConfig('proxy', null)
                 }else{
@@ -169,32 +188,32 @@ function settingModel(vueModel: CommonModel) {
                 db.engine.save()
                 this.proxy.msg = 'success'
             },
-            clearPixiv: function() {
+            clearPixiv() {
                 this.pixiv.username = ''
                 this.pixiv.password = ''
             },
-            clearProxy: function() {
+            clearProxy() {
                 this.proxy.host = ''
                 this.proxy.port = ''
             },
-
-            editTagType: function(position: 'new' | number) {
+            //标签
+            editTagType(position: 'new' | number) {
                 if(position === 'new') {
-                    this.tag.tagEditor.name = ''
-                    this.tag.tagEditor.key = ''
-                    this.tag.tagEditor.background = '#007bff'
-                    this.tag.tagEditor.fontcolor = '#ffffff'
-                    this.tag.tagEditor.goal = 'new'
+                    this.tag.typeEditor.name = ''
+                    this.tag.typeEditor.key = ''
+                    this.tag.typeEditor.background = '#007bff'
+                    this.tag.typeEditor.fontcolor = '#ffffff'
+                    this.tag.typeEditor.goal = 'new'
                 }else{
-                    this.tag.tagEditor.name = this.tag.typeList[position].name
-                    this.tag.tagEditor.key = this.tag.typeList[position].key
-                    this.tag.tagEditor.background = this.tag.typeList[position].background
-                    this.tag.tagEditor.fontcolor = this.tag.typeList[position].fontcolor
-                    this.tag.tagEditor.goal = position
+                    this.tag.typeEditor.name = this.tag.typeList[position].name
+                    this.tag.typeEditor.key = this.tag.typeList[position].key
+                    this.tag.typeEditor.background = this.tag.typeList[position].background
+                    this.tag.typeEditor.fontcolor = this.tag.typeList[position].fontcolor
+                    this.tag.typeEditor.goal = position
                 }
                 $('#tagTypeEditModal')['modal']()
             },
-            saveTagType: function() {
+            saveTagType() {
                 let success = true
                 if(Strings.isBlank(this.tag.tagEditor.name)) {
                     success = false
@@ -233,14 +252,96 @@ function settingModel(vueModel: CommonModel) {
                     db.engine.save()
                 }
             },
+            loadTagList(search?: string) {
+                this.tag.tags = db.engine.findTag({search: search})
+            },
+            searchTag() {
+                let search = Strings.isNotBlank(this.tag.tagSearchText) ? this.tag.tagSearchText.trim() : null
+                this.loadTagList(search)
+                this.tag.tagSelect = null
+            },
+            selectTag(tag: string) {
+                this.tag.tagSelect = tag
+                this.tag.tagEditor.name = Tags.getTagName(tag)
+                this.tag.tagEditor.type = Tags.getTagType(tag)
+            },
+            saveTag() {
+                let name = null, type = null
+                if(Tags.getTagName(this.tag.tagSelect) != this.tag.tagEditor.name) {
+                    let ok = true
+                    if(db.engine.findTag({title__eq: this.tag.tagEditor.name}).length > 0) {
+                        if(!confirm(`名称为[${this.tag.tagEditor.name}]的标签已经存在。名称变更操作会视为合并。确认合并吗？`)) ok = false
+                    }
+                    if(ok) {
+                        name = this.tag.tagEditor.name
+                    }
+                }
+                if(Tags.getTagType(this.tag.tagSelect) != this.tag.tagEditor.type) {
+                    type = this.tag.tagEditor.type
+                }
+                if(name || type) {
+                    let count = db.engine.renameTag(this.tag.tagSelect, name, type)
+                    if(count > 0) {
+                        db.engine.save()
+                        alert(`修改了${count}个项目的标签。`)
+                        this.loadTagList()
+                    }
+                }
 
-            setTab: function(tab) {
+                this.tag.tagSelect = null
+            },
+            deleteTag() {
+                if(confirm(`确认要删除该标签吗？该操作会消除所有项目中的标签[${Tags.getTagName(this.tag.tagSelect)}]，且不可撤销。`)) {
+                    let cnt = db.engine.deleteTag(this.tag.tagSelect)
+                    if(cnt > 0) {
+                        db.engine.save()
+                        alert(`在${cnt}个项目中移除了此标签。`)
+                        this.loadTagList()
+                    }
+                    this.tag.tagSelect = null
+                }
+            },
+            //文件夹
+            createFolder() {
+                if(Strings.isBlank(this.folder.create.name)) {
+                    alert('文件夹的名称不能为空。')
+                    return
+                }
+                let name = this.folder.create.name.trim()
+                let virtual = !(this.folder.create.type === 'folder')
+                if(db.engine.isFolderExist(name)) {
+                    alert('该名称的文件夹已经存在。')
+                    return
+                }
+                if(!virtual) {
+                    db.engine.createOrUpdateRealFolder(name, [], "update")
+                }else{
+                    db.engine.createOrUpdateVirtualFolder(name, {})
+                }
+                db.engine.save()
+                this.folder.create.name = ''
+                vm.$set(this.folder.folders, this.folder.folders.length, {name: name, virtual: virtual})
+            },
+            removeFolder() {
+                if(this.folder.selectedIndex >= 0) {
+                    let f = this.folder.folders[this.folder.selectedIndex]
+                    if(db.engine.deleteFolder(f.name)) {
+                        db.engine.save()
+                        Arrays.removeAt(this.folder.folders, this.folder.selectedIndex)
+                    }else{
+                        console.warn('folder delete failed.')
+                    }
+
+                }
+            },
+            //tab控制和其他
+            setTab(tab) {
                 $('.nav-link').removeClass('active')
                 $('.tab-pane').removeClass('active')
                 $(`#${tab}-btn`).addClass('active')
                 $(`#${tab}`).addClass('active')
             },
-            setTouchBar: function () {
+            setTouchBar() {
                 if(db.platform.platform === 'darwin') {
                     vueModel.setTouchBar(new TouchBar({
                         items: [
@@ -271,7 +372,23 @@ function settingModel(vueModel: CommonModel) {
                         ]
                     }))
                 }
-            }
+            },
+            //工具函数
+            getTagName(tag: string): string {
+                return Tags.getTagName(tag)
+            },
+            getTagColor(tag: string): {background: string, color: string} {
+                let tagType = Tags.getTagType(tag)
+                for(let type of this.tag.typeList) {
+                    if(type.key === tagType) {
+                        return {
+                            background: type.background,
+                            color: type.fontcolor
+                        }
+                    }
+                }
+                return {background: '', color: ''}
+            },
         }
     })
 

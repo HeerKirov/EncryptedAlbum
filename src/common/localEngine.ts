@@ -9,7 +9,7 @@ import {Formula} from './appStorage'
 import {decrypt, encrypt, encryptBuffer, decryptBuffer} from '../util/encryption'
 import {translateDataURL, PREFIX_LENGTH, PREFIX} from '../util/nativeImage'
 import {Arrays, Maps, Sets} from "../util/collection"
-import {Illustrations, Images} from "../util/model";
+import {Illustrations, Images, Tags} from "../util/model"
 
 const STORAGE = 'data.db'
 const BLOCK_SIZE = 1024 * 64 //64KB
@@ -94,6 +94,43 @@ class LocalDataEngine implements DataEngine {
         }
         return ret
     }
+    renameTag(tag: string, newName?: string, newType?: string): number {
+        let newTag = Tags.tag(newType ? newType : Tags.getTagType(tag), newName ? newName : Tags.getTagName(tag))
+        let cnt = 0
+        let tagIndex = Arrays.indexOf(this.memory.tags, (t) => t === tag)
+        if(tagIndex >= 0) {
+            this.memory.tags[tagIndex] = newTag
+            for(let illust of this.memory.illustrations) {
+                analyse(illust.tags)
+                for(let image of illust.images) {
+                    analyse(image.subTags)
+                }
+            }
+        }
+        function analyse(tags: string[]): void {
+            let index = Arrays.indexOf(tags, (t) => t === tag)
+            if(index >= 0) {
+                tags[index] = newTag
+                cnt++
+            }
+        }
+        return cnt
+    }
+    deleteTag(tag: string): number {
+        let cnt = 0
+        let tagIndex = Arrays.indexOf(this.memory.tags, (t) => t === tag)
+        if(tagIndex >= 0) {
+            Arrays.removeAt(this.memory.tags, tagIndex)
+            for(let illust of this.memory.illustrations) {
+                if(Arrays.remove(illust.tags, tag)) cnt++
+                for(let image of illust.images) {
+                    if(Arrays.remove(image.subTags, tag)) cnt++
+                }
+            }
+        }
+        return cnt
+    }
+
     saveImageURL(imageId: number, dataURL: string, callback?: () => void): void {
         if(dataURL.substr(0, PREFIX_LENGTH) === PREFIX) {
             dataURL = dataURL.substring(PREFIX_LENGTH)
@@ -151,7 +188,11 @@ class LocalDataEngine implements DataEngine {
             folders = {}
             this.putConfig('folder', folders)
         }
-        folders[name] = this.updateRealScales(folders[name], folder, type)
+        let f = folders[name]
+        folders[name] = {
+            virtual: false,
+            items: this.updateRealScales(f && f.items ? f.items : [], folder, type)
+        }
     }
     createOrUpdateVirtualFolder(name: string, folder: IllustrationFindOption): void {
         let folders = this.getConfig('folder')
@@ -174,6 +215,14 @@ class LocalDataEngine implements DataEngine {
         }
         return null
     }
+    isFolderExist(name: string): boolean {
+        let folders = this.getConfig('folder')
+        if(folders) {
+            let folder = folders[name]
+            return folder != null
+        }
+        return false
+    }
     findFolder(name: string): Illustration[] {
         let folders = this.getConfig('folder')
         if(folders) {
@@ -187,6 +236,31 @@ class LocalDataEngine implements DataEngine {
             }
         }
         return null
+    }
+    getFolderList(): {name: string, virtual: boolean}[] {
+        let folders = this.getConfig('folder')
+        if(folders) {
+            let ret = []
+            for(let name in folders) {
+                let folder = folders[name]
+                if(folder) {
+                    Arrays.append(ret, {name: name, virtual: folder.virtual})
+                }
+            }
+            return ret
+        }
+        return []
+    }
+    deleteFolder(name: string): boolean {
+        let folders = this.getConfig('folder')
+        if(folders) {
+            let folder = folders[name]
+            if(folder) {
+                folders[name] = undefined
+                return true
+            }
+        }
+        return false
     }
 
     updateTempFolder(folder: Scale[], type: 'update' | 'add' | 'delete'): void {
@@ -334,19 +408,21 @@ class LocalDataEngine implements DataEngine {
     }
     private findFromRealScales(scales: Scale[]): Illustration[] {
         let illusts: Illustration[] = []
-        for(let item of scales) {
-            let illust = Arrays.find(this.memory.illustrations, (illust) => illust.id === item.illustId)
-            if(illust) {
-                if(item.imageIndex == undefined) {
-                    Arrays.append(illusts, Illustrations.cloneIllustration(illust))
-                }else{
-                    let cloneIllust = Illustrations.cloneIllustrationExcludeImage(illust)
-                    for(let index of item.imageIndex) {
-                        if(index >= 0 && index < illust.images.length) {
-                            Arrays.append(cloneIllust.images, Images.cloneImage(illust.images[index]))
+        if(scales) {
+            for(let item of scales) {
+                let illust = Arrays.find(this.memory.illustrations, (illust) => illust.id === item.illustId)
+                if(illust) {
+                    if(item.imageIndex == undefined) {
+                        Arrays.append(illusts, Illustrations.cloneIllustration(illust))
+                    }else{
+                        let cloneIllust = Illustrations.cloneIllustrationExcludeImage(illust)
+                        for(let index of item.imageIndex) {
+                            if(index >= 0 && index < illust.images.length) {
+                                Arrays.append(cloneIllust.images, Images.cloneImage(illust.images[index]))
+                            }
                         }
+                        Arrays.append(illusts, cloneIllust)
                     }
-                    Arrays.append(illusts, cloneIllust)
                 }
             }
         }
