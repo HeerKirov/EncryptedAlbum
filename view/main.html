@@ -1,4 +1,4 @@
-<div id="mainView" class="panel" v-if="visible">
+<div id="mainView" class="panel" :hidden="!visible">
     <div style="overflow: auto; height: 100vh; width: 100%">
         <div style="margin-bottom: 55px; margin-top: 72px">
             <ul style="margin: 0; padding: 0">
@@ -31,7 +31,7 @@
         <div class="ml-1 mr-1" style="position: absolute; left: 74px">
             <button class="btn btn-sm btn-outline-secondary" v-if="folder.type === 'list' || folder.type === 'virtual-folder'"
                     @click="loadFilterOption"  data-toggle="modal" data-target="#filterModal">
-                <i class="fa fa-filter mr-1" v-if="isAnyFilter"></i><i class="fa fa-star mr-1" v-if="option.filter.favorite"></i><i class="fa fa-picture-o mr-1" v-if="option.viewByImage"></i>
+                <i class="fa fa-filter mr-1" v-if="isAnyFilter"></i><i class="fa fa-picture-o mr-1" v-if="option.viewByImage"></i>
                 <span class="ml-4 mr-4">{{ ui.filter.noteText ? ui.filter.noteText : folder.type === 'list' ? '选择过滤选项…' : '虚拟文件夹的视图配置…' }}</span>
             </button>
             <button class="btn btn-sm" v-if="folder.type === 'temp' || folder.type === 'folder'"
@@ -92,7 +92,7 @@
                 <div class="col-auto">
                     <div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-sm btn-primary"
-                                :class="{disabled: !isAnySelected}">
+                                :class="{disabled: !isAnySelected}" @click="selectAction('detail')">
                             <i class="fa fa-picture-o"></i> 详情
                         </button>
                         <button type="button" class="btn btn-sm btn-primary"
@@ -188,10 +188,6 @@
                     </div>
                     <div class="row">
                         <div class="col-12 col-md-7">
-                            <div class="input-group mb-1">
-                                <span class="input-group-text mr-1"><input type="checkbox" v-model="ui.filter.favorite"></span>
-                                <label class="input-group-text mr-1">收藏夹</label>
-                            </div>
                             <div class="card mb-1">
                                 <div class="card-body p-2" style="background: #E9ECEF; color: #495057">
                                     <label>标签组</label>
@@ -216,7 +212,6 @@
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                         <div class="col-12 col-md-5">
                             <div class="input-group mb-1">

@@ -11,6 +11,8 @@ import {translateDataURL, PREFIX_LENGTH, PREFIX} from '../util/nativeImage'
 import {Arrays, Maps, Sets} from "../util/collection"
 import {Illustrations, Images, Tags} from "../util/model"
 
+const VERSION = 'v0.2.0'
+
 const STORAGE = 'data.db'
 const BLOCK_SIZE = 1024 * 64 //64KB
 const BLOCK_IN_FILE = 1024 //1024 blocks(64MB) in max case
@@ -30,6 +32,28 @@ class LocalDataEngine implements DataEngine {
             sortIllustration(illustrations, options.order, options.desc)
         }
         return illustrations
+    }
+    findIllustrationByScale(scales: Scale[]): Illustration[] {
+        let illusts: Illustration[] = []
+        if(scales) {
+            for(let item of scales) {
+                let illust = Arrays.find(this.memory.illustrations, (illust) => illust.id === item.illustId)
+                if(illust) {
+                    if(item.imageIndex == undefined) {
+                        Arrays.append(illusts, Illustrations.cloneIllustration(illust))
+                    }else{
+                        let cloneIllust = Illustrations.cloneIllustrationExcludeImage(illust)
+                        for(let index of item.imageIndex) {
+                            if(index >= 0 && index < illust.images.length) {
+                                Arrays.append(cloneIllust.images, Images.cloneImage(illust.images[index]))
+                            }
+                        }
+                        Arrays.append(illusts, cloneIllust)
+                    }
+                }
+            }
+        }
+        return illusts
     }
     createOrUpdateIllustration(illustrations: Illustration[], imageIdVirtualReflect?: Object): Illustration[] {
         let success = []
@@ -205,7 +229,7 @@ class LocalDataEngine implements DataEngine {
             option: folder
         }
     }
-    getVirtualFolderInformation(name: string): IllustrationFindOption {
+    getVirtualFolder(name: string): IllustrationFindOption {
         let folders = this.getConfig('folder')
         if(folders) {
             let folder = folders[name]
@@ -215,6 +239,27 @@ class LocalDataEngine implements DataEngine {
         }
         return null
     }
+    getRealFolder(name: string): Scale[] {
+        let folders = this.getConfig('folder')
+        if(folders) {
+            let folder = folders[name]
+            if(folder && !folder.virtual) {
+                return folder.items
+            }
+        }
+        return null
+    }
+    deleteFolder(name: string): boolean {
+        let folders = this.getConfig('folder')
+        if(folders) {
+            let folder = folders[name]
+            if(folder) {
+                folders[name] = undefined
+                return true
+            }
+        }
+        return false
+    }
     isFolderExist(name: string): boolean {
         let folders = this.getConfig('folder')
         if(folders) {
@@ -222,20 +267,6 @@ class LocalDataEngine implements DataEngine {
             return folder != null
         }
         return false
-    }
-    findFolder(name: string): Illustration[] {
-        let folders = this.getConfig('folder')
-        if(folders) {
-            let folder = folders[name]
-            if(folder) {
-                if(folder.virtual) {
-                    return this.findIllustration(folder.option)
-                }else{
-                    return this.findFromRealScales(folder.items)
-                }
-            }
-        }
-        return null
     }
     getFolderList(): {name: string, virtual: boolean}[] {
         let folders = this.getConfig('folder')
@@ -251,34 +282,20 @@ class LocalDataEngine implements DataEngine {
         }
         return []
     }
-    deleteFolder(name: string): boolean {
-        let folders = this.getConfig('folder')
-        if(folders) {
-            let folder = folders[name]
-            if(folder) {
-                folders[name] = undefined
-                return true
-            }
-        }
-        return false
-    }
 
     updateTempFolder(folder: Scale[], type: 'update' | 'add' | 'delete'): void {
         //实体的运作逻辑仍然以illust为轴心。实际表示时，同一个illust下的image仍然会被归属到一组。
         this.tempCache = this.updateRealScales(this.tempCache, folder, type)
     }
-    findTempFolder(): Illustration[] {
-        return this.findFromRealScales(this.tempCache)
+    getTempFolder(): Scale[] {
+        return this.tempCache
     }
 
     updateQuery(query: IllustrationFindOption): void {
         this.queryCache = query
     }
-    getQueryInformation(): IllustrationFindOption {
+    getQuery(): IllustrationFindOption {
         return this.queryCache
-    }
-    findQuery(): Illustration[] {
-        return this.findIllustration(this.queryCache)
     }
 
     getConfig(key: string): any {
@@ -356,7 +373,7 @@ class LocalDataEngine implements DataEngine {
     }
     save() {
         let buf = encrypt(this.key, {
-            version: "v0.2.0",
+            version: VERSION,
             nextIndex: {
                 nextIllustrationId: this.memory.nextIllustrationId,
                 nextImageId: this.memory.nextImageId,
@@ -405,28 +422,6 @@ class LocalDataEngine implements DataEngine {
         }else{
             return folder
         }
-    }
-    private findFromRealScales(scales: Scale[]): Illustration[] {
-        let illusts: Illustration[] = []
-        if(scales) {
-            for(let item of scales) {
-                let illust = Arrays.find(this.memory.illustrations, (illust) => illust.id === item.illustId)
-                if(illust) {
-                    if(item.imageIndex == undefined) {
-                        Arrays.append(illusts, Illustrations.cloneIllustration(illust))
-                    }else{
-                        let cloneIllust = Illustrations.cloneIllustrationExcludeImage(illust)
-                        for(let index of item.imageIndex) {
-                            if(index >= 0 && index < illust.images.length) {
-                                Arrays.append(cloneIllust.images, Images.cloneImage(illust.images[index]))
-                            }
-                        }
-                        Arrays.append(illusts, cloneIllust)
-                    }
-                }
-            }
-        }
-        return illusts
     }
 
     private memory: SaveModel = new SaveModel()                     //缓存所有与数据库内容有关的内容

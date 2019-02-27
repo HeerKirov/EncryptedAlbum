@@ -142,8 +142,8 @@ function editModel(vueModel: CommonModel) {
                     }
                     this.tagEditor.allTagList = db.engine.findTag({order: ['type', 'title']})
                 }
-                if(option && typeof option === 'object') {
-                    let illustIds: number[] = option
+                if(option) {
+                    let illustIds: number[] = option.illustIds
                     if(illustIds.length > 0) {
                         Arrays.join(this.illusts, db.engine.findIllustration({id__in: illustIds}))
                         this.turnTo(0)
@@ -287,7 +287,7 @@ function editModel(vueModel: CommonModel) {
                                 if(!isRunning()) break
                                 if(group.length <= 0) continue
                                 let illust: Illustration = {
-                                    id: undefined, title: '', tags: [], favorite: false, links: [],
+                                    id: undefined, title: '', tags: [], links: [],
                                     createTime: undefined, images: []
                                 }
                                 let index = 0
@@ -298,7 +298,7 @@ function editModel(vueModel: CommonModel) {
                                         let imageModel: Image = {
                                             id: imageFlagId,    //使用负数标记暂存的image data
                                             index: index++, //实际相当于next index
-                                            subTitle: null, subFavorite: null, subTags: [],
+                                            subTitle: null, subTags: [],
                                             createTime: undefined, resolution: image.getSize()
                                         }
                                         Arrays.append(illust.images, imageModel)
@@ -337,12 +337,12 @@ function editModel(vueModel: CommonModel) {
                                             let image = nativeImage.createFromBuffer(buffer)
                                             let imageModel: Image = {
                                                 id: imageFlagId, index: 0,
-                                                subTitle: null, subFavorite: null, subTags: [],
+                                                subTitle: null, subTags: [],
                                                 createTime: undefined, resolution: image.getSize()
                                             }
                                             newImageData[imageFlagId] = PREFIX + buffer.toString('base64')
                                             let eachIllust: Illustration = {
-                                                id: undefined, title: '', favorite: false,
+                                                id: undefined, title: '',
                                                 tags: [], links: [],
                                                 createTime: undefined, images: [imageModel]
                                             }
@@ -358,7 +358,7 @@ function editModel(vueModel: CommonModel) {
                             }else{
                                 let index = 0
                                 let illust: Illustration = {
-                                    id: undefined, title: '', favorite: false,
+                                    id: undefined, title: '',
                                     tags: [], links: [], createTime: undefined, images: []
                                 }
                                 vm.$set(vm.illusts, vm.illusts.length, illust)
@@ -369,7 +369,7 @@ function editModel(vueModel: CommonModel) {
                                             let image = nativeImage.createFromBuffer(buffer)
                                             let imageModel: Image = {
                                                 id: imageFlagId, index: index++,
-                                                subTitle: null, subFavorite: null, subTags: [],
+                                                subTitle: null, subTags: [],
                                                 createTime: undefined, resolution: image.getSize()
                                             }
                                             newImageData[imageFlagId] = PREFIX + buffer.toString('base64')
@@ -465,7 +465,7 @@ function editModel(vueModel: CommonModel) {
                                             }
                                             let illust: Illustration = {
                                                 id: undefined, title: info.title,
-                                                tags: tags, favorite: false, links: [info.webLink],
+                                                tags: tags, links: [info.webLink],
                                                 createTime: undefined, images: []
                                             }
                                             let index = 0
@@ -476,7 +476,7 @@ function editModel(vueModel: CommonModel) {
                                                 let imageModel: Image = {
                                                     id: imageFlagId,    //使用负数标记暂存的image data
                                                     index: index++, //实际相当于next index
-                                                    subTitle: null, subFavorite: null, subTags: [],
+                                                    subTitle: null, subTags: [],
                                                     createTime: undefined, resolution: native.getSize()
                                                 }
                                                 Arrays.append(illust.images, imageModel)
@@ -562,7 +562,6 @@ function editModel(vueModel: CommonModel) {
                                             id: imageFlagId,    //使用负数标记暂存的image data
                                             index: index++, //实际相当于next index
                                             subTitle: null,
-                                            subFavorite: null,
                                             subTags: [],
                                             createTime: undefined,
                                             resolution: image.getSize()
@@ -597,7 +596,6 @@ function editModel(vueModel: CommonModel) {
                                             id: imageFlagId,
                                             index: index++,
                                             subTitle: null,
-                                            subFavorite: null,
                                             subTags: [],
                                             createTime: undefined,
                                             resolution: image.getSize()

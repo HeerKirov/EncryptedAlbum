@@ -26,7 +26,6 @@ function getIllustrationFindOption(option): IllustrationFindOption {
         order: [option.sort.by],
         desc: option.sort.desc,
         search: option.filter.search ? option.filter.search : undefined,
-        favorite__eq: option.filter.favorite ? true : undefined,
         tag__containsAll: Arrays.isNotEmpty(option.filter.tags) ? Arrays.clone(option.filter.tags) : undefined
     }
 }
@@ -34,7 +33,6 @@ function getUIOption(option: IllustrationFindOption): Object {
     return {
         filter: {
             search: option.search ? option.search : null,
-            favorite: option.favorite__eq || false,
             tags: Arrays.isNotEmpty(option.tag__containsAll) ? Arrays.clone(option.tag__containsAll) : []
         },
         sort: {
@@ -64,7 +62,6 @@ function mainModel(vueModel: CommonModel) {
             ui: {
                 filter: {
                     search: '',
-                    favorite: false,
                     tags: [],
                     tagSearchText: '',  //绑定过滤面板上的标签搜索框
                     noteText: null
@@ -78,7 +75,6 @@ function mainModel(vueModel: CommonModel) {
             option: {
                 filter: {
                     search: '',
-                    favorite: false,
                     tags: []
                 },
                 sort: {
@@ -139,6 +135,17 @@ function mainModel(vueModel: CommonModel) {
                 return Arrays.filterMap(this.folder.customs, (t: any, i: number) => !t.virtual ? {name: t.name, index: i} : undefined)
             }
         },
+        watch: {
+            'view.showTitle': function () {
+                this.saveViewOption()
+            },
+            'view.zoom': function () {
+                this.saveViewOption()
+            },
+            'view.loadNum': function () {
+                this.saveViewOption()
+            }
+        },
         methods: {
             //事件
             load(options?: any, refresh?: boolean) {
@@ -146,8 +153,11 @@ function mainModel(vueModel: CommonModel) {
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
                 this.tag.typeList = db.engine.getConfig('tag-type')
+                this.loadViewOption()
                 this.loadFolder()
-                this.switchFolder(this.folder.current, true)
+                if(refresh) {
+                    this.switchFolder(this.folder.current, true)
+                }
             },
             leave() {
                 this.visible = false
@@ -160,7 +170,7 @@ function mainModel(vueModel: CommonModel) {
             },
             //导航
             gotoAdd() {
-                vueModel.route("edit")
+                vueModel.route('edit')
             },
             gotoSetting() {
                 vueModel.route("setting")
@@ -182,10 +192,6 @@ function mainModel(vueModel: CommonModel) {
                 }
                 if(this.ui.filter.search != this.option.filter.search) {
                     this.option.filter.search = this.ui.filter.search
-                    changed = true
-                }
-                if(this.ui.filter.favorite != this.option.filter.favorite) {
-                    this.option.filter.favorite = this.ui.filter.favorite
                     changed = true
                 }
                 if(!Arrays.equal(this.ui.filter.tags, this.option.filter.tags)) {
@@ -210,7 +216,6 @@ function mainModel(vueModel: CommonModel) {
                 this.ui.sort.by = this.option.sort.by
                 this.ui.sort.desc = this.option.sort.desc
                 this.ui.filter.search = this.option.filter.search
-                this.ui.filter.favorite = this.option.filter.favorite
                 this.ui.filter.tags = Arrays.clone(this.option.filter.tags)
                 this.ui.filter.tagSearchText = ''
                 this.tag.tags = db.engine.findTag({order: ['type', 'title']})
@@ -245,6 +250,22 @@ function mainModel(vueModel: CommonModel) {
                     this.tag.tags = db.engine.findTag({order: ['type', 'title']})
                 }
             },
+            saveViewOption() {
+                db.engine.putConfig('view', {
+                    showTitle: this.view.showTitle,
+                    zoom: this.view.zoom,
+                    loadNum: this.view.loadNum
+                })
+                db.engine.save()
+            },
+            loadViewOption() {
+                let view = db.engine.getConfig('view')
+                if(view) {
+                    this.view.loadNum = view.loadNum
+                    this.view.zoom = view.zoom
+                    this.view.showTitle = view.showTitle
+                }
+            },
             //文件夹切换和控制
             loadFolder() {
                 this.folder.customs = db.engine.getFolderList()
@@ -256,13 +277,13 @@ function mainModel(vueModel: CommonModel) {
                     else this.folder.type = this.folder.customs[this.folder.current].virtual ? 'virtual-folder' : 'folder'
 
                     if(this.folder.type === 'list') {
-                        let queryInfo = db.engine.getQueryInformation()
+                        let queryInfo = db.engine.getQuery()
                         if(queryInfo) {
                             this.option = getUIOption(queryInfo)
                         }
                         this.updateNoteText()
                     }else if(this.folder.type === 'virtual-folder') {
-                        let queryInfo = db.engine.getVirtualFolderInformation(this.folder.customs[this.folder.current].name)
+                        let queryInfo = db.engine.getVirtualFolder(this.folder.customs[this.folder.current].name)
                         if(queryInfo) {
                             this.option = getUIOption(queryInfo)
                         }
@@ -300,11 +321,15 @@ function mainModel(vueModel: CommonModel) {
             loadData() {
                 //将数据加载到backend。
                 if(this.folder.current === 'list') {
-                    this.data.backend = db.engine.findQuery()
+                    this.data.backend = db.engine.findIllustration(db.engine.getQuery())
                 }else if(this.folder.current === 'temp') {
-                    this.data.backend = db.engine.findTempFolder()
+                    this.data.backend = db.engine.findIllustrationByScale(db.engine.getTempFolder())
                 }else if(this.folder.current >= 0 && this.folder.current < this.folder.customs.length) {
-                    this.data.backend = db.engine.findFolder(this.folder.customs[this.folder.current].name)
+                    if(this.folder.customs[this.folder.current].virtual) {
+                        this.data.backend = db.engine.findIllustration(db.engine.getVirtualFolder(this.folder.customs[this.folder.current].name))
+                    }else{
+                        this.data.backend = db.engine.findIllustrationByScale(db.engine.getRealFolder(this.folder.customs[this.folder.current].name))
+                    }
                 }else{
                     this.data.backend = []
                     console.warn(`folder "${this.folder.current}" is not exist.`)
@@ -397,7 +422,20 @@ function mainModel(vueModel: CommonModel) {
                         if(this.selected.mode) {
                             selectOne(frontendIndex)
                         }else{
-                            //TODO go to detail page
+                            let scales: Scale[] = Arrays.map(this.data.backend, (illust: Illustration) => {
+                                return {
+                                    illustId: illust.id,
+                                    imageIndex: Arrays.map(illust.images, (image: Image) => image.index)
+                                }
+                            })
+                            let {backendIllustIndex, backendImageIndex} = this.data.frontend[frontendIndex]
+                            let illust: Illustration = this.data.backend[backendIllustIndex]
+                            if(backendImageIndex != undefined) {
+                                let image: Image = illust.images[backendImageIndex]
+                                vueModel.route('detail', {scales, selectIllustId: illust.id, selectImageIndex: image.index})
+                            }else{
+                                vueModel.route('detail', {scales, selectIllustId: illust.id})
+                            }
                         }
                     }else if(!this.selected.mode) {//右键点击，未处于选择模式
                         this.selected.mode = true
@@ -456,7 +494,10 @@ function mainModel(vueModel: CommonModel) {
             },
             selectAction(action: 'detail' | 'edit' | 'export' | 'delete') {
                 if(action === 'detail') {
-                    //TODO 详情页
+                    let scales = this.getSelectedItems()
+                    let selectIllustId = scales.length > 0 ? scales[0].illustId : null
+                    let selectImageIndex = scales.length > 0 ? scales[0].imageIndex[0] : null
+                    vueModel.route('detail', {scales, selectIllustId, selectImageIndex})
                 }else if(action === 'edit') {
                     let illustIds = []
                     for(let frontendIndex of this.selected.frontendIndexList) {
@@ -464,7 +505,7 @@ function mainModel(vueModel: CommonModel) {
                         let illust: Illustration = this.data.backend[backendIllustIndex]
                         Sets.put(illustIds, illust.id)
                     }
-                    vueModel.route('edit', illustIds)
+                    vueModel.route('edit', {illustIds})
                 }else if(action === 'export') {
                     dialog.showOpenDialog(db.currentWindow, {
                         title: '导出位置',

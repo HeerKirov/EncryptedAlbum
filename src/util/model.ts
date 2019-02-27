@@ -23,7 +23,6 @@ class Illustrations {
             id: undefined,
             title: '',
             tags: [],
-            favorite: false,
             links: [],
             createTime: undefined,
             images: []
@@ -34,7 +33,6 @@ class Illustrations {
             id: illust.id || undefined,
             title: illust.title,
             tags: Arrays.clone(illust.tags),
-            favorite: illust.favorite,
             links: Arrays.clone(illust.links),
             createTime: illust.createTime,
             images: Arrays.map(illust.images, (image) => Images.cloneImage(image))
@@ -45,7 +43,6 @@ class Illustrations {
             id: illust.id || undefined,
             title: illust.title,
             tags: Arrays.clone(illust.tags),
-            favorite: illust.favorite,
             links: Arrays.clone(illust.links),
             createTime: illust.createTime,
             images: []
@@ -96,7 +93,6 @@ class Images {
             id: undefined,
             index: undefined,
             subTitle: null,
-            subFavorite: null,
             subTags: [],
             createTime: undefined,
             resolution: null
@@ -108,7 +104,6 @@ class Images {
             index: image.index,
             subTitle: image.subTitle,
             subTags: Arrays.clone(image.subTags),
-            subFavorite: image.subFavorite,
             resolution: {width: image.resolution.width, height: image.resolution.height},
             createTime: image.createTime
         }
@@ -119,7 +114,6 @@ class Images {
                 a.index === b.index &&
                 a.resolution.height === b.resolution.height &&
                 a.resolution.width === b.resolution.width &&
-                a.subFavorite === b.subFavorite &&
                 a.subTitle === b.subTitle &&
                 Arrays.equal(a.subTags, b.subTags)
         }

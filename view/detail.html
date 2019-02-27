@@ -1,0 +1,122 @@
+<div id="detailView" class="panel" v-if="visible">
+    <!-- 主要展示区 -->
+    <div style="position: absolute; width: 100%; overflow: hidden; text-align: center"
+         :style="{'top': noTitleBar ? '0px' : '22px', 'bottom': dock.show ? '120px' : '0px'}">
+        <!-- 使背景点击起效的控制面板 -->
+        <div style="position: absolute; width: 100%; height: 100%" @click="tool.show = !tool.show"></div>
+        <!-- 主图 -->
+        <img style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)"
+            @click="tool.show = !tool.show" :src="data.currentDataURL" :style="imageZoomStyle"/>
+        <!-- 功能按钮 -->
+        <div v-if="tool.show">
+            <button style="position: absolute; left: 5px; top: 5px; width: 36px; height: 36px; border-width: 0"
+                    class="btn btn-outline-secondary" @click="goBack">
+                <i class="fa fa-close"></i>
+            </button>
+            <button style="position: absolute; left: 5px; top: 45px; width: 36px; bottom: 45px; border-width: 0"
+                    class="btn btn-outline-secondary" @click="arrow('image', 'prev')">
+                <i class="fa fa-angle-left"></i>
+            </button>
+            <button style="position: absolute; right: 5px; top: 45px; width: 36px; bottom: 45px; border-width: 0"
+                    class="btn btn-outline-secondary" @click="arrow('image', 'next')">
+                <i class="fa fa-angle-right"></i>
+            </button>
+            <button style="position: absolute; right: 5px; bottom: 5px; width: 36px; height: 36px; border-width: 0"
+                    class="btn btn-outline-secondary" @click="switchFullScreen" v-if="isShowFullScreenButton">
+                <i class="fa fa-arrows-alt"></i>
+            </button>
+            <button style="position: absolute; left: 5px; bottom: 5px; width: 36px; height: 36px; border-width: 0"
+                    class="btn btn-outline-secondary" v-if="!dock.show" @click="dock.show = true">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+    </div>
+    <!-- Dock工具栏 -->
+    <div style="position: absolute; width: 100%; height: 121px; bottom: 0; background: #222222" v-if="dock.show">
+        <!-- Dock栏开关 -->
+        <button style="position: absolute; left: 5px; bottom: 5px; width: 36px; height: 36px; border-width: 0"
+                class="btn btn-outline-secondary" @click="dock.show = false">
+            <i class="fa fa-bars"></i>
+        </button>
+        <!-- 导出按钮 -->
+        <button style="position: absolute; left: 5px; bottom: 42px; width: 36px; height: 36px; border-width: 0"
+                class="btn btn-outline-secondary" @click="exportImage">
+            <i class="fa fa-upload"></i>
+        </button>
+        <!-- 编辑按钮 -->
+        <button style="position: absolute; left: 5px; bottom: 79px; width: 36px; height: 36px; border-width: 0"
+                class="btn btn-outline-secondary" @click="goEdit">
+            <i class="fa fa-pencil"></i>
+        </button>
+        <!-- 信息面板按钮 -->
+        <button style="position: absolute; right: 5px; bottom: 79px; width: 40px;height: 36px; border-width: 0"
+                class="btn" :class="dock.type === 'info' ? 'btn-outline-light' : 'btn-outline-secondary'"
+                @click="dock.type = 'info'">
+            <i class="fa fa-info"></i>
+        </button>
+        <!-- 定时面板按钮 -->
+        <button style="position: absolute; right: 5px; bottom: 42px; width: 40px;height: 36px; border-width: 0"
+                class="btn" :class="dock.type === 'timer' ? 'btn-outline-light' : 'btn-outline-secondary'"
+                @click="dock.type = 'timer'">
+            <i class="fa fa-clock-o"></i>
+        </button>
+        <!-- 缩放面板按钮 -->
+        <button style="position: absolute; right: 5px; bottom: 5px; width: 40px; height: 36px; border-width: 0"
+                class="btn" :class="dock.type === 'zoom' ? 'btn-outline-light' : 'btn-outline-secondary'"
+                @click="dock.type = 'zoom'">
+            <i class="fa fa-joomla"></i>
+        </button>
+        <!-- 信息面板 -->
+        <div style="position: absolute; top: 10px; bottom: 5px; left: 50px; right: 50px; color: #FFFFFF" v-if="dock.type === 'info'">
+            <div style="position: absolute; top: 0; bottom: 0; left: 50px; right: 50px">
+                <h4>{{data.currentIllust.title}}</h4>
+                <h6>{{data.currentImage.subTitle}}</h6>
+                <div style="overflow: auto; max-height: 45px;">
+                <span v-for="tag in data.currentIllust.tags" class="badge mr-1" :style="getTagColor(tag)">
+                    {{getTagName(tag)}}
+                </span>
+                    <span v-for="tag in data.currentImage.subTags" class="badge mr-1" :style="getTagColor(tag)">
+                    {{getTagName(tag)}}
+                </span>
+                </div>
+                <div class="dropup" style="position: absolute; right: 5px; top: 5px" v-if="data.currentIllust.links.length > 0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" style="border-width: 0" data-toggle="dropdown">相关链接 <i class="fa fa-link"></i></button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" v-for="link in data.currentIllust.links" @click="openLink(link)">{{link}}</a>
+                    </div>
+                </div>
+            </div>
+            <button style="position: absolute; left: 5px; top: 5px; width: 30px; bottom: 5px; border-width: 0"
+                    class="btn btn-sm btn-outline-secondary" @click="arrow('illust', 'prev')">
+                <i class="fa fa-angle-double-left"></i>
+            </button>
+            <button style="position: absolute; right: 5px; top: 5px; width: 30px; bottom: 5px; border-width: 0"
+                    class="btn btn-sm btn-outline-secondary" @click="arrow('illust', 'next')">
+                <i class="fa fa-angle-double-right"></i>
+            </button>
+        </div>
+        <!-- 定时控制面板 -->
+        <div style="position: absolute; left: 50px; right: 50px; top: 5px; bottom: 5px" v-if="dock.type === 'timer'">
+            <div class="btn-group-sm btn-group" style="position: absolute; top: 18px; left: 30%; width: 20%">
+                <button class="btn m-0 btn-block" :class="timer.random ? 'btn-secondary' : 'btn-outline-secondary'"
+                        style="color: #FFFFFF; height: 30px" @click="timer.random = true">随机</button>
+                <button class="btn m-0 btn-block" :class="timer.random ? 'btn-outline-secondary' : 'btn-secondary'"
+                        style="color: #FFFFFF; height: 30px" @click="timer.random = false">顺序</button>
+            </div>
+            <label style="position: absolute; top: 21px; left: 52%; color: #FFFFFF">{{timerItems[timer.item].title}}</label>
+            <input type="range" class="custom-range" style="position: absolute; height: 25px; top: 55%; left: 10%; width: 80%"
+                   min="0" :max="timerItems.length - 1" step="1" v-model="timer.item"/>
+        </div>
+        <!-- 缩放控制面板 -->
+        <div style="position: absolute; left: 50px; right: 50px; top: 5px; bottom: 5px" v-if="dock.type === 'zoom'">
+            <div class="btn-group-sm btn-group" style="position: absolute; top: 18px; left: 40%; width: 20%">
+                <button class="btn m-0 btn-block" :class="zoom.absolute ? 'btn-secondary' : 'btn-outline-secondary'"
+                        style="color: #FFFFFF; height: 30px" @click="zoom.absolute = true">绝对值</button>
+                <button class="btn m-0 btn-block" :class="zoom.absolute ? 'btn-outline-secondary' : 'btn-secondary'"
+                        style="color: #FFFFFF; height: 30px" @click="zoom.absolute = false">自适应</button>
+            </div>
+            <input type="range" class="custom-range" style="position: absolute; height: 25px; top: 55%; left: 10%; width: 80%"
+                   min="0" max="100" step="5" v-model="zoom.value" v-if="zoom.absolute"/>
+        </div>
+    </div>
+</div>

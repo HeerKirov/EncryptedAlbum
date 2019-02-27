@@ -21,6 +21,7 @@ import {Illustrations, Images, Tags} from "../util/model"
  */
 interface DataEngine {
     findIllustration(options: IllustrationFindOption): Illustration[]
+    findIllustrationByScale(scales: Scale[]): Illustration[]
     createOrUpdateIllustration(illustrations: Illustration[], imageIdVirtualReflect?: Object): Illustration[]
     deleteIllustration(illustrations: (Illustration | number)[]): number
 
@@ -33,18 +34,17 @@ interface DataEngine {
 
     createOrUpdateRealFolder(name: string, folder: Scale[], type: 'update' | 'add' | 'delete'): void
     createOrUpdateVirtualFolder(name: string, folder: IllustrationFindOption): void
-    getVirtualFolderInformation(name: string): IllustrationFindOption
-    findFolder(name: string): Illustration[]
+    getVirtualFolder(name: string): IllustrationFindOption
+    getRealFolder(name: string): Scale[]
+    deleteFolder(name: string): boolean
     isFolderExist(name: string): boolean
     getFolderList(): {name: string, virtual: boolean}[]
-    deleteFolder(name: string): boolean
 
     updateTempFolder(folder: Scale[], type: 'update' | 'add' | 'delete'): void
-    findTempFolder(): Illustration[]
+    getTempFolder(): Scale[]
 
     updateQuery(query: IllustrationFindOption): void
-    getQueryInformation(): IllustrationFindOption
-    findQuery(): Illustration[]
+    getQuery(): IllustrationFindOption
 
     getConfig(key: string): any
     putConfig(key: string, value: any): void
@@ -71,21 +71,18 @@ enum ImageSpecification {
  *      id: 匹配illust.id
  *      title: 匹配illust.title
  *      tag: 匹配illust.tags与所有images.tags的并集
- *      favorite: 匹配illust.fav
  *      createTime: 匹配illust.createTime
  *      imageQuantity: 匹配illust.images.length
  * image粒度下，字段将产生不一样的匹配：
  *      id: 匹配image.id
  *      title: 优先匹配image.title，不存在时匹配illust.title
  *      tag: 匹配illust.tags与当前image.tags的并集
- *      favorite: 匹配image.favorite
  *      createTime: 匹配image.createTime
  *      imageQuantity: 无效
  *
  * 排序：使用几个既定的字段进行优先级排序。可以倒序。总是按illust粒度排序。
  *      id: 小序号在前。
  *      title: 字典序。
- *      favorite: true在前。
  *      createTime: 最新日期在前。
  *      imageQuantity: 数量最多在前。
  */
@@ -100,7 +97,6 @@ interface IllustrationFindOption {
     id__in?: number[],
     title__eq?: string,
     tag__containsAll?: string[],
-    favorite__eq?: boolean,
     createTime__le?: number,
     createTime__ge?: number,
     imageQuantity__ge?: number
@@ -118,7 +114,6 @@ interface Illustration {
     id?: number,
     title: string,
     tags: string[],
-    favorite: boolean,
     links: string[],
     createTime: number,
     images: Image[]
@@ -129,7 +124,6 @@ interface Image {
     index: number,
     subTitle: string
     subTags: string[]
-    subFavorite: boolean
     resolution: Size,
     createTime: number
 }
@@ -161,7 +155,6 @@ function matchOnIllustration(illustration: Illustration, option: IllustrationFin
     else if(option.id__in && !Arrays.contains(option.id__in, illustration.id)) return false
     else if(option.title__eq && illustration.title !== option.title__eq) return false
     else if(option.tag__containsAll && !Illustrations.containsAllTags(illustration, option.tag__containsAll)) return false
-    else if(option.favorite__eq && !illustration.favorite) return false
     else if(option.createTime__le && illustration.createTime > option.createTime__le) return false
     else if(option.createTime__ge && illustration.createTime < option.createTime__ge) return false
     else if(option.imageQuantity__ge && illustration.images.length < option.imageQuantity__ge) return false
@@ -172,7 +165,6 @@ function matchOnImage(illustration: Illustration, image: Image, option: Illustra
     else if(option.id__in && !Arrays.contains(option.id__in, image.id)) return false
     else if(option.title__eq && illustration.title !== option.title__eq && image.subTitle !== option.title__eq) return false
     else if(option.tag__containsAll && !Images.containsAllTags(image, illustration, option.tag__containsAll)) return false
-    else if(option.favorite__eq && !image.subFavorite && !illustration.favorite) return false
     else if(option.createTime__ge && image.createTime < option.createTime__ge) return false
     else if(option.createTime__le && image.createTime > option.createTime__le) return false
     else return !(option.search && !Images.matchSearchText(image, illustration, option.search))
@@ -188,9 +180,6 @@ function sortIllustration(illustrations: Illustration[], order: string[], desc: 
             }else if(field === 'title') {
                 let tA = a.title, tB = b.title
                 if(tA !== tB) return tA.localeCompare(tB, 'zh') > 0 ? gt : lt
-            }else if(field === 'favorite') {
-                let tA = a.favorite, tB = b.favorite
-                if(tA !== tB) return tB ? gt : lt
             }else if(field === 'createTime') {
                 let tA = a.createTime, tB = b.createTime
                 if(tA !== tB) return tA < tB ? gt: lt

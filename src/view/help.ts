@@ -11,30 +11,33 @@ function helpModel(vueModel: CommonModel) {
             fullscreen: false
         },
         computed: {
-            noTitleBar: function() {
+            noTitleBar() {
                 return this.fullscreen || db.platform.platform !== 'darwin'
+            },
+            platformName () {
+                return db.platform.platform
             }
         },
         methods: {
-            load: function () {
+            load() {
                 db.ui.theme = 'white'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
             },
-            leave: function () {
+            leave() {
                 this.visible = false
             },
-            enterFullScreen: function() {
+            enterFullScreen() {
                 this.fullscreen = true
             },
-            leaveFullScreen: function() {
+            leaveFullScreen() {
                 this.fullscreen = false
             },
 
-            goBack: function() {
+            goBack() {
                 vueModel.routeBack()
             },
-            setTab: function (tab) {
+            setTab (tab) {
                 $('.nav-link').removeClass('active')
                 $('.tab-pane').removeClass('active')
                 $(`#${tab}-btn`).addClass('active')

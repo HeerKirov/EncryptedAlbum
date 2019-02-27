@@ -102,11 +102,10 @@ function route(viewName: string, options?: any, refresh?: boolean): void {
         Arrays.append(viewHistory, viewName)
     }
 }
-function routeBack(refresh?: boolean): void {
-    if(refresh == undefined) refresh = false
+function routeBack(refresh: boolean = false): void {
     if(viewHistory.length >= 2) {
         Arrays.removeAt(viewHistory, viewHistory.length - 1)
-        route(Arrays.last(viewHistory), null, refresh)
+        route(Arrays.last(viewHistory), undefined, refresh)
     }
 }
 
