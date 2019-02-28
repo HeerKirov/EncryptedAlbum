@@ -5,7 +5,7 @@ import {Arrays} from "../util/collection"
 import {Strings} from "../util/string"
 import {Tags} from "../util/model"
 const {TouchBar} = remote
-const {TouchBarButton, TouchBarSpacer} = TouchBar
+const {TouchBarButton, TouchBarSpacer, TouchBarSegmentedControl} = TouchBar
 const Vue = require('vue/dist/vue')
 const $ = window['$']
 
@@ -346,29 +346,23 @@ function settingModel(vueModel: CommonModel) {
                     vueModel.setTouchBar(new TouchBar({
                         items: [
                             new TouchBarSpacer({size: 'flexible'}),
-                            new TouchBarButton({
-                                label: '存储',
-                                click: () => {this.setTab('storage')}
-                            }),
-                            new TouchBarButton({
-                                label: '安全',
-                                click: () => {this.setTab('security')}
-                            }),
-                            new TouchBarButton({
-                                label: 'Pixiv',
-                                click: () => {this.setTab('pixiv')}
-                            }),
-                            new TouchBarButton({
-                                label: '网络代理',
-                                click: () => {this.setTab('proxy')}
+                            new TouchBarSegmentedControl({
+                                mode: 'buttons',
+                                segments: [
+                                    {label: '存储'},
+                                    {label: '标签'},
+                                    {label: '文件夹'},
+                                    {label: 'Pixiv功能'},
+                                    {label: '网络代理'},
+                                    {label: '安全管理'}
+                                ],
+                                change: selectedIndex => {
+                                    const gotoHash = ['storage', 'tag', 'folder', 'pixiv', 'proxy', 'security']
+                                    this.setTab(gotoHash[selectedIndex])
+                                }
                             }),
                             new TouchBarSpacer({size: 'flexible'}),
-                            new TouchBarButton({
-                                label: '帮助向导',
-                                click: () => {
-                                    this.help()
-                                }
-                            })
+                            new TouchBarButton({label: '帮助向导', click: this.help})
                         ]
                     }))
                 }
@@ -391,7 +385,13 @@ function settingModel(vueModel: CommonModel) {
             },
         }
     })
-
+    $(document)['keydown'](function(e) {
+        if(vm.visible) {
+            if(e.keyCode === 27) {
+                vm.goBack()
+            }
+        }
+    })
     return vm
 }
 

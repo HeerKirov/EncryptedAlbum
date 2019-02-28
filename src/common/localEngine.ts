@@ -20,6 +20,14 @@ function FILE_NAME(index: number): string {
     return `block-${(index + 0xa).toString(16)}.dat`
 }
 
+function defaultTagType() {
+    return [
+        {key: 'author', name: '作者', background: '#FFFF00', fontcolor: '#000000'},
+        {key: 'theme', name: '题材', background: '#17A2B8', fontcolor: '#FFFFFF'},
+        {key: 'content', name: '内容', background: '#28A745', fontcolor: '#FFFFFF'}
+    ]
+}
+
 class LocalDataEngine implements DataEngine {
     constructor(private storageFolder: string, private key: string) { }
 
@@ -59,6 +67,7 @@ class LocalDataEngine implements DataEngine {
         let success = []
         for(let illust of illustrations) {
             if(!illust.id) {
+                if(Arrays.isEmpty(illust.images)) continue
                 illust.id = this.memory.stepToNextIllustrationId()
                 Arrays.append(this.memory.illustrations, illust)
                 Arrays.append(success, illust)
@@ -91,19 +100,14 @@ class LocalDataEngine implements DataEngine {
         return success
     }
     deleteIllustration(illustrations: (Illustration | number)[]): number {
+        //TODO create|update|delete综合时，对image的删除情况就会变的十分复杂。如果要做对image buffer的删除，需要综合考虑。
         let delNumber = 0
         for(let ii of illustrations) {
             let id = typeof ii === "number" ? ii : ii.id
             let index = Arrays.indexOf(this.memory.illustrations, (t) => t.id === id)
             if(index >= 0) {
-                let illust: Illustration = this.memory.illustrations[index]
-                for(let image of illust.images) {
-                    this.imageURLCache.remove(image.id)
-                    this.memory.blocks[image.id] = undefined
-                }
                 Arrays.removeAt(this.memory.illustrations, index)
                 delNumber++
-                //TODO 在删除时，需要删除block表，并将空出来的block记入unused。
             }
         }
         return delNumber
@@ -362,11 +366,7 @@ class LocalDataEngine implements DataEngine {
             this.memory.illustrations = []
             this.memory.config = {}
             //下面是初始化的配置。
-            this.memory.config['tag-type'] = [
-                {key: 'author', name: '作者', background: '#FFFF00', fontcolor: '#000000'},
-                {key: 'theme', name: '题材', background: '#17A2B8', fontcolor: '#FFFFFF'},
-                {key: 'content', name: '内容', background: '#28A745', fontcolor: '#FFFFFF'}
-            ]
+            this.memory.config['tag-type'] = defaultTagType()
 
             return true
         }
@@ -455,7 +455,7 @@ class SaveModel {
     }
     stepToNextBlockIndex(): number {
         if(Arrays.isNotEmpty(this.unusedBlocks)) {
-            return this.unusedBlocks.splice(0, 1)[0]
+            return Arrays.popAt(this.unusedBlocks, 0)
         }
         return this.nextBlockIndex++
     }
@@ -574,4 +574,4 @@ function saveImageBuffer(folder: string, buffer: Buffer, nextBlockIndex: () => n
     }
 }
 
-export {LocalDataEngine, LocalFormula}
+export {LocalDataEngine, LocalFormula, defaultTagType}

@@ -8,7 +8,7 @@ import {exportImage} from "../util/nativeImage";
 import Timer = NodeJS.Timer;
 
 const {TouchBar, dialog} = remote
-const {TouchBarButton, TouchBarSpacer} = TouchBar
+const {TouchBarButton, TouchBarSpacer, TouchBarSegmentedControl, TouchBarSlider, TouchBarPopover} = TouchBar
 const Vue = require('vue/dist/vue')
 const $ = window['$']
 
@@ -57,6 +57,74 @@ function detailModel(vueModel: CommonModel) {
             Arrays.append(ret, Arrays.popAt(items, next))
         }
         timerRandomList = ret
+    }
+
+    let touchBar = null
+    function generateTouchBar() {
+        let zoomAbsolute = new TouchBarSegmentedControl({
+            segments: [
+                {label: '绝对值'},
+                {label: '自适应'}
+            ],
+            selectedIndex: vm.zoom.absolute ? 0 : 1,
+            change: selectedIndex => {
+                vm.zoom.absolute = selectedIndex === 0
+            }
+        })
+        let zoomValue = new TouchBarSlider({
+            label: '缩放',
+            minValue: 0, maxValue: 100, value: vm.zoom.value,
+            change: newValue => {
+                vm.zoom.value = newValue
+            }
+        })
+
+        let timerRandom = new TouchBarSegmentedControl({
+            segments: [
+                {label: '随机'},
+                {label: '顺序'}
+            ],
+            selectedIndex: vm.timer.random ? 0 : 1,
+            change: selectedIndex => {
+                vm.timer.random = selectedIndex === 0
+            }
+        })
+        let timerItem = new TouchBarSlider({
+            label: '定时',
+            minValue: 0, maxValue: PLAY_ITEMS.length - 1, value: vm.timer.item,
+            change: newValue => {
+                vm.timer.item = newValue
+            }
+        })
+
+        let touchBar = new TouchBar({
+            items: [
+                new TouchBarSpacer({size: 'flexible'}),
+                new TouchBarPopover({
+                    label: '轮播',
+                    items: new TouchBar({
+                        items: [
+                            new TouchBarSpacer({size: 'flexible'}),
+                            timerRandom, timerItem
+                        ]
+                    })
+                }),
+                new TouchBarPopover({
+                    label: '缩放',
+                    items: new TouchBar({
+                        items: [
+                            new TouchBarSpacer({size: 'flexible'}),
+                            zoomAbsolute, zoomValue
+                        ]
+                    })
+                })
+            ]
+        })
+        return {
+            touchBar,
+            zoomAbsolute, zoomValue,
+            timerRandom, timerItem
+        }
     }
 
     let vm = new Vue({
@@ -127,9 +195,25 @@ function detailModel(vueModel: CommonModel) {
                     timer = null
                 }
                 if(this.timerItems[val].value) timer = setInterval(timerPlay, this.timerItems[val].value * 1000)
+                if(touchBar) {
+                    touchBar.timerItem.value = parseInt(val)
+                }
             },
             'timer.random': function (val) {
                 if(val) createRandomTimerList()
+                if(touchBar) {
+                    touchBar.timerRandom.selectedIndex = val ? 0 : 1
+                }
+            },
+            'zoom.value': function (val) {
+                if(touchBar) {
+                    touchBar.zoomValue.value = parseInt(val)
+                }
+            },
+            'zoom.absolute': function (val) {
+                if(touchBar) {
+                    touchBar.zoomAbsolute.selectedIndex = val ? 0 : 1
+                }
             }
         },
         methods: {
@@ -162,6 +246,7 @@ function detailModel(vueModel: CommonModel) {
                         changedFlag = true
                     }
                 }
+                this.setTouchBar()
             },
             leave() {
                 if(this.fullscreen && this.isShowFullScreenButton) {
@@ -317,6 +402,12 @@ function detailModel(vueModel: CommonModel) {
             openLink(link: string) {
                 shell.openExternal(link)
             },
+            setTouchBar() {
+                if(db.platform.platform === 'darwin') {
+                    touchBar = generateTouchBar()
+                    vueModel.setTouchBar(touchBar.touchBar)
+                }
+            }
         }
     })
     $(document)['keydown'](function(e) {

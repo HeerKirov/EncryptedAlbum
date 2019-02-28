@@ -92,8 +92,7 @@ function createFormula(data: Object): Formula {
  * {
  *      mainFormula: {
  *          id: <string>, type: <string>, key: <string>, ...
- *      },
- *      secondaryFormulas: [...]
+ *      }
  * }
  * 这个结构会被加密后，写入appDataFolder下的data.dat文件中。
  * 加密方案：

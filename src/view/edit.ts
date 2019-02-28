@@ -3,14 +3,14 @@ import {Illustration, Image, ImageSpecification} from "../common/engine"
 import {PixivClient, PixivIllust} from "../common/pixiv"
 import {Illustrations, Images, Tags} from "../util/model"
 import {Arrays, Sets} from "../util/collection"
-import {Paths, Strings} from "../util/string"
+import {Strings} from "../util/string"
 import {ProcessManager} from '../util/processor'
 import {downloadImageBuffer, PREFIX} from "../util/nativeImage"
 import {readFile} from 'fs'
 import {nativeImage, remote} from 'electron'
 
 const {dialog, TouchBar} = remote
-const {TouchBarButton, TouchBarSpacer} = TouchBar
+const {TouchBarButton, TouchBarSpacer, TouchBarSegmentedControl} = TouchBar
 const Vue = require('vue/dist/vue')
 const $ = window['$']
 
@@ -149,6 +149,7 @@ function editModel(vueModel: CommonModel) {
                         this.turnTo(0)
                     }
                 }
+                this.setTouchBar()
             },
             leave() {
                 this.visible = false
@@ -875,6 +876,32 @@ function editModel(vueModel: CommonModel) {
                         return this.current.index < this.illusts.length - 1
                     case 'last':
                         return this.current.index < this.illusts.length - 1
+                }
+            },
+            setTouchBar() {
+                if(db.platform.platform === 'darwin') {
+                    vueModel.setTouchBar(new TouchBar({
+                        items: [
+                            new TouchBarSpacer({size: 'flexible'}),
+                            new TouchBarSegmentedControl({
+                                segments: [
+                                    {label: '空项目'},
+                                    {label: '本地导入'},
+                                    {label: '网络导入'},
+                                    {label: '解析Pixiv'}
+                                ],
+                                mode: 'buttons',
+                                change: selectedIndex => {
+                                    if(selectedIndex === 0) this.newIllust('empty')
+                                    else if(selectedIndex === 1) this.openLocalPanel()
+                                    else if(selectedIndex === 2) this.openURLPanel('illust')
+                                    else if(selectedIndex === 3) this.openPixivPanel()
+                                }
+                            }),
+                            new TouchBarSpacer({size: 'flexible'}),
+                            new TouchBarButton({label: '全部保存', backgroundColor: '#007bff', click: this.submit})
+                        ]
+                    }))
                 }
             }
         }

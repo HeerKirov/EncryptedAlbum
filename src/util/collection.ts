@@ -203,6 +203,19 @@ class Sets {
     static remove<T>(set: T[], ele: T): boolean {
         return Arrays.remove(set, ele)
     }
+
+    static and<T>(a: T[], b: T[]): T[] {
+        if(a && b) {
+            let ret = []
+            for(let i of a) {
+                if(Sets.contains(b, i)) {
+                    Arrays.append(ret, i)
+                }
+            }
+            return ret
+        }
+        return null
+    }
 }
 
 class Maps {

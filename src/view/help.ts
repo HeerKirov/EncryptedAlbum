@@ -4,7 +4,7 @@ const $ = window['$']
 
 function helpModel(vueModel: CommonModel) {
     let db: CommonDB = vueModel.db
-    return new Vue({
+    let vm = new Vue({
         el: '#helpView',
         data: {
             visible: false,
@@ -45,6 +45,14 @@ function helpModel(vueModel: CommonModel) {
             }
         }
     })
+    $(document)['keydown'](function(e) {
+        if(vm.visible) {
+            if(e.keyCode === 27) {
+                vm.goBack()
+            }
+        }
+    })
+    return vm
 }
 
 module.exports = helpModel

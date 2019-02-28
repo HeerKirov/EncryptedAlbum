@@ -7,7 +7,7 @@ import {Strings} from "../util/string";
 import {exportImage} from "../util/nativeImage"
 
 const {TouchBar, dialog} = remote
-const {TouchBarButton, TouchBarSpacer} = TouchBar
+const {TouchBarButton, TouchBarSpacer, TouchBarPopover, TouchBarSegmentedControl, TouchBarSlider, TouchBarLabel} = TouchBar
 const Vue = require('vue/dist/vue')
 const $ = window['$']
 
@@ -18,6 +18,48 @@ interface Frontend {
     selected: boolean,
     backendIllustIndex?: number,
     backendImageIndex?: number
+}
+
+function generateTouchBar(vm) {
+    let viewShowTitleBar = new TouchBarSegmentedControl({
+        segments: [
+            {label: '显示'},
+            {label: '不显示'}
+        ],
+        selectedIndex: vm.view.showTitle ? 0 : 1,
+        change: selectedIndex => {
+            vm.view.showTitle = selectedIndex === 0
+        }
+    })
+    let viewZoom = new TouchBarSlider({
+        label: '缩放',
+        minValue: 1, maxValue: 10, value: vm.view.zoom,
+        change: newValue => {
+            vm.view.zoom = newValue
+        }
+    })
+    let touchBar = new TouchBar({
+        items: [
+            new TouchBarButton({label: '新建项目', backgroundColor: '#28a745', click: vm.gotoAdd}),
+            new TouchBarSpacer({size: 'flexible'}),
+            new TouchBarPopover({
+                label: '视图',
+                items: new TouchBar({
+                    items: [
+                        new TouchBarLabel({label: '显示标题'}),
+                        viewShowTitleBar,
+                        viewZoom
+                    ]
+                })
+            }),
+            new TouchBarButton({label: '设置', click: vm.gotoSetting}),
+        ]
+    })
+
+    return {
+        touchBar,
+        viewShowTitleBar, viewZoom
+    }
 }
 
 function getIllustrationFindOption(option): IllustrationFindOption {
@@ -53,6 +95,9 @@ function generateExportTitle(illust: Illustration, image: Image): string {
 
 function mainModel(vueModel: CommonModel) {
     let db = vueModel.db
+
+    let touchBar = null
+
     let vm = new Vue({
         el: '#mainView',
         data: {
@@ -136,11 +181,17 @@ function mainModel(vueModel: CommonModel) {
             }
         },
         watch: {
-            'view.showTitle': function () {
+            'view.showTitle': function (val) {
                 this.saveViewOption()
+                if(touchBar) {
+                    touchBar.viewShowTitleBar.selectedIndex = val ? 0 : 1
+                }
             },
-            'view.zoom': function () {
+            'view.zoom': function (val) {
                 this.saveViewOption()
+                if(touchBar) {
+                    touchBar.viewZoom.value = parseInt(val)
+                }
             },
             'view.loadNum': function () {
                 this.saveViewOption()
@@ -159,13 +210,13 @@ function mainModel(vueModel: CommonModel) {
                     db.engine = db.storage.loadMainEngine()
                     db.engine.connect()
                 }
-                console.log(db.engine)
                 this.tag.typeList = db.engine.getConfig('tag-type')
                 this.loadViewOption()
                 this.loadFolder()
                 if(refresh) {
                     this.switchFolder(this.folder.current, true)
                 }
+                this.setTouchBar()
             },
             leave() {
                 this.visible = false
@@ -653,6 +704,12 @@ function mainModel(vueModel: CommonModel) {
                 }
                 return {background: '', color: ''}
             },
+            setTouchBar() {
+                if(db.platform.platform === 'darwin') {
+                    touchBar = generateTouchBar(this)
+                    vueModel.setTouchBar(touchBar.touchBar)
+                }
+            }
         }
     })
     return vm
