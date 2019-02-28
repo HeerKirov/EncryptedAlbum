@@ -168,6 +168,7 @@ function editModel(vueModel: CommonModel) {
                 this.current.illust = null
                 this.current.imageURLs = []
                 newImageData = {}
+                newImageCount = 0
                 deletedIllusts = []
 
                 vueModel.routeBack()
@@ -215,6 +216,8 @@ function editModel(vueModel: CommonModel) {
                                             finish()
                                         }
                                     })
+                                }else{
+                                    console.warn(`real id of ${virtualId} is undefined.`)
                                 }
                             }
                         }else{
@@ -225,6 +228,7 @@ function editModel(vueModel: CommonModel) {
                             finishTask()
 
                             newImageData = {}
+                            newImageCount = 0
                             vm.illusts = []
                             vm.current.index = null
                             vm.current.illust = null

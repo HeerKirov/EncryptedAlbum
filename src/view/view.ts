@@ -132,7 +132,7 @@ function setTouchBar(touchBar: TouchBar): void {
     }
 }
 function setTitle(title: string): void {
-    if(!title) title = 'Encrypted Album'
+    if(!title) title = 'Hedge'
     win.setTitle(title)
     $('#titleBar').text(title)
 }

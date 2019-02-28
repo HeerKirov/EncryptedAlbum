@@ -1,5 +1,5 @@
 {
-  "name": "Encrypted-Album",
+  "name": "Hedge",
   "version": "0.2.0B",
   "description": "An encrypt album application",
   "main": "target/program/main.js",

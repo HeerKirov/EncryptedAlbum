@@ -1,6 +1,6 @@
-if [ -f "target/Encrypted Album.dmg" ]; then
-    rm "target/Encrypted Album.dmg"
+if [ -f "target/Hedge.dmg" ]; then
+    rm "target/Hedge.dmg"
 fi
 npm -g install appdmg
-appdmg files/dmg.json "target/Encrypted Album.dmg"
-echo Encrypted Album.dmg build success.
+appdmg files/dmg.json "target/Hedge.dmg"
+echo Hedge.dmg build success.

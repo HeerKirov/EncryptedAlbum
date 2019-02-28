@@ -1,6 +1,7 @@
 <div id="mainView" class="panel" :hidden="!visible">
+    <!-- TODO 处理TouchBar按钮 -->
     <div style="overflow: auto; height: 100vh; width: 100%">
-        <div style="margin-bottom: 55px; margin-top: 72px">
+        <div style="margin-bottom: 55px" :style="{'margin-top': isNoTitleBar ? '50px' : '72px'}">
             <ul style="margin: 0; padding: 0">
                 <li v-for="(item, index) in data.frontend" style="display: inline-block;" :style="{width: 60 + view.zoom * 40 + 'px'}">
                     <div class="card" style="margin: 2px">

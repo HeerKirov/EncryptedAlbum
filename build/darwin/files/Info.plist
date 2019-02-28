@@ -5,17 +5,17 @@
 	<key>BuildMachineOSBuild</key>
 	<string>16G1510</string>
 	<key>CFBundleDisplayName</key>
-	<string>Encrypted Album</string>
+	<string>Hedge</string>
 	<key>CFBundleExecutable</key>
-	<string>Encrypted Album</string>
+	<string>Hedge</string>
 	<key>CFBundleIconFile</key>
-	<string>album.icns</string>
+	<string>hedge.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.heerkirov.encrypted-album</string>
+	<string>com.heerkirov.hedge</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Encrypted Album</string>
+	<string>Hedge</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

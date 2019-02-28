@@ -90,9 +90,9 @@ const applicationRun: (ApplicationOption?) => void = (function () {
             let devTool = debug ? {role: 'toggledevtools', label: '开发者工具'} : {role: 'forcereload', label: '完全重新加载'}
             Menu.setApplicationMenu(Menu.buildFromTemplate([
                 {
-                    label: 'Encrypted Album',
+                    label: 'Hedge',
                     submenu: [
-                        {role: 'about', label: '关于Encrypted Album'},
+                        {role: 'about', label: '关于Hedge'},
                         {type: 'separator'},
                         {
                             label: '偏好设置',
@@ -100,11 +100,11 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                             click() {activeMainWindow('setting')}
                         },
                         {type: 'separator'},
-                        {role: 'hide', label: '隐藏Encrypted Album'},
+                        {role: 'hide', label: '隐藏Hedge'},
                         {role: 'hideOthers', label: '隐藏其他'},
                         {role: 'unhide', label: '取消隐藏'},
                         {type: 'separator'},
-                        {role: 'quit', label: '退出Encrypted Album'},
+                        {role: 'quit', label: '退出Hedge'},
                     ]
                 },
                 {
@@ -151,7 +151,7 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                         {
                             label: '关于本项目',
                             click() {
-                                shell.openExternal('https://github.com/HeerKirov/EncryptedAlbum')
+                                shell.openExternal('https://github.com/HeerKirov/Hedge')
                             }
                         }
                     ]
@@ -177,10 +177,13 @@ const applicationRun: (ApplicationOption?) => void = (function () {
                 minWidth: 640, minHeight: 480,
                 width: 960, height: 640,
                 titleBarStyle: "hidden",
-                title: "Encrypted Album"
+                title: "Hedge"
             })
             if(platform !== 'darwin') {
                 win.setMenuBarVisibility(false)
+            }
+            if(platform !== 'darwin' && debug) {
+                win.webContents.openDevTools()
             }
             win.on('close', (e) => {
                 if(!quitFlag && platform === 'darwin') {

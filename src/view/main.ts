@@ -152,6 +152,14 @@ function mainModel(vueModel: CommonModel) {
                 db.ui.theme = 'gray'
                 this.visible = true
                 if(db.ui.fullscreen) {this.enterFullScreen()} else {this.leaveFullScreen()}
+                if(db.storage == null) {
+                    alert('发生错误：存储未加载。')
+                }
+                if(db.engine == null) {
+                    db.engine = db.storage.loadMainEngine()
+                    db.engine.connect()
+                }
+                console.log(db.engine)
                 this.tag.typeList = db.engine.getConfig('tag-type')
                 this.loadViewOption()
                 this.loadFolder()

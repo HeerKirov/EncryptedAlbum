@@ -11,7 +11,6 @@ const {TouchBar, dialog} = remote
 const {TouchBarButton, TouchBarSpacer} = TouchBar
 const Vue = require('vue/dist/vue')
 const $ = window['$']
-//TODO 处理收藏夹的联动
 
 const PLAY_ITEMS = [
     {title: '停止', value: null},

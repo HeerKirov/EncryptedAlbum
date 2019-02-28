@@ -1,4 +1,4 @@
-# Encrypted Album
+# Hedge
 > version 0.2.0 Beta
 
 Coding...
@@ -36,9 +36,8 @@ npm run debug
 ### 打包可执行程序
 #### macOS
 相关工具存放在`build/darwin`目录下。  
-运行`build.sh`，以自动执行打包工作。打包后得到`build/darwin/target/Encrypted Album.app`。  
-运行`build-dmg.sh`，以执行将应用程序打包为镜像的工作。打包后得到`build.darwin/target/Encrypted Album.dmg`。
+运行`build.sh`，以自动执行打包工作。打包后得到`build/darwin/target/Hedge.app`。  
+运行`build-dmg.sh`，以执行将应用程序打包为镜像的工作。打包后得到`build.darwin/target/Hedge.dmg`。
 
 #### Windows
-还没有做。自行构建参考[application-distribution](https://electronjs.org/docs/tutorial/application-distribution)。  
-**在Windows平台下存在严重的bug，导致程序完全不可用。**
+自行构建参考[application-distribution](https://electronjs.org/docs/tutorial/application-distribution)。  

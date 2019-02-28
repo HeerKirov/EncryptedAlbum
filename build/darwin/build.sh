@@ -11,9 +11,9 @@ else
     rm electron.zip
 fi
 
-mv target/Electron.app/Contents/MacOS/Electron "target/Electron.app/Contents/MacOS/Encrypted Album"
+mv target/Electron.app/Contents/MacOS/Electron "target/Electron.app/Contents/MacOS/Hedge"
 cp files/Info.plist target/Electron.app/Contents/Info.plist
-cp files/album.icns target/Electron.app/Contents/Resources/album.icns
+cp files/hedge.icns target/Electron.app/Contents/Resources/hedge.icns
 rm target/Electron.app/Contents/Resources/electron.icns
 
 mkdir target/Electron.app/Contents/Resources/app
@@ -26,9 +26,9 @@ rm -rf target/Electron.app/Contents/Resources/app/node_modules/typescript
 rm -rf target/Electron.app/Contents/Resources/app/node_modules/electron/dist
 rm target/Electron.app/Contents/Resources/default_app.asar
 
-mv target/Electron.app "target/Encrypted Album.app"
+mv target/Electron.app "target/Hedge.app"
 rm target/LICENSE*
 rm target/version
 
 echo
-echo Encrypted Album.app build success.
+echo Hedge.app build success.

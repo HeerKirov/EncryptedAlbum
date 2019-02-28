@@ -1,4 +1,4 @@
-import {close, existsSync, mkdirSync, open, read, readFileSync, write, writeFileSync} from 'fs'
+import {close, closeSync, existsSync, mkdirSync, open, openSync, read, readFileSync, write, writeFileSync} from 'fs'
 import {
     DataEngine, Illustration,
     IllustrationFindOption, TagFindOption, ImageSpecification,
@@ -555,7 +555,11 @@ function saveImageBuffer(folder: string, buffer: Buffer, nextBlockIndex: () => n
     for(let filename in map) {
         let mapBlock = map[filename]
         let flag = mapBlock.length
-        open(filename, 'a', (err, fd) => {
+        if(!existsSync(filename)) {
+            let fd = openSync(filename, 'w+')
+            closeSync(fd)
+        }
+        open(filename, 'r+', (err, fd) => {
             if(err) console.log(err)
             for(let {id, block, size} of mapBlock) {
                 write(fd, buffer, id * BLOCK_SIZE, size, block * BLOCK_SIZE, (err, read, buf) => {
