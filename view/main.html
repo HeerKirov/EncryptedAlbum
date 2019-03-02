@@ -195,7 +195,7 @@
                                         <div class="card-body p-2">
                                             <span v-if="ui.filter.tags.length === 0" class="text-secondary">没有选择任何标签</span>
                                             <span v-for="(tag, index) in ui.filter.tags" class="badge m-1" :style="getTagColor(tag)">
-                                                <a class="text-white" @click="removeFilterTag(index)">{{getTagName(tag)}}</a>
+                                                <a @click="removeFilterTag(index)">{{getTagName(tag)}}</a>
                                             </span>
                                         </div>
                                     </div>
@@ -205,9 +205,9 @@
                                             <i class="fa fa-search"></i>
                                         </button>
                                     </div>
-                                    <div class="m-1 text-left" style="overflow: auto; max-height: 360px" v-if="tag.tags.length > 0">
+                                    <div class="m-1 text-left" style="overflow: auto; max-height: 240px" v-if="tag.tags.length > 0">
                                         <span v-for="tag in tag.tags" class="badge m-1" :style="getTagColor(tag)">
-                                            <a class="text-white" @click="addFilterTag(tag)">{{getTagName(tag)}}</a>
+                                            <a @click="addFilterTag(tag)">{{getTagName(tag)}}</a>
                                         </span>
                                     </div>
                                 </div>

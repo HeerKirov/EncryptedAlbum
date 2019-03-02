@@ -79,7 +79,7 @@
                                 </div>
                                 <div class="m-1 text-left" style="overflow: auto; max-height: 480px" v-if="tag.tags.length > 0">
                                 <span v-for="t in tag.tags" class="badge m-1" :style="getTagColor(t)">
-                                    <a class="text-white" @click="selectTag(t)">{{getTagName(t)}}</a>
+                                    <a @click="selectTag(t)">{{getTagName(t)}}</a>
                                 </span>
                                 </div>
                             </div>

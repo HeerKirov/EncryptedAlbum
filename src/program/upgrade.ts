@@ -1,11 +1,12 @@
 /**将v0.1.0-Beta的localEngine存储结构升级到v0.2.0-Beta。
- * node target/upgrade.js <password> <save_path>
+ * node target/program/upgrade.js <password> <save_path>
  */
 import {readFileSync, writeFileSync} from 'fs'
 import {Illustration, Image} from "../common/engine"
 import {decrypt, encrypt} from '../util/encryption'
 import {Arrays, Sets} from "../util/collection"
 import {Tags} from "../util/model"
+import {Strings} from "../util/string";
 
 function decryptIt(key: string, filename: string): Object {
     let data: Buffer = readFileSync(filename, {encoding: null})
@@ -14,6 +15,9 @@ function decryptIt(key: string, filename: string): Object {
 function encryptIt(key: string, filename: string, content: Object): void {
     let data: Buffer = encrypt(key, content)
     writeFileSync(filename, data, {encoding: null})
+}
+function getIllustMinImageId(illust: Illustration): number {
+    return illust.images[0].id
 }
 function upgrade(data: {index: number, images: [], blocks: Object, blockMax: number, config: Object}): Object {
     let illustrations: Illustration[] = []
@@ -24,7 +28,7 @@ function upgrade(data: {index: number, images: [], blocks: Object, blockMax: num
     for(let image of data.images) {
         let col = image['collection']
         if(col != null) {
-            let arr: [] = (collections[col]) ? collections[col] : collections[col] = []
+            let arr: []
             if(collections[col]) {
                 arr = collections[col]
             }else{
@@ -67,7 +71,12 @@ function upgrade(data: {index: number, images: [], blocks: Object, blockMax: num
                 id: oldImage.id,
                 index: imageIndex ++,
                 subTitle: (oldImage.title && oldImage.title.indexOf(illustTitle) >= 0) ? null : oldImage.title,
-                subTags: Arrays.filter(oldImage.tags, (tag: string) => !Sets.contains(tags, tag)),
+                subTags: Arrays.filterMap(oldImage.tags, (tag: string) => {
+                    let oldType = tag.substring(0, 1)
+                    let name = tag.substring(1)
+                    let newType = oldType === '#' ? 'content' : oldType === '@' ? 'author' : 'theme'
+                    return Strings.isNotBlank(name) && !Sets.contains(tags, tag) ? Tags.tag(newType, name): undefined
+                }),
                 resolution: oldImage.resolution,
                 createTime: oldImage.createTime
             }
@@ -80,14 +89,14 @@ function upgrade(data: {index: number, images: [], blocks: Object, blockMax: num
             }
         }
         let illust: Illustration = {
-            id: nextIllustId ++,
+            id: undefined,
             title: illustTitle,
             images, links,
-            tags: tags ? Arrays.map(tags, (tag: string) => {
+            tags: tags ? Arrays.filterMap(tags, (tag: string) => {
                 let oldType = tag.substring(0, 1)
                 let name = tag.substring(1)
                 let newType = oldType === '#' ? 'content' : oldType === '@' ? 'author' : 'theme'
-                return Tags.tag(newType, name)
+                return Strings.isNotBlank(name) ? Tags.tag(newType, name) : undefined
             }) : [],
             createTime
         }
@@ -109,19 +118,26 @@ function upgrade(data: {index: number, images: [], blocks: Object, blockMax: num
         }
 
         let illust: Illustration = {
-            id: nextIllustId ++,
+            id: undefined,
             title: oldImage.title,
-            tags: Arrays.map(oldImage.tags, (tag: string) => {
+            tags: Arrays.filterMap(oldImage.tags, (tag: string) => {
                 let oldType = tag.substring(0, 1)
                 let name = tag.substring(1)
                 let newType = oldType === '#' ? 'content' : oldType === '@' ? 'author' : 'theme'
-                return Tags.tag(newType, name)
+                return Strings.isNotBlank(name) ? Tags.tag(newType, name) : undefined
             }),
             createTime: oldImage.createTime,
             links: oldImage.links,
             images: [image]
         }
         Arrays.append(illustrations, illust)
+    }
+    illustrations.sort((a, b) => {
+        let aId = getIllustMinImageId(a), bId = getIllustMinImageId(b)
+        return aId === bId ? 0 : aId < bId ? -1 : 1
+    })
+    for(let illust of illustrations) {
+        illust.id = nextIllustId ++
     }
 
     let nextIndex: any = {}

@@ -258,9 +258,9 @@
                         <button class="btn text-dark collapsed" data-toggle="collapse" data-target="#exist-tags-col" aria-expanded="false">
                             <i class="fa fa-caret-down"></i> 标签库
                         </button>
-                        <div class="collapse m-1" id="exist-tags-col">
+                        <div class="collapse m-1" id="exist-tags-col" style="overflow: auto; max-height: 360px">
                             <span v-for="tag in tagEditor.allTagList" class="badge m-1" :style="getTagColor(tag)">
-                                <a class="text-white" @click="addExistTagToEditor(tag)">{{getTagName(tag)}}</a>
+                                <a @click="addExistTagToEditor(tag)">{{getTagName(tag)}}</a>
                             </span>
                         </div>
                     </div>

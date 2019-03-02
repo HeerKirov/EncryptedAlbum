@@ -253,7 +253,7 @@ function settingModel(vueModel: CommonModel) {
                 }
             },
             loadTagList(search?: string) {
-                this.tag.tags = db.engine.findTag({search: search})
+                this.tag.tags = db.engine.findTag({search: search, order: ['type', 'title']})
             },
             searchTag() {
                 let search = Strings.isNotBlank(this.tag.tagSearchText) ? this.tag.tagSearchText.trim() : null

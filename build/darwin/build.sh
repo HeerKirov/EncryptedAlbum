@@ -19,7 +19,7 @@ rm target/Electron.app/Contents/Resources/electron.icns
 mkdir target/Electron.app/Contents/Resources/app
 cd ../..
 tsc
-cp -R target view view.css view.font view.js node_modules ./build/darwin/target/Electron.app/Contents/Resources/app/
+cp -R target view view.css view.font node_modules ./build/darwin/target/Electron.app/Contents/Resources/app/
 cp package.json package-lock.json ./build/darwin/target/Electron.app/Contents/Resources/app/
 cd - > /dev/null
 rm -rf target/Electron.app/Contents/Resources/app/node_modules/typescript

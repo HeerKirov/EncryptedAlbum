@@ -182,10 +182,10 @@ function sortIllustration(illustrations: Illustration[], order: string[], desc: 
                 if(tA !== tB) return tA.localeCompare(tB, 'zh') > 0 ? gt : lt
             }else if(field === 'createTime') {
                 let tA = a.createTime, tB = b.createTime
-                if(tA !== tB) return tA < tB ? gt: lt
+                if(tA !== tB) return tA > tB ? gt: lt
             }else if(field === 'imageQuantity') {
                 let tA = a.images.length, tB = b.images.length
-                if(tA !== tB) return tA < tB ? gt: lt
+                if(tA !== tB) return tA > tB ? gt: lt
             }
         }
         return 0

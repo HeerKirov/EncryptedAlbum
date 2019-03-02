@@ -1,6 +1,6 @@
 /**用于外部解密本地存储文件的工具。
  * 前提是你知道你要解密的文件在哪里，以及你的密码是什么。
- * node target/decrypt.js <password> <filepath>
+ * node target/program/decrypt.js <password> <filepath>
  */
 
 import {decrypt} from '../util/encryption'
