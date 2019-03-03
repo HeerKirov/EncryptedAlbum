@@ -126,6 +126,8 @@ function settingModel(vueModel: CommonModel) {
             },
             leave() {
                 this.visible = false
+                $('#tagTypeEditModal')['modal']('hide')
+                $('#createFolderModal')['modal']('hide')
             },
             enterFullScreen() {
                 this.fullscreen = true
@@ -215,36 +217,62 @@ function settingModel(vueModel: CommonModel) {
             },
             saveTagType() {
                 let success = true
-                if(Strings.isBlank(this.tag.tagEditor.name)) {
+                if(Strings.isBlank(this.tag.typeEditor.name)) {
                     success = false
                     alert('名称不能为空。')
-                }else if(Strings.isBlank(this.tag.tagEditor.key)) {
+                }else if(Strings.isBlank(this.tag.typeEditor.key)) {
                     success = false
                     alert('关键字不能为空。')
                 }
                 if(success) {
-                    if(this.tag.tagEditor.goal === 'new') {
+                    if(this.tag.typeEditor.goal === 'new') {
                         for(let type of this.tag.typeList) {
-                            if(type.key === this.tag.tagEditor.key) {
+                            if(type.key === this.tag.typeEditor.key) {
                                 success = false
                                 break
                             }
                         }
                         if(success) {
                             vm.$set(this.tag.typeList, this.tag.typeList.length, {
-                                name: this.tag.tagEditor.name,
-                                key: this.tag.tagEditor.key,
-                                background: this.tag.tagEditor.background,
-                                fontcolor: this.tag.tagEditor.fontcolor
+                                name: this.tag.typeEditor.name,
+                                key: this.tag.typeEditor.key,
+                                background: this.tag.typeEditor.background,
+                                fontcolor: this.tag.typeEditor.fontcolor
                             })
                         }else{
                             alert('该关键字已经存在。')
                         }
                     }else{
-                        this.tag.typeList[this.tag.tagEditor.goal].name = this.tag.tagEditor.name
-                        this.tag.typeList[this.tag.tagEditor.goal].key = this.tag.tagEditor.key
-                        this.tag.typeList[this.tag.tagEditor.goal].background = this.tag.tagEditor.background
-                        this.tag.typeList[this.tag.tagEditor.goal].fontcolor = this.tag.tagEditor.fontcolor
+                        if(this.tag.typeList[this.tag.typeEditor.goal].key != this.tag.typeEditor.key) {
+                            let existKeyIndex = Arrays.indexOf(this.tag.typeList, (type: any) => type.key === this.tag.typeEditor.key)
+                            if(existKeyIndex >= 0) {
+                                if(confirm(`关键字[${this.tag.typeEditor.key}]已经存在。关键字变更操作会视为合并操作，删除当前标签类型并将当前类型的标签库合并到目标关键字下。确认合并吗？`)) {
+                                    let tags = db.engine.findTag({type__eq: this.tag.typeList[this.tag.typeEditor.goal].key})
+                                    for(let tag of tags) {
+                                        db.engine.renameTag(tag, undefined, this.tag.typeEditor.key)
+                                    }
+                                    Arrays.removeAt(this.tag.typeList, this.tag.typeEditor.goal)
+                                    alert(`${tags.length}个标签已经被合并。`)
+                                    this.loadTagList()
+                                }else{
+                                    success = false
+                                }
+                            }else{
+                                let tags = db.engine.findTag({type__eq: this.tag.typeList[this.tag.typeEditor.goal].key})
+                                for(let tag of tags) {
+                                    db.engine.renameTag(tag, undefined, this.tag.typeEditor.key)
+                                }
+                                this.tag.typeList[this.tag.typeEditor.goal].name = this.tag.typeEditor.name
+                                this.tag.typeList[this.tag.typeEditor.goal].background = this.tag.typeEditor.background
+                                this.tag.typeList[this.tag.typeEditor.goal].fontcolor = this.tag.typeEditor.fontcolor
+                                this.tag.typeList[this.tag.typeEditor.goal].key = this.tag.typeEditor.key
+                                this.loadTagList()
+                            }
+                        }else{
+                            this.tag.typeList[this.tag.typeEditor.goal].name = this.tag.typeEditor.name
+                            this.tag.typeList[this.tag.typeEditor.goal].background = this.tag.typeEditor.background
+                            this.tag.typeList[this.tag.typeEditor.goal].fontcolor = this.tag.typeEditor.fontcolor
+                        }
                     }
                 }
                 if(success) {

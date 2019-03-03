@@ -220,6 +220,10 @@ function mainModel(vueModel: CommonModel) {
             },
             leave() {
                 this.visible = false
+                $('#viewModal')['modal']('hide')
+                $('#filterModal')['modal']('hide')
+                $('#createFolderModal')['modal']('hide')
+                $('#exportModal')['modal']('hide')
             },
             enterFullScreen() {
                 this.fullscreen = true

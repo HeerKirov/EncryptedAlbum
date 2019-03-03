@@ -66,12 +66,12 @@
                                 </div>
                             </div>
                             <h6>标签库</h6>
-                            <div v-if="tag.tags.length === 0">
-                                <label>现在没有标签。</label>
-                            </div>
-                            <div v-if="tag.tags.length > 0 && tag.tagSelect == null">
-                                <div><label>选择一个现有的标签执行操作：</label></div>
-                                <div class="btn-group btn-group-sm mt-2 ml-1" v-if="tag.tags.length > 0">
+                            <div v-if="tag.tagSelect == null">
+                                <div>
+                                    <label v-if="tag.tags.length > 0">选择一个现有的标签执行操作：</label>
+                                    <label v-if="tag.tags.length === 0">现在没有标签。</label>
+                                </div>
+                                <div class="btn-group btn-group-sm mt-2 ml-1">
                                     <input type="text" placeholder="在标签库中搜索…" class="form-control rounded-0" v-model="tag.tagSearchText" @keydown.enter="searchTag"/>
                                     <button type="button" class="btn btn-sm btn-secondary" @click="searchTag">
                                         <i class="fa fa-search"></i>
@@ -83,7 +83,7 @@
                                 </span>
                                 </div>
                             </div>
-                            <div class="form-group" v-if="tag.tags.length > 0 && tag.tagSelect != null">
+                            <div class="form-group" v-if="tag.tagSelect != null">
                                 <div><label>选择对标签<span class="badge m-1" :style="getTagColor(tag.tagSelect)">{{getTagName(tag.tagSelect)}}</span>要采取的操作：</label></div>
                                 <div class="btn-group mb-1">
                                     <span class="input-group-text mr-1">变更标签名称为</span>
@@ -192,8 +192,7 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label>关键字</label>
-                        <h6 v-if="tag.typeEditor.goal !== 'new'">{{tag.typeEditor.key}}</h6>
-                        <input v-if="tag.typeEditor.goal === 'new'" class="form-control" type="text" v-model="tag.typeEditor.key">
+                        <input class="form-control" type="text" v-model="tag.typeEditor.key">
                     </div>
                     <div class="form-group">
                         <label>类型名</label>

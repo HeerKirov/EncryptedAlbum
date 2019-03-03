@@ -194,8 +194,8 @@ function sortIllustration(illustrations: Illustration[], order: string[], desc: 
 }
 
 function caseTag(tag: string, option: TagFindOption): boolean {
-    if(option.type__eq && tag.substring(0, 1) !== option.type__eq) return false
-    else if(option.title__eq && tag.substring(1) !== option.title__eq) return false
+    if(option.type__eq && Tags.getTagType(tag) !== option.type__eq) return false
+    else if(option.title__eq && Tags.getTagName(tag) !== option.title__eq) return false
     else return !(option.search && (!Strings.findLikeIn(option.search, [Tags.getTagName(tag)])))
 }
 function sortTag(tags: string[], order: string[], desc: boolean): string[] {

@@ -154,6 +154,10 @@ function editModel(vueModel: CommonModel) {
             leave() {
                 this.visible = false
                 this.tagEditor.tags = null
+                $('#editTagModal')['modal']('hide')
+                $('#urlModal')['modal']('hide')
+                $('#localModal')['modal']('hide')
+                $('#pixivModal')['modal']('hide')
             },
             enterFullScreen() {
                 this.fullscreen = true

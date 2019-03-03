@@ -19,9 +19,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.2.0-beta</string>
+	<string>0.2.1-beta</string>
 	<key>CFBundleVersion</key>
-	<string>version 0.2.0 Beta</string>
+	<string>version 0.2.1 Beta</string>
 	<key>DTSDKBuild</key>
 	<string>16E185</string>
 	<key>DTSDKName</key>

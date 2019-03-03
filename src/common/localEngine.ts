@@ -11,7 +11,7 @@ import {translateDataURL, PREFIX_LENGTH, PREFIX} from '../util/nativeImage'
 import {Arrays, Maps, Sets} from "../util/collection"
 import {Illustrations, Images, Tags} from "../util/model"
 
-const VERSION = 'v0.2.0'
+const VERSION = 'v0.2.1'
 
 const STORAGE = 'data.db'
 const BLOCK_SIZE = 1024 * 64 //64KB
@@ -126,8 +126,13 @@ class LocalDataEngine implements DataEngine {
         let newTag = Tags.tag(newType ? newType : Tags.getTagType(tag), newName ? newName : Tags.getTagName(tag))
         let cnt = 0
         let tagIndex = Arrays.indexOf(this.memory.tags, (t) => t === tag)
+        let newTagIndex = Arrays.indexOf(this.memory.tags, (t) => t === newTag)
         if(tagIndex >= 0) {
-            this.memory.tags[tagIndex] = newTag
+            if(newTagIndex >= 0) {
+                Arrays.removeAt(this.memory.tags, tagIndex)
+            }else{
+                this.memory.tags[tagIndex] = newTag
+            }
             for(let illust of this.memory.illustrations) {
                 analyse(illust.tags)
                 for(let image of illust.images) {
@@ -137,8 +142,13 @@ class LocalDataEngine implements DataEngine {
         }
         function analyse(tags: string[]): void {
             let index = Arrays.indexOf(tags, (t) => t === tag)
+            let newTagIndex = Arrays.indexOf(tags, (t) => t === newTag)
             if(index >= 0) {
-                tags[index] = newTag
+                if(newTagIndex >= 0) {
+                    Arrays.removeAt(tags, index)
+                }else{
+                    tags[index] = newTag
+                }
                 cnt++
             }
         }
